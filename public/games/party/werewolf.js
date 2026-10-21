@@ -139,6 +139,7 @@ window.PARTY_GAME = (() => {
   }
 
   return {
+    _test: { buildDeck, reveal },   // internals, for the unit tests only (test/unit)
     id: 'werewolf', name: 'One Night Werewolf', min: 3, max: 10, macRole: 'moderator',
     blurb: 'One night, one vote. Everyone gets a secret role on their phone; the Mac narrates the night. Find a werewolf in the vote and the village wins. 3–10 players.',
     options: [

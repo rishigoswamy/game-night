@@ -273,6 +273,7 @@ window.PARTY_GAME = (() => {
   const resRow = (obj, cls = '') => `<div class="cat-res ${cls}">${RES.map(r => `<span class="rc r-${r}"><i>${ICON[r]}</i><b>${obj[r] || 0}</b></span>`).join('')}</div>`;
 
   return {
+    _test: { geometry, newBoard, canSettle, canRoad, legal, longest, award, ratio, produce, count, publicVP, totalVP, COST, LIMIT },   // internals, for the unit tests only (test/unit)
     id: 'catan', name: 'Catan', min: 2, max: 4, wide: true, macRole: 'board and scoreboard', pointsLabel: 'VP',
     blurb: 'Build settlements, cities and roads; trade; race to 10 victory points. The board is on the Mac; your cards stay secret on your phone. 2–4 players (3–4 is classic).',
     options: [{ key: 'target', label: 'Victory points to win', def: 10, choices: [[8, '8 (shorter game)'], [10, '10 (standard)'], [12, '12 (longer game)']] }],

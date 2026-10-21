@@ -23,6 +23,7 @@ window.GAME = (() => {
     return false;
   }
   return {
+    _test: { bankerDraws, total, val, setShoe: s => { shoe = s; } },   // internals, for the unit tests only (test/unit)
     id: 'baccarat', name: 'Baccarat', verb: 'deal', minBet: 5,
     tagline: 'Bet on Player, Banker or Tie. The dealer draws by the rules; closest to 9 wins.',
     bets: [

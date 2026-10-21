@@ -70,7 +70,7 @@ the games do. Every page's web address stays the same.
 | `party-werewolf-game` | a full Werewolf game with five phones | ✅ | ✅ |
 | `party-catan-game` | a full Catan game; resources always add up | ✅ | ✅ |
 
-**21 of 21 pass before and after.** Re-run any time with `npm test`.
+**21 of 21 pass before and after.** Re-run any time with `npm run test:e2e` (the separate unit tests: `npm test`).
 
 
 ## Possible next steps (not done here, to keep this change behaviour-free)

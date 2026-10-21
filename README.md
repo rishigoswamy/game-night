@@ -163,9 +163,12 @@ docs/                 ARCHITECTURE.md (how it all fits together) and change note
 ```
 
 - **Run it:** `npm start` (or `scripts/serve.sh [port]`).
-- **Test it:** `npm install` once (adds the test tool), then `npm test`, about 15 minutes; or run single tests, e.g.
-  `npm test -- party-gofish blackjack-phone`. Needs Google Chrome (set `CHROME_PATH` if it's somewhere else) and a
-  Wi-Fi/LAN connection (tests act as phones through the computer's network address). Tests use port 8091, never 8080.
+- **Unit tests:** `npm test`, a few seconds. Game rules and payouts, leaderboards, the admin lock, the storage
+  migration and the server's security checks (`test/unit/`, Node's built-in test runner, no extra packages).
+- **End-to-end tests:** `npm install` once (adds the browser-automation tool), then `npm run test:e2e`, about 15 minutes:
+  real games in a muted Chrome (`test/e2e/`). Run single ones with e.g. `npm run test:e2e -- party-gofish blackjack-phone`.
+  Needs Google Chrome (set `CHROME_PATH` if it's elsewhere) and a Wi-Fi/LAN connection (tests act as phones through the
+  computer's network address). They use ports 8091–8093, never the game's 8080.
 - **Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the page/module map, how phones and the master talk,
   the game-module interfaces, saved data and how to add a game.
 - When you change files under `public/`, bump `VERSION` in `public/sw.js` so installed copies refresh.

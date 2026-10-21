@@ -4,7 +4,8 @@
   "description": "Game Night: local multi-player casino and party games",
   "scripts": {
     "start": "node server/server.js",
-    "test": "node test/e2e/run.js"
+    "test": "node --test test/unit/*.test.js",
+    "test:e2e": "node test/e2e/run.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4"

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // End-to-end test runner: plays real games in a muted Chrome against a test server on port 8091.
-//   npm test                      run everything (about 15 minutes; the full Werewolf and Catan games are long)
-//   npm test -- party-gofish ...  run only the named tests
+//   npm run test:e2e                      run everything (about 15 minutes; the full Werewolf and Catan games are long)
+//   npm run test:e2e -- party-gofish ...  run only the named tests
+// (The fast unit tests are separate: npm test)
 // Each test is a script that prints what it checked; it fails on a non-zero exit, a "FAILED"/"BAD" line,
 // or browser errors ("errors: [...]"). Screenshots go to a temporary folder, never into the repo.
 const { spawn, spawnSync } = require('child_process');

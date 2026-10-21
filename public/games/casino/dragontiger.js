@@ -12,6 +12,7 @@ window.GAME = (() => {
     return s;
   }
   return {
+    _test: { rank, setShoe: s => { shoe = s; } },   // internals, for the unit tests only (test/unit)
     id: 'dragontiger', name: 'Dragon Tiger', verb: 'deal', minBet: 5,
     tagline: 'One card to the Dragon, one to the Tiger. Higher card wins: Ace is low, King is high.',
     bets: [

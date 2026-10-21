@@ -114,6 +114,12 @@ memory only.
 
 ## Tests
 
-`npm test` runs `test/e2e/run.js`: real games in a muted Chrome against a test server on port 8091 (phones are
-simulated by opening pages through the computer's Wi-Fi address). See the comments at the top of `run.js`.
-Never point tests at a real game night (port 8080).
+| | Unit tests (`npm test`) | End-to-end tests (`npm run test:e2e`) |
+|---|---|---|
+| Where | `test/unit/*.test.js` | `test/e2e/*.js` (runner: `run.js`) |
+| How | Node's built-in test runner; browser files run in a sandbox (`helpers.js`: fake `window` and storage, seeded random, a stand-in for the party page) | Real games in a muted Chrome (`playwright-core`); phones simulated through the computer's Wi-Fi address |
+| Covers | Every casino payout and drawing rule; Werewolf, Catan, Go Fish and Bluff rules; leaderboard, admin lock, storage migration; server security and relay | Whole games end to end: pages, phones, timers, voice, leaderboards |
+| Time | a few seconds | about 15 minutes |
+
+Game modules expose a few internals for the unit tests as `_test` (e.g. Catan's `longest`, Baccarat's `bankerDraws`); pages
+never use them. Tests use ports 8091–8093; never point them at a real game night (port 8080).
