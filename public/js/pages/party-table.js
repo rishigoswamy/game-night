@@ -152,6 +152,7 @@ function seatWaiting() {
 /* ---------- Render (Mac) and push (phones) ---------- */
 function render() {
   renderLobby();
+  $('#joinBtn').hidden = P.phase === 'lobby';          // in the lobby the QR code is already on screen
   const ctx = P.ctx;
   if (ctx && ctx.state && P.phase !== 'lobby') {
     $('#info').textContent = (G.status ? G.status(ctx) : '') || `${ctx.players.length} players`;
@@ -196,7 +197,7 @@ function pushNow() {
   online.forEach(d => { if (!known.has(d)) send({ ...base, me: null, view: null }, d); });
 }
 
-/* ---------- Phones (relay through the Casino server) ---------- */
+/* ---------- Phones (relay through the Game Night server) ---------- */
 const NET = { code: null, hostKey: null, es: null, addresses: [], port: location.port, tts: false };
 const sharing = () => !!NET.code;
 async function startSharing(takeover = false) {
@@ -358,6 +359,9 @@ $('#rulesBtn').addEventListener('click', () => setRules($('#rules').hidden));
 $('#rulesClose').addEventListener('click', () => setRules(false));
 document.addEventListener('pointerdown', e => { if (!$('#rules').hidden && !e.target.closest('#rules, #rulesBtn')) setRules(false); });
 $('#startBtn').addEventListener('click', startGame);
+// Mid-game: show the join QR code without leaving the game
+$('#joinBtn').addEventListener('click', () => { $('#joinUrl2').textContent = $('#joinUrl').textContent; $('#joinQr').src = '/api/qr.svg'; $('#joinModal').hidden = false; });
+$('#joinClose').addEventListener('click', () => { $('#joinModal').hidden = true; });
 // Buttons on the Mac's own game screen (e.g. "Start the vote now")
 $('#stage').addEventListener('click', e => {
   const el = e.target.closest('[data-host]');
@@ -389,7 +393,7 @@ renderOpts();
     $('#joinUrl').textContent = `http://${ip}:${info.port}`;
     const img = $('#qr'); img.onload = () => { img.hidden = false; }; img.src = '/api/qr.svg';
     startSharing();
-  } catch { $('#joinUrl').textContent = 'Start the Casino server (serve.sh) to let phones join.'; }
+  } catch { $('#joinUrl').textContent = 'Start Game Night (npm start, or Start Game Night.command) to let phones join.'; }
 })();
 let filesVer = null;
 setInterval(async () => {

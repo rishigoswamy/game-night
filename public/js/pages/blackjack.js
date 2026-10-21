@@ -1016,7 +1016,7 @@ async function startSharing(takeover = false) {
     if (!r.ok) throw 0;
     const info = await r.json();
     Object.assign(NET, { code: info.code, hostKey: info.hostKey, addresses: info.addresses, port: info.port });
-  } catch { return; }                                // no Casino server: a one-device table
+  } catch { return; }                                // no Game Night server: a one-device table
   if (!S.timeLimit) {                                // with guests, cards are dealt when the betting window closes
     S.timeLimit = 30;
     if (S.phase === 'bet' || S.phase === 'play') startTurnTimer();
@@ -1135,7 +1135,7 @@ function seatPending() {
 function renderShareBtn() {
   const b = $('#shareBtn');
   b.hidden = !sharing();
-  b.textContent = `📱 ${NET.online.size} phone${NET.online.size === 1 ? '' : 's'}`;
+  b.textContent = `📱 Join · ${NET.online.size} phone${NET.online.size === 1 ? '' : 's'}`;
   b.classList.toggle('on', sharing());
 }
 function renderShare() {
@@ -1148,7 +1148,7 @@ function renderShare() {
     ? devices.map(([d, names], k) => `<li><span class="${NET.online.has(d) ? 'on' : 'off'}">●</span> Phone ${k + 1}: ${names.map(n => n.replace(/[<>&]/g, '')).join(', ')}${NET.online.has(d) ? '' : ' <small>(disconnected)</small>'}</li>`).join('')
     : '<li class="muted">No phones yet. Players on phones appear here as they join.</li>';
 }
-$('#shareBtn').addEventListener('click', () => { renderShare(); $('#shareModal').hidden = false; });
+$('#shareBtn').addEventListener('click', () => { renderShare(); $('#shareQr').src = '/api/qr.svg'; $('#shareModal').hidden = false; });
 $('#shareClose').addEventListener('click', () => { $('#shareModal').hidden = true; });
 $('#takeoverNo').addEventListener('click', () => { $('#takeoverModal').hidden = true; });
 $('#takeoverYes').addEventListener('click', () => { $('#takeoverModal').hidden = true; startSharing(true); });
@@ -1159,7 +1159,7 @@ $('#takeoverYes').addEventListener('click', () => { $('#takeoverModal').hidden =
     Object.assign(NET, { master: info.master !== false, tts: !!info.tts, addresses: info.addresses || [], port: info.port });
     if (info.master === false) return location.replace('remote.html');
     autoShare();
-  } catch {}                                         // no Casino server: a one-device table
+  } catch {}                                         // no Game Night server: a one-device table
 })();
 // New game files → offer a reload (never forced mid-game)
 let filesVer = null;

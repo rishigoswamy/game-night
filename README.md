@@ -94,8 +94,8 @@ and use `:9000` instead of `:8080` in the addresses.
   (it keeps the screen awake until you close that window), or change System Settings → Lock Screen.
 - Optional: set an **admin PIN** on the Admin page (the **Table admin** link at the bottom of the home page).
   You need it to erase leaderboards or recent results. On a Mac you can also unlock with Touch ID.
-- Keep the join address handy for late arrivals: it's under the QR code (for example `http://192.168.1.20:8080`).
-  The QR code is on the home page and the lobbies; during a casino game, the **📱** button at the top shows the address.
+- Late arrivals: the QR code is on the home page and the lobbies, and during a game the **📱 Join** button at the
+  top of the master screen shows it (plus the address, e.g. `http://192.168.1.20:8080`) without stopping the game.
 
 **Casino tables** (home page → **Enter the Casino** → pick a table)
 1. Choose the starting chips, number of rounds and the betting window. For Roulette and Blackjack keep
@@ -124,7 +124,7 @@ The Admin page also has a **Master flush** that erases every leaderboard and all
 
 1. Join the **same Wi-Fi** as the master computer.
 2. **Scan the QR code** on the master screen with your phone's camera and open the link.
-   (No QR code on screen? Ask the host for the address and type it into your browser, e.g. `http://192.168.1.20:8080`.)
+   (No QR code on screen? Ask the host to tap **📱 Join** at the top of the master screen, or type the address, e.g. `http://192.168.1.20:8080`.)
 3. Type your name and tap **Join** (at a casino table: **+ Add player**, then **Join the table**).
    Your phone shows only your own cards, role or chips, so keep it to yourself.
 - The page joins whatever game is running and follows along when the host switches games.

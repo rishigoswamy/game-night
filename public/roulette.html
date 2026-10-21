@@ -32,7 +32,7 @@
     <a class="btn" id="lobbyBtn" href="casino.html" title="Back to the casino lobby">← Lobby</a>
     <div class="history" id="history" title="Last number (full history in Recent Numbers below)"></div>
     <button class="btn" id="installBtn" hidden title="Install as an app">Install app</button>
-    <button class="btn share-btn" id="shareBtn" hidden title="Phones at this table, and the address they use to join">📱 0 phones</button>
+    <button class="btn share-btn" id="shareBtn" hidden title="QR code and address for phones to join this table">📱 Join · 0 phones</button>
     <button class="btn" id="pauseBtn" disabled title="Pause / resume (P)">Pause</button>
     <button class="btn danger" id="quitBtn" disabled title="Exit to setup">Exit</button>
     <button class="btn" id="rulesBtn" aria-pressed="false" aria-controls="rules">Rules</button>
@@ -255,8 +255,9 @@
 
 <div class="overlay" id="shareModal" hidden>
   <div class="card share-card">
-    <h2>Phones at this table</h2>
-    <p class="center">This is the master table. Guests on the same Wi-Fi open this address on their phone and join it automatically:</p>
+    <h2>📱 Join this table</h2>
+    <p class="center">Guests on the same Wi-Fi scan this with their phone's camera (or type the address) and join this table straight away. The game keeps going.</p>
+    <img class="share-qr" id="shareQr" alt="QR code: scan to join this table">
     <div class="share-urls" id="shareUrls"></div>
     <h3>Phones at the table</h3>
     <ul class="share-phones" id="sharePhones"></ul>

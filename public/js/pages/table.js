@@ -834,7 +834,7 @@ async function startSharing(takeover = false) {
     const info = await r.json();
     NET.code = info.code; NET.hostKey = info.hostKey; NET.addresses = info.addresses; NET.port = info.port;
   } catch {
-    return;                                          // no Casino server: plays as a one-device table
+    return;                                          // no Game Night server: plays as a one-device table
   }
   if (!S.timeLimit) {                               // with guests, the wheel spins only when the betting window closes
     S.timeLimit = 30;
@@ -947,7 +947,7 @@ function seatPending() {
 function renderShareBtn() {
   const b = $('#shareBtn');
   b.hidden = !sharing();
-  b.textContent = `📱 ${NET.online.size} phone${NET.online.size === 1 ? '' : 's'}`;
+  b.textContent = `📱 Join · ${NET.online.size} phone${NET.online.size === 1 ? '' : 's'}`;
   b.classList.toggle('on', sharing());
 }
 function renderShare() {
@@ -962,7 +962,7 @@ function renderShare() {
     ? devices.map(([d, names], k) => `<li><span class="${NET.online.has(d) ? 'on' : 'off'}">●</span> Phone ${k + 1}: ${names.map(n => n.replace(/[<>&]/g, '')).join(', ')}${NET.online.has(d) ? '' : ' <small>(disconnected)</small>'}</li>`).join('')
     : '<li class="muted">No phones yet. Players on phones appear here as they join.</li>';
 }
-$('#shareBtn').addEventListener('click', () => { renderShare(); $('#shareModal').hidden = false; });
+$('#shareBtn').addEventListener('click', () => { renderShare(); $('#shareQr').src = '/api/qr.svg'; $('#shareModal').hidden = false; });
 $('#shareClose').addEventListener('click', () => { $('#shareModal').hidden = true; });
 // When the game files are updated, offer a reload (never forced mid-game on the table)
 let filesVer = null;
@@ -982,7 +982,7 @@ $('#updateBtn').addEventListener('click', () => location.reload());
     Object.assign(NET, { master: info.master !== false, addresses: info.addresses || [], port: info.port, tts: !!info.tts });
     if (info.master === false) return location.replace('table-remote.html');   // only when the server clearly says "not the host computer"
     autoShare();
-  } catch {}                                         // no Casino server (e.g. opened as a file): one-device table
+  } catch {}                                         // no Game Night server (e.g. opened as a file): one-device table
 })();
 $('#takeoverNo').addEventListener('click', () => { $('#takeoverModal').hidden = true; });
 $('#takeoverYes').addEventListener('click', () => { $('#takeoverModal').hidden = true; startSharing(true); });

@@ -36,6 +36,7 @@ document.write(`<script src="games/party/${PARTY_ID}.js"><\/script>`);
     <a class="btn" id="lobbyBtn" href="party.html">← Party games</a>
     <button class="btn" id="voiceBtn" type="button"></button>
     <button class="btn" id="rulesBtn" type="button" aria-pressed="false">Rules</button>
+    <button class="btn" id="joinBtn" type="button" hidden title="QR code and address for new players">📱 Join</button>
     <button class="btn danger" id="endBtn" type="button" hidden>End game</button>
   </div>
 </header>
@@ -115,6 +116,15 @@ document.write(`<script src="games/party/${PARTY_ID}.js"><\/script>`);
       <button class="btn primary" id="againBtn" type="button">Play again</button>
       <button class="btn" id="toLobbyBtn" type="button">Change players</button>
     </div>
+  </div>
+</div>
+<div class="overlay" id="joinModal" hidden>
+  <div class="card" style="text-align:center">
+    <h2>📱 Join the game</h2>
+    <img class="share-qr" id="joinQr" alt="QR code: scan to join">
+    <div class="share-urls"><code id="joinUrl2"></code></div>
+    <p class="center">Scan with the phone's camera (same Wi-Fi). A game is in progress, so new players are seated as soon as the next one starts.</p>
+    <button class="btn primary" id="joinClose" type="button" style="width:100%">Done</button>
   </div>
 </div>
 <div class="overlay" id="confirmModal" hidden>

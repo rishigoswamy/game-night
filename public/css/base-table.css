@@ -124,6 +124,7 @@
   .share-phones { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 4px; }
   .share-phones .on { color: #4ade80; } .share-phones .off { color: #f87171; } .share-phones .muted { color: var(--muted); font-style: italic; }
   .share-card .note { color: var(--muted); font-size: .82rem; line-height: 1.45; }
+  .share-qr { display: block; width: min(240px, 70vw); aspect-ratio: 1; margin: 4px auto 12px; background: #fff; border-radius: 12px; padding: 8px; }
   .pill .ph { font-size: .75rem; margin-left: 2px; }
   .pill.away { opacity: .6; }
   .pill.add { border-style: dashed; color: var(--gold); border-color: rgba(212,175,55,.6); background: transparent; }
