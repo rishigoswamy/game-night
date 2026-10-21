@@ -75,6 +75,7 @@ the master switches games.
 | File | Global | Purpose |
 |---|---|---|
 | `storage-migrate.js` | none | Runs first on every page; moves saved data from the project's older key names (`rd-…`, `dc-…`) to `gn-…` |
+| `server-status.js` | `ServerStatus` | On Mac pages: a bar when the server isn't running (the offline cache can still open pages); lobbies reload themselves when it's back |
 | `admin-lock.js` | `AdminLock` | Admin PIN (salted SHA-256) and optional passkey / Touch ID |
 | `leaderboard.js` | `Leaderboard` | Recording, ranking, drawing and flushing leaderboards (casino by winnings, party by wins) |
 | `casino-sounds.js` | sound builders, `createSfxPlayer` | Synthesized crowd sounds (groan, cheer, hurray, dice) with Web Audio |

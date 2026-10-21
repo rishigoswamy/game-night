@@ -24,7 +24,8 @@ const TYPES = {
 // Every sender proves who it is: the table with its hostKey, each phone with the token it was given when its
 // stream opened. Device ids are visible to other phones (they are in the table state), so they are never trusted alone.
 const tables = new Map();
-const HOST_GRACE_MS = 10 * 60 * 1000;   // a table survives a host reload / short disconnect for 10 minutes
+const HOST_GRACE_MS = 10 * 60 * 1000;
+let lastMasterPage = 0;                 // when a page on this computer last asked /api/info   // a table survives a host reload / short disconnect for 10 minutes
 
 // Is the request coming from this computer (localhost or one of its own network addresses)?
 // (DC_LOOPBACK_ONLY=1 counts only localhost, so a test browser on this computer can act like a phone.)
@@ -88,7 +89,13 @@ async function api(req, res, url) {
       return res.end(svg);
     } catch { return json(res, 404, { error: 'No QR code generator: run  npm install  in the game folder' }); }
   }
-  if (url.pathname === '/api/info') return json(res, 200, { addresses: lanAddresses(), port: PORT, master: fromThisComputer(req), tts: TTS_OK });
+  if (url.pathname === '/api/info') {
+    const master = fromThisComputer(req);
+    if (master) lastMasterPage = Date.now();                // a Game Night page is open on this computer (they check in every few seconds)
+    return json(res, 200, { addresses: lanAddresses(), port: PORT, master, tts: TTS_OK });
+  }
+  // Is a Game Night page already open on this computer? The starter asks, so it doesn't open a second tab.
+  if (url.pathname === '/api/master-open') return json(res, 200, { open: Date.now() - lastMasterPage < 4000 });
 
   // A table device opens a shared table (or re-opens its old code after a reload)
   if (url.pathname === '/api/host' && req.method === 'POST') {

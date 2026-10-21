@@ -41,7 +41,8 @@ by itself the first time; with the Terminal you run `npm install` once. Either w
 ## 2. Start the game (become the master)
 
 **On a Mac, the easy way:** open the `game-night` folder and double-click **`Start Game Night.command`**.
-A Terminal window opens and the home page opens in your browser.
+A Terminal window opens and the home page opens in your browser. (If a Game Night tab is already open, no new tab
+opens; that tab reconnects by itself.)
 
 > If macOS refuses to open it the first time ("unidentified developer" / "Apple could not verify…"), click **Done**,
 > then open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to
@@ -143,6 +144,7 @@ The Admin page also has a **Master flush** that erases every leaderboard and all
 | No QR code on the home page | Run `npm install` in the game folder once (needs internet), then restart. Phones can still type the address. |
 | No sound on the master | Click the page once, then **Sound check**. Check the tab isn't muted, the volume is up and **Dealer voice** (casino) or **Moderator voice** (party games) is On. |
 | "address already in use" when starting | Game Night (or something else) is already running on that port. Use the open window, stop the old one (see [Stop the game](#3-stop-the-game)), or start on another port. |
+| Red bar: "Game Night isn't running" | The page is showing the browser's saved copy, but the game isn't running (its Terminal window was closed). Start it again; the bar disappears by itself (game pages show a **Reload** button). |
 | Blue bar: "A new version of the game is ready" | Click **Reload** on the master. Phones update by themselves between rounds. |
 | The master asks to "take over" the table | Another browser tab is already running a game; only one runs at a time. Take it over (its phones move to this one), or close the other tab. |
 | Leaderboard or PIN seems to have vanished | They're saved per browser. Use the same browser as before, not a private window. |

@@ -65,6 +65,16 @@ async function openTable(game = 'roulette', takeover = true) {
   return { ...t, host };
 }
 
+/* ---------------- Is a Game Night page open on this computer? (the starter asks, to avoid a second tab) ---------------- */
+test('/api/master-open: only a page on this computer counts, not a phone', noLan, async () => {
+  const open = async () => (await (await fetch(MAC + '/api/master-open')).json()).open;
+  assert.equal(await open(), false, 'nothing has checked in yet');
+  await fetch(PHONE + '/api/info');
+  assert.equal(await open(), false, "a phone doesn't count");
+  await fetch(MAC + '/api/info');
+  assert.equal(await open(), true, 'a page on this computer checked in');
+});
+
 /* ---------------- Static files ---------------- */
 test('serves the pages and their files from public/', async () => {
   for (const [p, type] of [['/', 'text/html'], ['/casino.html', 'text/html'], ['/js/lib/leaderboard.js', 'text/javascript'],
