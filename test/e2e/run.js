@@ -14,7 +14,7 @@ const H = require('./helpers');
 const TESTS = [
   'casino-tables-round', 'casino-phone-sicbo', 'blackjack-phone', 'roulette-two-phones', 'roulette-master-only', 'roulette-phone-locks',
   'roulette-phone-view', 'roulette-phone-landing', 'update-bar', 'dealer-voice', 'phone-voice', 'storage-migration', 'flushes',
-  'party-gofish', 'party-bluff-ending', 'party-werewolf-rules', 'party-werewolf-robber', 'party-catan-rules', 'party-leave-rejoin',
+  'party-gofish', 'party-bluff-ending', 'party-werewolf-rules', 'party-werewolf-robber', 'party-werewolf-roles', 'party-icons', 'party-catan-rules', 'party-leave-rejoin',
   'join-qr', 'server-down', 'starter', 'party-werewolf-game', 'party-catan-game',
 ];
 // These expect a test server already running (the others start their own)

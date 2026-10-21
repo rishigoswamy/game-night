@@ -114,7 +114,8 @@ and use `:9000` instead of `:8080` in the addresses.
 **Party games** (home page → **Play party games** → pick a game)
 1. Players scan the QR code on the game's lobby screen and type their name. They appear on the master screen.
    Werewolf needs 3–10 players, Catan 2–4, Go Fish 2–6, Bluff 3–8. Someone who arrives mid-game is seated for the next one.
-2. Pick the options (for example Werewolf's extra roles or Catan's points to win) and click **Start**.
+2. Pick the options (for example Werewolf's extra roles, grouped Beginner / Intermediate / Advanced, or Catan's points to win) and click **Start**.
+   Werewolf has 22 roles from the base game and the *Daybreak* expansion, including the Doppelgänger: see [docs/2026-10-werewolf-roles.md](docs/2026-10-werewolf-roles.md).
 3. Nobody plays on the master screen. It shows the table, and in Werewolf it narrates the night out loud.
 4. At the end: **Play again** (same players) or **Change players**. **End game** stops a game early (nothing is recorded).
 

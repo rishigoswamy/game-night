@@ -87,3 +87,51 @@
 
   .game svg { width: 150px; height: 150px; }
   .game .emoji { font-size: 92px; line-height: 150px; height: 150px; filter: drop-shadow(0 8px 14px rgba(0,0,0,.5)); }
+
+  /* Party game icons: they come alive while hovered (like the casino icons) */
+  .party-icon { width: 150px; height: 150px; filter: drop-shadow(0 8px 14px rgba(0,0,0,.5)); }
+  .party-icon * { transform-box: view-box; }
+  .pw-head, .pw-moon, .pw-stars circle, .pw-howl, .pw-eye { transition: transform .4s, opacity .4s; }
+  .pw-howl { opacity: 0; }
+  .game:hover .pw-head { transform: rotate(-38deg); }
+  .game:hover .pw-howl { animation: pwHowl 1.6s ease-in-out infinite; }
+  .game:hover .pw-moon { animation: pwGlow 1.6s ease-in-out infinite alternate; transform-origin: 104px 44px; }
+  .game:hover .pw-stars .s0 { animation: twinkle .9s ease-in-out infinite alternate; }
+  .game:hover .pw-stars .s1 { animation: twinkle 1.2s ease-in-out .3s infinite alternate; }
+  .game:hover .pw-stars .s2 { animation: twinkle 1s ease-in-out .6s infinite alternate; }
+  .game:hover .pw-eye { animation: twinkle .6s ease-in-out infinite alternate; }
+  @keyframes pwHowl { 0% { opacity: 0; transform: translate(-6px, 6px) scale(.8); } 40%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translate(6px, -8px) scale(1.1); } }
+  @keyframes pwGlow { from { filter: drop-shadow(0 0 0 #fff3c4); } to { filter: drop-shadow(0 0 10px #fff3c4); } }
+  @keyframes twinkle { from { opacity: 1; } to { opacity: .15; } }
+  .pc-die { opacity: 0; }
+  .game:hover .pc-d1 { animation: pcRoll1 1.6s cubic-bezier(.2,.7,.3,1) infinite; }
+  .game:hover .pc-d2 { animation: pcRoll2 1.6s cubic-bezier(.2,.7,.3,1) .15s infinite; }
+  .game:hover .pc-house { animation: pcHop .8s ease-in-out infinite alternate; }
+  .game:hover .pc-tiles { animation: pcShine 1.6s ease-in-out infinite alternate; }
+  @keyframes pcRoll1 { 0% { opacity: 0; transform: translate(-20px, -30px) rotate(-200deg); } 25% { opacity: 1; } 60%, 85% { opacity: 1; transform: translate(14px, 12px) rotate(0); } 100% { opacity: 0; transform: translate(14px, 12px); } }
+  @keyframes pcRoll2 { 0% { opacity: 0; transform: translate(20px, -30px) rotate(220deg); } 25% { opacity: 1; } 60%, 85% { opacity: 1; transform: translate(-14px, 14px) rotate(0); } 100% { opacity: 0; transform: translate(-14px, 14px); } }
+  @keyframes pcHop { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+  @keyframes pcShine { from { filter: brightness(1); } to { filter: brightness(1.25); } }
+  .pg-splash { opacity: 0; }
+  .game:hover .pg-fish { animation: pgJump 1.4s ease-in-out infinite; }
+  .game:hover .pg-splash { animation: pgSplash 1.4s ease-out infinite; transform-origin: 97px 110px; }
+  .game:hover .pg-line { animation: pgBob 1.4s ease-in-out infinite alternate; }
+  .game:hover .pg-wave.w1 { animation: pgWave 1.4s ease-in-out infinite alternate; }
+  @keyframes pgJump { 0%, 100% { transform: translate(0, 18px) rotate(10deg); } 45% { transform: translate(-8px, -40px) rotate(-35deg); } 70% { transform: translate(-14px, -18px) rotate(-60deg); } }
+  @keyframes pgSplash { 0%, 60% { opacity: 0; transform: scale(.4); } 75% { opacity: 1; transform: scale(1.1) translateY(-6px); } 100% { opacity: 0; transform: scale(1.4) translateY(-10px); } }
+  @keyframes pgBob { from { transform: translateY(0); } to { transform: translateY(10px); } }
+  @keyframes pgWave { from { transform: translateX(0); } to { transform: translateX(-10px); } }
+  .pb-face { opacity: 0; } .pb-bubble, .pb-stamp { opacity: 0; }
+  .pb-l, .pb-r { transition: transform .4s; }
+  .game:hover .pb-mid { animation: pbFlip 2.4s ease-in-out infinite; }
+  .game:hover .pb-back { animation: pbBack 2.4s steps(1) infinite; }
+  .game:hover .pb-face { animation: pbFace 2.4s steps(1) infinite; }
+  .game:hover .pb-bubble { animation: pbBubble 2.4s ease-in-out infinite; }
+  .game:hover .pb-stamp { animation: pbStamp 2.4s ease-in-out infinite; }
+  .game:hover .pb-l { transform: rotate(-24deg) translateX(-4px); } .game:hover .pb-r { transform: rotate(24deg) translateX(4px); }
+  @keyframes pbFlip { 0%, 30% { transform: scaleX(1); } 40% { transform: scaleX(0); } 50%, 85% { transform: scaleX(1); } 92% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+  @keyframes pbBack { 0% { opacity: 1; } 40% { opacity: 0; } 92% { opacity: 1; } }
+  @keyframes pbFace { 0% { opacity: 0; } 40% { opacity: 1; } 92% { opacity: 0; } }
+  @keyframes pbBubble { 0% { opacity: 0; transform: translateY(6px); } 10%, 35% { opacity: 1; transform: none; } 45%, 100% { opacity: 0; } }
+  @keyframes pbStamp { 0%, 45% { opacity: 0; transform: scale(2) rotate(-20deg); } 55%, 85% { opacity: 1; transform: scale(1) rotate(-12deg); } 100% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .game:hover .party-icon * { animation: none !important; } }

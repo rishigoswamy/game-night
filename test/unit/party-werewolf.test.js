@@ -166,3 +166,303 @@ test('endings: you are on the team of your final card, not your first one', () =
   assert.deepEqual(plain(ctx.ended.results.filter(r => r.won).map(r => r.name)), ['Bob', 'Cy']);
   assert.match(ctx.ended.results[0].note, /Robber → Werewolf · died/);
 });
+
+/* ---------------- Advanced roles (Doppelgänger and the Daybreak roles) ---------------- */
+test('roles: every role has a difficulty (beginner, intermediate, advanced) and a description', () => {
+  const { ROLES, OPTIONAL } = load()._test;
+  for (const [id, r] of Object.entries(ROLES)) { assert.ok([1, 2, 3].includes(r.tier), id); assert.ok(r.text.length > 20, id); }
+  assert.deepEqual(plain(Object.keys(ROLES).filter(r => ROLES[r].tier === 1)).sort(), ['robber', 'seer', 'troublemaker', 'villager', 'werewolf'], 'beginner = the official first game');
+  assert.equal(ROLES.doppelganger.tier, 3, 'the Doppelgänger is for experienced players');
+  for (const r of OPTIONAL) assert.ok(ROLES[r].tier >= 2, `${r} is optional, so not a beginner role`);
+});
+
+test('deck: special werewolves replace the plain ones; the hardest extras are dropped first', () => {
+  const { buildDeck } = load()._test;
+  const deck = plain(buildDeck(6, ['mystic', 'dreamwolf']));
+  assert.equal(deck.filter(r => r === 'werewolf').length, 0); assert.ok(deck.includes('mystic') && deck.includes('dreamwolf'));
+  const small = plain(buildDeck(3, ['minion', 'doppelganger', 'witch']));
+  assert.ok(small.includes('minion') && !small.includes('witch') && !small.includes('doppelganger'), `kept the easier one: ${small}`);
+});
+
+test('troublemaker may choose not to swap', () => {
+  const { G, ctx, st } = ww(['troublemaker', 'werewolf', 'seer', 'villager', 'robber', 'werewolf'], { step: 'troublemaker' });
+  assert.equal(G.act(ctx, 0, { act: 'swap', ps: 'none' }), undefined);
+  assert.deepEqual(plain(st.cards.slice(0, 3)), ['troublemaker', 'werewolf', 'seer']);
+  assert.match(notes(st, 0), /chose not to swap/); assert.ok(st.done.has(0));
+});
+
+test('sentinel: a shielded card cannot be looked at or moved', () => {
+  const { G, ctx, st } = ww(['sentinel', 'robber', 'seer', 'troublemaker', 'werewolf', 'werewolf', 'villager'], { step: 'sentinel' });
+  G.act(ctx, 0, { act: 'shield', p: 2 });
+  assert.deepEqual(plain(st.shields), [2]);
+  st.step = 'robber';
+  assert.match(G.act(ctx, 1, { act: 'rob', p: 2 }), /shielded/);
+  st.step = 'troublemaker';
+  assert.match(G.act(ctx, 3, { act: 'swap', ps: '1,2' }), /shielded/);
+});
+
+test('doppelgänger: copies a role and does its action now, or wakes again with it later', () => {
+  // copies the Seer → looks at a card right away
+  let { G, ctx, st } = ww(['doppelganger', 'seer', 'werewolf', 'villager', 'robber', 'werewolf'], { step: 'doppelganger' });
+  G.act(ctx, 0, { act: 'dopple', p: 1 });
+  assert.equal(G.view(ctx, 0).acting, 'seer');
+  G.act(ctx, 0, { act: 'seer', p: 2 });
+  assert.match(notes(st, 0), /You are now the Seer.*Cy's card is 🐺 Werewolf/s);
+  // copies a Werewolf → wakes with the werewolves and is on their team
+  ({ G, ctx, st } = ww(['doppelganger', 'werewolf', 'seer', 'villager', 'robber', 'troublemaker'], { step: 'doppelganger' }));
+  G.act(ctx, 0, { act: 'dopple', p: 1 });
+  assert.ok(st.done.has(0), 'nothing more to do now');
+  st.step = 'werewolf';
+  assert.equal(G.view(ctx, 0).acting, 'werewolf');
+  st.votes = { 1: 2, 2: 1 }; st.phase = 'vote';
+  G._test.reveal(ctx);
+  assert.deepEqual(plain(ctx.ended.results.filter(r => r.won).map(r => r.name)), ['Ana', 'Bob'], 'the Doppel-Werewolf wins with the werewolves');
+});
+
+test('alpha wolf gives the extra center werewolf card to a non-werewolf', () => {
+  const { G, ctx, st } = ww(['alpha', 'seer', 'villager', 'robber', 'troublemaker', 'werewolf'], { step: 'alpha' });
+  st.cards.push('werewolf'); st.alphaCard = 6;
+  assert.match(G.act(ctx, 0, { act: 'alpha', p: 0 }), /another player/);
+  G.act(ctx, 0, { act: 'alpha', p: 2 });
+  assert.equal(st.cards[2], 'werewolf'); assert.equal(st.cards[6], 'villager'); assert.equal(st.alphaCard, null);
+});
+
+test('mystic wolf and apprentice seer peek; the paranormal investigator stops on a werewolf and joins them', () => {
+  let { G, ctx, st } = ww(['mystic', 'seer', 'villager', 'robber', 'tanner', 'werewolf'], { step: 'mystic' });
+  G.act(ctx, 0, { act: 'mystic', p: 1 });
+  assert.match(notes(st, 0), /Bob's card is 🔮 Seer/);
+  ({ G, ctx, st } = ww(['apprentice', 'seer', 'villager', 'robber', 'tanner', 'werewolf'], { step: 'apprentice' }));
+  G.act(ctx, 0, { act: 'apprentice', c: 2 });
+  assert.match(notes(st, 0), /right center card is 🐺 Werewolf/);
+  ({ G, ctx, st } = ww(['pi', 'villager', 'werewolf', 'seer', 'robber', 'tanner', 'troublemaker'], { step: 'pi' }));
+  assert.equal(G.act(ctx, 0, { act: 'pi', p: 1 }), undefined);
+  assert.ok(!st.done.has(0), 'saw a villager: may look again');
+  G.act(ctx, 0, { act: 'pi', p: 2 });
+  assert.equal(st.becomes.pi, 'werewolf'); assert.ok(st.done.has(0));
+});
+
+test('witch: if she looks, she must swap that center card with someone', () => {
+  const { G, ctx, st } = ww(['witch', 'villager', 'werewolf', 'tanner', 'seer', 'werewolf'], { step: 'witch' });
+  G.act(ctx, 0, { act: 'witchlook', c: 0 });
+  assert.match(G.act(ctx, 0, { act: 'pass' }), /must swap/);
+  G.act(ctx, 0, { act: 'witchswap', p: 1 });
+  assert.equal(st.cards[1], 'tanner'); assert.equal(st.cards[3], 'villager');
+});
+
+test('village idiot moves everyone else\'s card one seat (not their own, not a shielded one)', () => {
+  const { G, ctx, st } = ww(['idiot', 'seer', 'robber', 'tanner', 'villager', 'werewolf', 'werewolf', 'troublemaker'], { step: 'idiot' });
+  st.shields = [2];
+  G.act(ctx, 0, { act: 'idiot', dir: 'right' });
+  assert.deepEqual(plain(st.cards.slice(0, 5)), ['idiot', 'villager', 'robber', 'seer', 'tanner']);
+});
+
+test('revealer: turns a card face up, but a werewolf or tanner stays hidden', () => {
+  let { G, ctx, st } = ww(['revealer', 'seer', 'werewolf', 'villager', 'robber', 'troublemaker'], { step: 'revealer' });
+  G.act(ctx, 0, { act: 'reveal', p: 1 });
+  assert.deepEqual(plain(st.revealed), { 1: 'seer' });
+  ({ G, ctx, st } = ww(['revealer', 'seer', 'werewolf', 'villager', 'robber', 'troublemaker'], { step: 'revealer' }));
+  G.act(ctx, 0, { act: 'reveal', p: 2 });
+  assert.deepEqual(plain(st.revealed), {});
+  assert.match(notes(st, 0), /turned it face down again/);
+});
+
+test('bodyguard: whoever they vote for cannot die; the next most votes dies instead', () => {
+  const v = verdict(['bodyguard', 'werewolf', 'seer', 'villager', 'robber', 'troublemaker', 'tanner'], { 0: 1, 2: 1, 3: 1, 1: 2 });
+  assert.deepEqual(v.dead, [], 'Bob is protected; nobody else has 2 votes');
+  const w = verdict(['bodyguard', 'werewolf', 'seer', 'villager', 'robber', 'troublemaker', 'tanner'], { 0: 2, 1: 2, 2: 1, 3: 1 });
+  assert.deepEqual(w.dead, ['Bob'], 'Cy (protected) had the most votes, so Bob (next most) dies');
+});
+
+test('dream wolf: the other werewolves see it, so a werewolf with a dream wolf is not alone', () => {
+  const { G, ctx, st } = ww(['werewolf', 'dreamwolf', 'seer', 'villager', 'robber', 'troublemaker'], { step: 'werewolf' });
+  assert.match(G.act(ctx, 0, { act: 'peek', c: 0 }), /Only a lone werewolf/);
+  assert.equal(G.view(ctx, 1).awake, false, 'the dream wolf sleeps through the night');
+  void st;
+});
+
+/* ---------------- Whole nights, timeouts, phones and the reveal ---------------- */
+const { flush } = require('./helpers');
+const H = { esc: t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) };
+// Start a real game with the cards dealt in this order (players first, then the center)
+async function game(cards, extras = []) {
+  const G = load(), n = cards.length - 3;
+  const ctx = partyCtx(n, { opts: { extras, talk: 180, actionTime: 10 }, shuffle: () => cards.slice() });
+  G.start(ctx); await flush();
+  const st = () => ctx.state;
+  // end turns (by letting time run out) until the given night step is on
+  const until = async step => { for (let k = 0; k < 40 && st().step !== step; k++) { ctx.expire(); await flush(); await flush(); } assert.equal(st().step, step); };
+  const next = async () => { ctx.expire(); await flush(); await flush(); };
+  return { G, ctx, st, until, next, n };
+}
+
+test('night order follows the official wake order', () => {
+  assert.deepEqual(plain(load()._test.NIGHT.map(s => s[0])), ['sentinel', 'doppelganger', 'werewolf', 'alpha', 'mystic', 'minion', 'mason', 'seer',
+    'apprentice', 'pi', 'robber', 'witch', 'troublemaker', 'idiot', 'drunk', 'insomniac', 'revealer']);
+});
+
+test('a whole night calls only the roles in the game (center cards included), then day, vote and the end', async () => {
+  const g = await game(['seer', 'werewolf', 'robber', 'troublemaker', 'villager', 'werewolf'], []);
+  const steps = [];
+  for (let k = 0; k < 30 && g.st().phase !== 'day'; k++) { if (g.st().step && steps.at(-1) !== g.st().step) steps.push(g.st().step); await g.next(); }
+  assert.deepEqual(steps, ['werewolf', 'seer', 'robber', 'troublemaker']);
+  assert.equal(g.st().phase, 'day');
+  await g.next();                                         // discussion over
+  assert.equal(g.st().phase, 'vote');
+  g.G.act(g.ctx, 0, { act: 'vote', p: 1 }); g.G.act(g.ctx, 2, { act: 'vote', p: 1 }); g.G.act(g.ctx, 1, { act: 'vote', p: 0 });
+  await flush(); await flush();
+  assert.ok(g.ctx.ended, 'everyone voted: the game ends');
+  assert.match(g.ctx.ended.html, /The village wins!/);
+});
+
+test('timeouts: the Doppelgänger copies someone at random, the Drunk and the Alpha Wolf act, a Witch who looked takes the card', async () => {
+  let g = await game(['doppelganger', 'seer', 'villager', 'troublemaker', 'werewolf', 'werewolf', 'robber'], ['doppelganger']);
+  await g.until('doppelganger'); await g.next();
+  assert.ok(g.st().dop && g.st().dop.i === 0 && ['seer', 'villager', 'troublemaker', 'werewolf'].includes(g.st().dop.copied));
+  g = await game(['drunk', 'seer', 'villager', 'werewolf', 'robber', 'troublemaker', 'werewolf'], ['drunk']);
+  await g.until('drunk'); await g.next();
+  assert.notEqual(g.st().cards[0], 'drunk', 'the Drunk swapped with a center card');
+  g = await game(['alpha', 'seer', 'villager', 'werewolf', 'robber', 'troublemaker', 'villager'], ['alpha']);
+  assert.equal(g.st().cards.length, 8, 'the Alpha Wolf brings a 4th center card');
+  await g.until('alpha'); await g.next();
+  assert.equal(g.st().alphaCard, null);
+  assert.equal(g.st().cards.filter((c, k) => k < 4 && c === 'werewolf').length, 2, 'one more werewolf among the players');
+  g = await game(['witch', 'seer', 'villager', 'werewolf', 'robber', 'troublemaker', 'tanner'], ['witch']);
+  await g.until('witch');
+  g.G.act(g.ctx, 0, { act: 'witchlook', c: 1 });
+  await g.next();
+  assert.equal(g.st().cards[0], 'troublemaker', 'she took the middle card herself');
+});
+
+test('optional actions: Seer, Robber, Troublemaker, Mystic Wolf, Sentinel… may do nothing; Drunk, Doppelgänger, Alpha must act', () => {
+  for (const [role, cards] of [['seer'], ['robber'], ['troublemaker'], ['mystic'], ['sentinel'], ['apprentice'], ['pi'], ['witch'], ['idiot'], ['revealer']]
+    .map(([r]) => [r, [r, 'villager', 'seer', 'werewolf', 'robber', 'werewolf']])) {
+    const { G, ctx, st } = ww(cards, { step: role });
+    assert.equal(G.act(ctx, 0, { act: 'pass' }), undefined, role);
+    assert.ok(st.done.has(0), role); assert.match(notes(st, 0), /did nothing/, role);
+  }
+  for (const role of ['drunk', 'doppelganger', 'alpha']) {
+    const { G, ctx } = ww([role, 'villager', 'seer', 'werewolf', 'robber', 'werewolf'], { step: role });
+    assert.match(G.act(ctx, 0, { act: 'pass' }), /must/, role);
+  }
+});
+
+test('paranormal investigator: may stop after one look, never looks at the same card twice', () => {
+  const { G, ctx, st } = ww(['pi', 'villager', 'seer', 'werewolf', 'robber', 'werewolf'], { step: 'pi' });
+  G.act(ctx, 0, { act: 'pi', p: 1 });
+  assert.match(G.act(ctx, 0, { act: 'pi', p: 1 }), /another player/);
+  G.act(ctx, 0, { act: 'pass' });
+  assert.match(notes(st, 0), /You stopped looking/);
+  assert.equal(st.becomes?.pi, undefined, 'saw only a villager: still on the village team');
+});
+
+test('paranormal investigator who sees the Tanner becomes a Tanner (wins only by dying)', () => {
+  const { G, ctx, st } = ww(['pi', 'tanner', 'werewolf', 'villager', 'seer', 'robber', 'werewolf'], { step: 'pi' });
+  G.act(ctx, 0, { act: 'pi', p: 1 });
+  assert.equal(st.becomes.pi, 'tanner');
+  st.phase = 'vote'; st.votes = { 1: 0, 2: 0, 3: 2, 0: 2 };      // tie: Ana and Cy die
+  G._test.reveal(ctx);
+  const won = plain(ctx.ended.results.filter(r => r.won).map(r => r.name));
+  assert.ok(won.includes('Ana'), 'the PI-Tanner died: wins');
+  assert.ok(!won.includes('Bob'), 'the real Tanner lived: loses');
+});
+
+test('sentinel and doppel-sentinel can each place a shield; the same card can\'t get two', () => {
+  const { G, ctx, st } = ww(['sentinel', 'doppelganger', 'seer', 'villager', 'robber', 'werewolf', 'werewolf'], { step: 'sentinel' });
+  G.act(ctx, 0, { act: 'shield', p: 2 });
+  st.step = 'doppelganger'; st.done = new Set();
+  G.act(ctx, 1, { act: 'dopple', p: 0 });
+  assert.match(G.act(ctx, 1, { act: 'shield', p: 2 }), /already has a shield/);
+  G.act(ctx, 1, { act: 'shield', p: 3 });
+  assert.deepEqual(plain(st.shields), [2, 3]);
+  assert.match(G.act(ctx, 1, { act: 'dopple', p: 2 }), /Not now/, 'the Doppelgänger copies once');
+});
+
+test('doppelgänger can\'t copy a shielded card; copying the Drunk must swap; copying the Tanner joins the Tanner\'s side', () => {
+  let { G, ctx, st } = ww(['doppelganger', 'drunk', 'tanner', 'werewolf', 'seer', 'robber', 'werewolf'], { step: 'doppelganger' });
+  st.shields = [1];
+  assert.match(G.act(ctx, 0, { act: 'dopple', p: 1 }), /shielded/);
+  st.shields = [];
+  G.act(ctx, 0, { act: 'dopple', p: 1 });
+  assert.match(G.act(ctx, 0, { act: 'pass' }), /must/);
+  G.act(ctx, 0, { act: 'drunk', c: 0 });
+  assert.equal(st.cards[0], 'seer');
+  ({ G, ctx, st } = ww(['doppelganger', 'tanner', 'villager', 'werewolf', 'seer', 'robber', 'werewolf'], { step: 'doppelganger' }));
+  G.act(ctx, 0, { act: 'dopple', p: 1 });
+  st.phase = 'vote'; st.votes = { 1: 0, 2: 0, 3: 2, 0: 1 };
+  G._test.reveal(ctx);
+  assert.match(ctx.ended.html, /Tanner got their wish/);
+  assert.deepEqual(plain(ctx.ended.results.filter(r => r.won).map(r => r.name)), ['Ana']);
+});
+
+test('doppelgänger copying the Dream Wolf sleeps, but the werewolves see it', () => {
+  const { G, ctx, st } = ww(['doppelganger', 'dreamwolf', 'werewolf', 'villager', 'seer', 'robber', 'troublemaker'], { step: 'doppelganger' });
+  G.act(ctx, 0, { act: 'dopple', p: 1 });
+  assert.ok(st.done.has(0));
+  st.step = 'werewolf'; st.done = new Set();
+  assert.equal(G.view(ctx, 0).awake, false);
+  assert.equal(G.view(ctx, 1).awake, false, 'the Dream Wolf sleeps');
+  assert.equal(G.view(ctx, 2).awake, true);
+  assert.equal(G.view(ctx, 2).loneWolf, false);
+});
+
+test('lone mystic or alpha wolf may look at the center in the werewolves\' turn', () => {
+  const { G, ctx, st } = ww(['mystic', 'seer', 'villager', 'werewolf', 'robber', 'troublemaker'], { step: 'werewolf' });
+  assert.equal(G.act(ctx, 0, { act: 'peek', c: 0 }), undefined);
+  assert.match(notes(st, 0), /left center card is 🐺 Werewolf/);
+});
+
+test('the reveal lists the Alpha Wolf\'s 4th center card and face-up cards', () => {
+  const { G, ctx, st } = ww(['alpha', 'seer', 'villager', 'werewolf', 'robber', 'troublemaker'], { phase: 'vote' });
+  st.cards.push('tanner');
+  st.votes = { 0: 1, 1: 0, 2: 0 };
+  G._test.reveal(ctx);
+  assert.match(ctx.ended.html, /Alpha Wolf's center card: 🪢 Tanner/);
+});
+
+test('every deck: players + 3 cards, at least 2 werewolves, masons in pairs (any choice of extras)', () => {
+  const { buildDeck, OPTIONAL } = load()._test;
+  const rand = require('./helpers').seededRand(7);
+  for (let k = 0; k < 2000; k++) {
+    const n = 3 + rand(8), extras = OPTIONAL.filter(() => rand(10) < 4);
+    const deck = plain(buildDeck(n, extras));
+    const tag = `${n} players, ${extras}`;
+    assert.equal(deck.length, n + 3, tag);
+    assert.ok(deck.filter(r => ['werewolf', 'mystic', 'dreamwolf', 'alpha'].includes(r)).length >= 2, tag);
+    for (const r of ['seer', 'robber', 'troublemaker']) assert.ok(deck.includes(r), tag);
+    assert.ok([0, 2].includes(deck.filter(r => r === 'mason').length), tag);
+    assert.ok(deck.every(r => r === 'villager' || r === 'werewolf' || ['seer', 'robber', 'troublemaker'].includes(r) || extras.includes(r)), tag);
+  }
+});
+
+test('the phones: tier shown, Don\'t-swap buttons, shielded players greyed out, Doppelgänger heading, Alpha with nothing left', () => {
+  let { G, ctx, st } = ww(['troublemaker', 'seer', 'villager', 'werewolf', 'robber', 'werewolf'], { step: 'troublemaker' });
+  st.shields = [1];
+  let v = G.view(ctx, 0), html = G.phoneHTML(v, {}, H);
+  assert.equal(v.tier, 'Beginner');
+  assert.match(html, /data-act="swap" data-ps="none"/);
+  assert.match(html, /data-p="1" class="" disabled>Bob 🗿/);
+  st.phase = 'deal';
+  assert.match(G.phoneHTML(G.view(ctx, 0), { shown: true }, H), /ww-tier">Beginner/);
+  ({ G, ctx, st } = ww(['doppelganger', 'seer', 'villager', 'werewolf', 'robber', 'werewolf'], { step: 'doppelganger' }));
+  G.act(ctx, 0, { act: 'dopple', p: 1 });
+  assert.match(G.phoneHTML(G.view(ctx, 0), {}, H), /Your turn, Doppelgänger \(as Seer\)/);
+  assert.equal(G.view(ctx, 0).tier, 'Advanced');
+  ({ G, ctx, st } = ww(['alpha', 'seer', 'villager', 'werewolf', 'robber', 'werewolf'], { step: 'alpha' }));
+  st.alphaCard = null;
+  assert.match(G.phoneHTML(G.view(ctx, 0), {}, H), /already given out/);
+  ({ G, ctx, st } = ww(['revealer', 'seer', 'villager', 'werewolf', 'robber', 'werewolf'], { step: 'revealer' }));
+  G.act(ctx, 0, { act: 'reveal', p: 1 });
+  st.phase = 'day';
+  assert.match(G.phoneHTML(G.view(ctx, 2), {}, H), /Face-up cards.*Bob: 🔮 Seer/s);
+  assert.match(G.hostHTML(ctx, H), /Face-up cards.*Bob: 🔮 Seer/s);
+});
+
+test('options: roles grouped Intermediate / Advanced with descriptions; values unchanged (drunk, minion, …)', () => {
+  const G = load(), o = G.options.find(x => x.key === 'extras');
+  assert.deepEqual(plain(o.groups.map(g => g.title)), ['Intermediate', 'Advanced']);
+  const all = o.groups.flatMap(g => g.choices.map(c => c[0]));
+  assert.deepEqual(plain(all).sort(), plain(G._test.OPTIONAL).sort());
+  assert.ok(all.includes('drunk') && all.includes('doppelganger'));
+  assert.ok(o.groups.every(g => g.choices.every(c => c[2] && c[2].length > 20)), 'each role has a description');
+  assert.ok(o.def.every(r => all.includes(r)));
+});

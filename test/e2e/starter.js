@@ -37,7 +37,8 @@ const stop = p => { try { process.kill(-p.pid, 'SIGHUP'); } catch {} };     // l
   await page.waitForSelector('#serverDown:not([hidden])', { timeout: 9000 });
   console.log('game stopped → open tab shows:', (await page.textContent('#serverDown')).split('.')[0]);
   s = starter();
-  await page.waitForEvent('load', { timeout: 10000 });                      // the lobby reloads by itself
+  // the tab was connected before, so it just reconnects: the bar goes away (pages opened offline reload instead)
+  await page.waitForSelector('#serverDown', { state: 'hidden', timeout: 10000 });
   await sleep(4000);
   console.log('tab already open → starter opened:', JSON.stringify(opened()), '| tab reconnected, bar hidden:', await page.isHidden('#serverDown'));
   stop(s); await sleep(800);

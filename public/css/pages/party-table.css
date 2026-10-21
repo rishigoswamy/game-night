@@ -39,3 +39,6 @@
   #stage { min-height: 300px; }
   .end-rows .sum-row .who { gap: 10px; }
   .waitlist { color: var(--muted); font-size: .88rem; margin-top: 6px; }
+  .opt-group { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.2); }
+  .opt-group-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--gold); font-weight: 800; }
+  .opt-group-note { font-size: .8rem; color: var(--muted); margin: 2px 0 6px; }

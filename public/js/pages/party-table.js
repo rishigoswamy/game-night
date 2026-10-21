@@ -25,8 +25,10 @@ function addSeat(name, device) {
 /* ---------- Options from the game module ---------- */
 function renderOpts() {
   $('#opts').innerHTML = (G.options || []).map(o => {
-    if (o.type === 'checks') return `<div class="field"><label>${o.label}</label><div class="checks">${o.choices.map(([v, l]) =>
-      `<label><input type="checkbox" data-opt="${o.key}" value="${v}"${(P.opts[o.key] ?? o.def).includes(v) ? ' checked' : ''}>${l}</label>`).join('')}</div></div>`;
+    const box = ([v, l, tip]) => `<label${tip ? ` title="${esc(tip)}"` : ''}><input type="checkbox" data-opt="${o.key}" value="${v}"${(P.opts[o.key] ?? o.def).includes(v) ? ' checked' : ''}>${l}</label>`;
+    if (o.type === 'checks' && o.groups) return `<div class="field"><label>${o.label}</label>${o.groups.map(g =>     // grouped choices, e.g. roles by difficulty
+      `<div class="opt-group"><div class="opt-group-title">${g.title}</div>${g.note ? `<div class="opt-group-note">${g.note}</div>` : ''}<div class="checks">${g.choices.map(box).join('')}</div></div>`).join('')}</div>`;
+    if (o.type === 'checks') return `<div class="field"><label>${o.label}</label><div class="checks">${o.choices.map(box).join('')}</div></div>`;
     return `<div class="field"><label for="opt-${o.key}">${o.label}</label><select id="opt-${o.key}" data-opt="${o.key}">${o.choices.map(([v, l]) =>
       `<option value="${v}"${String(P.opts[o.key] ?? o.def) === String(v) ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
   }).join('');

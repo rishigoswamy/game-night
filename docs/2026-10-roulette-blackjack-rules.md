@@ -36,4 +36,15 @@ The rule code moved without rewriting. The only difference is that functions whi
    tests (then reverted).
 4. **End-to-end:** the full browser suite was run on the previous commit and on this change: see below.
 
-RESULTS
+| Run | Result |
+|---|---|
+| Previous commit (before this change) | 23 of 24 pass. `starter` failed: a bug in that test (see below). |
+| This change | 22 of 24 on the first run: `starter` (same test bug), and `party-werewolf-game`, which failed only because the Mac went to sleep mid-test ("network suspended"); the game itself finished correctly. Rerun with the Mac awake: it passes. |
+| After fixing the `starter` test | `starter` passes. |
+
+Every Roulette and Blackjack browser test passed both before and after.
+
+**The `starter` test bug (fixed here):** it waited for an already-open lobby tab to reload when the game restarted. By design a tab
+that was connected before only hides its "isn't running" bar and reconnects; only pages opened from the offline copy reload.
+It had passed once by timing luck. It now checks that the bar goes away.
+
