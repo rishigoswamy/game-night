@@ -11,10 +11,29 @@ const { setup } = require('./party-setup');
   // the role picker: levels, descriptions, and ticking a role changes the options
   const groups = await mac.$$eval('#opts .opt-group-title', e => e.map(x => x.textContent));
   console.log('role groups:', groups.join(', '));
-  bad(groups.join() === 'Intermediate,Advanced', 'two role groups');
-  bad(/Beginner/.test(await mac.textContent('#opts')), 'the always-in Beginner roles are named');
-  const tip = await mac.$eval('#opts input[value="doppelganger"]', i => i.parentElement.title);
-  bad(/become that role/.test(tip), 'hovering a role shows its description');
+  bad(groups.join() === 'Beginner,Intermediate,Advanced', 'three role groups');
+  bad(await mac.$$eval('#opts .opt-fixed', e => e.length) === 5, 'the 5 always-in Beginner roles are shown');
+  // hovering (or tabbing to) a role shows its full rules in a card that stays on screen
+  const tipFor = async (sel, how = 'hover') => {
+    if (how === 'hover') await mac.hover(sel); else await mac.focus(sel);
+    await mac.waitForTimeout(150);
+    return mac.evaluate(() => { const t = document.getElementById('optTip'), r = t.getBoundingClientRect();
+      return { shown: !t.hidden, text: t.textContent.replace(/\s+/g, ' ').trim(), inView: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight }; });
+  };
+  for (const [sel, expect] of [['#opts label:has(input[value="doppelganger"])', /Doppelgänger.*Advanced.*Night: Wakes 2nd.*copied/],
+    ['#opts label:has(input[value="pi"])', /Paranormal Investigator.*up to two/], ['#opts label:has(input[value="dreamwolf"])', /Dream Wolf.*Doesn't wake/],
+    ['#opts .opt-fixed[data-tip-v="troublemaker"]', /Troublemaker.*Beginner.*Don't swap/]]) {
+    const t = await tipFor(sel);
+    console.log('hover', sel.match(/"(\w+)"/)[1], '→', t.shown, t.inView, t.text.slice(0, 70) + '…');
+    bad(t.shown && t.inView && expect.test(t.text), 'hover card for ' + sel);
+  }
+  await mac.mouse.move(5, 5); await mac.waitForTimeout(150);
+  bad(await mac.evaluate(() => document.getElementById('optTip').hidden), 'hover card hides when the mouse leaves');
+  const kb = await tipFor('#opts input[value="witch"]', 'focus');
+  console.log('keyboard focus witch →', kb.shown, kb.text.slice(0, 50) + '…');
+  bad(kb.shown && /Witch/.test(kb.text), 'hover card on keyboard focus');
+  await mac.screenshot({ path: 'shots/ww-role-tip.png' });
+  await mac.evaluate(() => document.activeElement.blur());
   await mac.check('#opts input[value="doppelganger"]'); await mac.check('#opts input[value="drunk"]');
   const extras = await mac.evaluate(() => P.opts.extras.join(','));
   console.log('extras after ticking:', extras);

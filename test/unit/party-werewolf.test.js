@@ -459,10 +459,34 @@ test('the phones: tier shown, Don\'t-swap buttons, shielded players greyed out, 
 
 test('options: roles grouped Intermediate / Advanced with descriptions; values unchanged (drunk, minion, …)', () => {
   const G = load(), o = G.options.find(x => x.key === 'extras');
-  assert.deepEqual(plain(o.groups.map(g => g.title)), ['Intermediate', 'Advanced']);
-  const all = o.groups.flatMap(g => g.choices.map(c => c[0]));
+  assert.deepEqual(plain(o.groups.map(g => g.title)), ['Beginner', 'Intermediate', 'Advanced']);
+  assert.deepEqual(plain(o.groups.filter(g => g.fixed).map(g => g.title)), ['Beginner'], 'the beginner roles are always in (no checkbox)');
+  const all = o.groups.filter(g => !g.fixed).flatMap(g => g.choices.map(c => c[0]));
   assert.deepEqual(plain(all).sort(), plain(G._test.OPTIONAL).sort());
   assert.ok(all.includes('drunk') && all.includes('doppelganger'));
   assert.ok(o.groups.every(g => g.choices.every(c => c[2] && c[2].length > 20)), 'each role has a description');
   assert.ok(o.def.every(r => all.includes(r)));
+});
+
+test('full rules for every role: shown on hover in the picker, and the wake order they state matches the night', () => {
+  const G = load(), { ROLES, DETAIL, NIGHT } = G._test;
+  const order = plain(NIGHT.map(x => x[0]));
+  const nth = k => k === 17 ? 'last (17th)' : `${k}${k === 1 ? 'st' : k === 2 ? 'nd' : k === 3 ? 'rd' : 'th'}`;
+  for (const r of Object.keys(ROLES)) {
+    const d = DETAIL[r];
+    assert.ok(d && d.night && d.does && (d.does + (d.win || '') + (d.notes || '')).length > 80, `${r} has full rules`);
+    const k = order.indexOf(r) + 1;
+    if (r === 'dreamwolf') assert.match(d.night, /Doesn't wake/);
+    else if (!k) assert.match(d.night, /Doesn't wake/, `${r} doesn't wake`);
+    else assert.ok(d.night.includes(`Wakes ${nth(k)}`) || d.night.includes(`again ${nth(k)}`), `${r}: "${d.night}" should say it wakes ${nth(k)}`);
+  }
+  // every role in the picker (the Beginner ones too) carries its hover card
+  const o = G.options.find(x => x.key === 'extras');
+  const choices = o.groups.flatMap(g => g.choices);
+  assert.deepEqual(plain(choices.map(c => c[0])).sort(), Object.keys(ROLES).sort());
+  for (const c of choices) {
+    assert.match(c[3], new RegExp(`<b>${ROLES[c[0]].name}</b>`), c[0]);
+    assert.match(c[3], /Night:.*What you do:/s, c[0]);
+    assert.match(c[3], /(Beginner|Intermediate|Advanced)<\/span><span>(Village team|Werewolf team|On their own)/, c[0]);
+  }
 });

@@ -42,3 +42,14 @@
   .opt-group { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.2); }
   .opt-group-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--gold); font-weight: 800; }
   .opt-group-note { font-size: .8rem; color: var(--muted); margin: 2px 0 6px; }
+  .opt-fixed { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.08); cursor: help; }
+  [data-tip-v] { cursor: help; }
+  [data-tip-v]:focus-visible, [data-tip-v]:focus-within { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
+  .opt-tip { position: fixed; z-index: 50; width: min(360px, calc(100vw - 16px)); padding: 12px 14px; border-radius: 12px; pointer-events: none;
+    background: #10251b; border: 1px solid var(--gold); box-shadow: 0 12px 30px rgba(0,0,0,.55); color: #eef2ee; font-size: .86rem; line-height: 1.45; }
+  .opt-tip .tip-head { display: flex; align-items: center; gap: 8px; font-family: Georgia, serif; font-size: 1.1rem; color: var(--gold); }
+  .opt-tip .tip-ic { font-size: 1.5rem; }
+  .opt-tip .tip-tags { display: flex; gap: 6px; margin: 4px 0 6px; }
+  .opt-tip .tip-tags span { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.1); }
+  .opt-tip p { margin: 6px 0 0; }
+  .opt-tip .tip-note { color: var(--muted); }

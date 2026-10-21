@@ -25,15 +25,41 @@ function addSeat(name, device) {
 /* ---------- Options from the game module ---------- */
 function renderOpts() {
   $('#opts').innerHTML = (G.options || []).map(o => {
-    const box = ([v, l, tip]) => `<label${tip ? ` title="${esc(tip)}"` : ''}><input type="checkbox" data-opt="${o.key}" value="${v}"${(P.opts[o.key] ?? o.def).includes(v) ? ' checked' : ''}>${l}</label>`;
+    // a choice is [value, label, short description?, full rules (HTML)?]: hovering shows the full rules, or the description
+    const tipAt = ([v, , d, more]) => d || more ? ` data-tip-key="${o.key}" data-tip-v="${esc(v)}"` : '';
+    const box = c => `<label${tipAt(c)}><input type="checkbox" data-opt="${o.key}" value="${c[0]}"${(P.opts[o.key] ?? o.def).includes(c[0]) ? ' checked' : ''}>${c[1]}</label>`;
+    const fixed = c => `<span class="opt-fixed" tabindex="0"${tipAt(c)}>${c[1]}</span>`;      // always in the game: no checkbox
     if (o.type === 'checks' && o.groups) return `<div class="field"><label>${o.label}</label>${o.groups.map(g =>     // grouped choices, e.g. roles by difficulty
-      `<div class="opt-group"><div class="opt-group-title">${g.title}</div>${g.note ? `<div class="opt-group-note">${g.note}</div>` : ''}<div class="checks">${g.choices.map(box).join('')}</div></div>`).join('')}</div>`;
+      `<div class="opt-group"><div class="opt-group-title">${g.title}</div>${g.note ? `<div class="opt-group-note">${g.note}</div>` : ''}<div class="checks">${g.choices.map(g.fixed ? fixed : box).join('')}</div></div>`).join('')}</div>`;
     if (o.type === 'checks') return `<div class="field"><label>${o.label}</label><div class="checks">${o.choices.map(box).join('')}</div></div>`;
     return `<div class="field"><label for="opt-${o.key}">${o.label}</label><select id="opt-${o.key}" data-opt="${o.key}">${o.choices.map(([v, l]) =>
       `<option value="${v}"${String(P.opts[o.key] ?? o.def) === String(v) ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
   }).join('');
   $('#opts').querySelectorAll('[data-opt]').forEach(el => el.addEventListener('change', readOpts));
 }
+// The hover card for an option's choice (e.g. a Werewolf role's full rules): on mouse hover or keyboard focus
+const optTip = Object.assign(document.createElement('div'), { id: 'optTip', className: 'opt-tip', hidden: true });
+optTip.setAttribute('role', 'tooltip');
+document.body.appendChild(optTip);
+function showOptTip(el) {
+  const o = (G.options || []).find(x => x.key === el.dataset.tipKey);
+  const c = o && [...(o.choices || []), ...(o.groups || []).flatMap(g => g.choices)].find(x => String(x[0]) === el.dataset.tipV);
+  if (!c) return;
+  optTip.innerHTML = c[3] || esc(c[2]);
+  optTip.hidden = false;
+  el.querySelector('input')?.setAttribute('aria-describedby', 'optTip');
+  const r = el.getBoundingClientRect(), w = optTip.offsetWidth, h = optTip.offsetHeight, gap = 8;
+  optTip.style.left = Math.max(gap, Math.min(r.left, innerWidth - w - gap)) + 'px';
+  optTip.style.top = (r.bottom + gap + h <= innerHeight - gap ? r.bottom + gap : Math.max(gap, r.top - gap - h)) + 'px';
+}
+const hideOptTip = () => { optTip.hidden = true; };
+$('#opts').addEventListener('mouseover', e => { const el = e.target.closest('[data-tip-v]'); el ? showOptTip(el) : hideOptTip(); });
+$('#opts').addEventListener('mouseleave', hideOptTip);
+$('#opts').addEventListener('focusin', e => { const el = e.target.closest('[data-tip-v]'); if (el) showOptTip(el); });
+$('#opts').addEventListener('focusout', hideOptTip);
+addEventListener('scroll', hideOptTip, true);
+addEventListener('keydown', e => { if (e.key === 'Escape') hideOptTip(); });
+
 function readOpts() {
   (G.options || []).forEach(o => {
     if (o.type === 'checks') P.opts[o.key] = [...$('#opts').querySelectorAll(`input[data-opt="${o.key}"]:checked`)].map(i => i.value);
