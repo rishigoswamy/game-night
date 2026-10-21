@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d4a2e">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>Table Admin</title>
+<script src="storage-migrate.js"></script>
+<style>
+  :root {
+    --felt: #0d4a2e; --felt-dark: #062417; --gold: #d4af37; --text: #f5f1e6; --muted: #b9c4bc;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; min-height: 100vh; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text);
+    background: radial-gradient(ellipse at center, #135c3a 0%, var(--felt) 45%, var(--felt-dark) 100%) fixed;
+    background-color: var(--felt-dark);
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  button, input { font: inherit; }
+  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; max-width: 760px; margin: 0 auto 18px; }
+  h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; color: var(--gold); font-size: 1.8rem; letter-spacing: .04em; }
+  h1 small { display: block; font-family: system-ui, sans-serif; font-size: .85rem; color: var(--muted); letter-spacing: 0; }
+  main { max-width: 760px; margin: 0 auto; display: grid; gap: 16px; }
+  .panel { background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.15); border-radius: 14px; padding: 18px 20px; }
+  .panel h2 { margin: 0 0 12px; font-family: Georgia, serif; color: var(--gold); font-size: 1.3rem; }
+  .panel h3 { margin: 18px 0 6px; font-size: 1rem; }
+  .panel p, .panel li { color: #dfe7e1; line-height: 1.55; }
+  .status { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
+  .status dt { color: var(--muted); }
+  .status dd { margin: 0; font-weight: 700; }
+  .on { color: #4ade80; } .off { color: var(--muted); }
+  .note { color: var(--muted) !important; font-size: .88rem; }
+  .btn {
+    padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.3);
+    color: var(--text); font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+  }
+  .btn:hover:not(:disabled) { background: rgba(0,0,0,.5); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.primary { background: linear-gradient(#e6c55a, #b8901f); color: #1d1500; border-color: #f3dc8b; font-weight: 800; }
+  .btn.danger { background: #8f1d22; border-color: #e0565c; color: #fff; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .row select { padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.3); background: rgba(0,0,0,.35); color: inherit; font: inherit; max-width: 100%; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 160px; min-width: 0; }
+  .field label { font-size: .85rem; color: var(--muted); }
+  .field input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.3); background: rgba(0,0,0,.35); color: var(--text); }
+  .check { display: flex; align-items: center; gap: 8px; color: var(--muted); margin: 10px 0 0; }
+  .check input { width: 18px; height: 18px; accent-color: var(--gold); }
+  .msg { min-height: 1.4em; margin: 10px 0 0; font-size: .92rem; }
+  .msg.err { color: #ff8a8f; } .msg.ok { color: #86efac; }
+  .actions { display: grid; gap: 14px; }
+  .action { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,.1); }
+  .action:first-child { border-top: 0; padding-top: 0; }
+  .action b { display: block; }
+  .action span { color: var(--muted); font-size: .88rem; }
+  .how li { margin-bottom: 6px; }
+  code { background: rgba(0,0,0,.35); padding: 1px 6px; border-radius: 4px; font-size: .9em; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Table Admin<small>Game Night · settings for this device and address</small></h1>
+  <a class="btn" href="index.html">← Home</a>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Status</h2>
+    <dl class="status">
+      <dt>Admin PIN</dt><dd id="stPin"></dd>
+      <dt>Device unlock</dt><dd id="stBio"></dd>
+      <dt>Recent results</dt><dd id="stSpins"></dd>
+      <dt>Leaderboards</dt><dd id="stBoards"></dd>
+      <dt>This address</dt><dd id="stAddr"></dd>
+    </dl>
+    <p class="note">Each device and address keeps its own lock and history. For example, <code>localhost</code> on the Mac and the Wi-Fi address on a phone are set up separately.</p>
+  </section>
+
+  <!-- No lock yet -->
+  <section class="panel" id="setupPanel" hidden>
+    <h2>Create the admin lock</h2>
+    <p>The admin PIN protects admin actions such as flushing recent results and leaderboards. Players never see this page's setup.</p>
+    <form id="setupForm" autocomplete="off">
+      <div class="row">
+        <div class="field"><label for="newPin">Admin PIN (4–8 digits)</label><input id="newPin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
+        <div class="field"><label for="newPin2">Repeat PIN</label><input id="newPin2" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
+      </div>
+      <label class="check" id="setupBio" hidden><input type="checkbox" id="setupBioChk" checked> <span id="setupBioText"></span></label>
+      <p class="note" id="setupBioNote" hidden></p>
+      <div class="row" style="margin-top:12px"><button class="btn primary" type="submit">Create lock</button></div>
+      <p class="msg" id="setupMsg" role="alert"></p>
+    </form>
+  </section>
+
+  <!-- Lock exists: unlock first -->
+  <section class="panel" id="unlockPanel" hidden>
+    <h2>Unlock admin</h2>
+    <button class="btn primary" id="bioUnlock" type="button" hidden></button>
+    <form id="unlockForm" autocomplete="off" style="margin-top:12px">
+      <div class="row">
+        <div class="field"><label for="pin">Admin PIN</label><input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
+        <button class="btn" type="submit">Unlock</button>
+      </div>
+      <p class="msg" id="unlockMsg" role="alert"></p>
+    </form>
+    <p class="note">Forgot the PIN? Clear this site's data in the browser's settings. That removes the lock and also erases Recent Numbers on this device.</p>
+  </section>
+
+  <!-- Unlocked -->
+  <section class="panel" id="managePanel" hidden>
+    <h2>Manage</h2>
+    <div class="actions">
+      <div class="action">
+        <div><b>Change admin PIN</b><span>Set a new 4–8 digit PIN.</span></div>
+        <form id="changeForm" class="row" autocomplete="off">
+          <div class="field"><label for="chPin">New PIN</label><input id="chPin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
+          <div class="field"><label for="chPin2">Repeat</label><input id="chPin2" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
+          <button class="btn" type="submit">Save</button>
+        </form>
+      </div>
+      <div class="action">
+        <div><b>Device unlock</b><span id="bioDesc"></span></div>
+        <button class="btn" id="bioToggle" type="button"></button>
+      </div>
+      <div class="action">
+        <div><b>Flush a leaderboard</b><span id="lbDesc"></span></div>
+        <div class="row"><select id="lbGame" aria-label="Leaderboard to flush"></select><button class="btn danger" id="lbFlushBtn" type="button">Flush</button></div>
+      </div>
+      <div class="action">
+        <div><b>Flush recent results</b><span id="rrDesc"></span></div>
+        <div class="row"><select id="rrGame" aria-label="Recent results to flush"></select><button class="btn danger" id="rrFlushBtn" type="button">Flush</button></div>
+      </div>
+      <div class="action">
+        <div><b>Master flush</b><span id="masterDesc">Erases every leaderboard and every game's recent results on this computer. The admin lock stays.</span></div>
+        <button class="btn danger" id="masterFlushBtn" type="button">Master flush</button>
+      </div>
+      <div class="action">
+        <div><b>Remove admin lock</b><span>Deletes the PIN and device unlock. Flushing (recent results and leaderboards) is then unavailable until a new lock is created.</span></div>
+        <button class="btn danger" id="removeBtn" type="button">Remove lock</button>
+      </div>
+      <div class="action">
+        <div><b>Done?</b><span>Lock this page again.</span></div>
+        <button class="btn" id="relockBtn" type="button">Lock admin</button>
+      </div>
+    </div>
+    <p class="msg" id="manageMsg" role="status"></p>
+  </section>
+
+  <section class="panel how">
+    <h2>Removing a fingerprint / Touch ID entry</h2>
+    <p>Turning device unlock off (or removing the lock) stops this site from using it. Newer Chrome also deletes the saved entry automatically. If an entry named <b>Game Night</b> (or <b>Duel Casino</b> / <b>Casino</b>, from before the rename) / <b>table-admin</b> is still listed, delete it here:</p>
+    <ul>
+      <li><b>Mac, Chrome:</b> open <code>chrome://password-manager/passwords</code>, search <code>localhost</code>, open the passkey and choose <b>Delete</b>. If Chrome saved it to iCloud Keychain, use the Passwords app below instead.</li>
+      <li><b>Mac, Safari or iCloud Keychain:</b> open the <b>Passwords</b> app (or System Settings → Passwords), search <code>localhost</code>, select the passkey and delete it.</li>
+      <li><b>Android:</b> Settings → Passwords &amp; accounts → Google (Google Password Manager), find the site's passkey and delete it.</li>
+      <li><b>iPhone / iPad:</b> Settings → Passwords (or the Passwords app), find the site and delete the passkey.</li>
+    </ul>
+    <p class="note">A passkey can only be created on https or localhost, so phones using the plain Wi-Fi address never have one. A left-over entry is harmless; it just takes up a line in the list.</p>
+  </section>
+</main>
+
+<script src="admin-lock.js"></script>
+<script src="leaderboard.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+// Recent results of each game on this computer (Roulette's Recent Numbers, the other tables' Recent Results)
+const RECENT = { roulette: 'gn-spins', baccarat: 'gn-log-baccarat', dragontiger: 'gn-log-dragontiger', sicbo: 'gn-log-sicbo', craps: 'gn-log-craps' };
+let unlocked = false, bio = false;
+
+const recentCount = g => { try { return (JSON.parse(localStorage.getItem(RECENT[g])) || []).length; } catch { return 0; } };
+const spinCount = () => Object.keys(RECENT).reduce((a, g) => a + recentCount(g), 0);
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+function fillSelect(sel, games, countOf, unit) {
+  const keep = sel.value;
+  sel.innerHTML = `<option value="*">All games (${plural(games.reduce((a, g) => a + countOf(g), 0), unit)})</option>` +
+    games.map(g => `<option value="${g}">${Leaderboard.NAMES[g]} (${plural(countOf(g), unit)})</option>`).join('');
+  if ([...sel.options].some(o => o.value === keep)) sel.value = keep;
+}
+function msg(id, text, ok) { const m = $(id); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
+
+function render() {
+  const has = AdminLock.hasLock(), dev = AdminLock.hasDeviceUnlock(), n = spinCount();
+  $('#stPin').innerHTML = has ? '<span class="on">Set</span>' : '<span class="off">Not set</span>';
+  $('#stBio').innerHTML = dev ? `<span class="on">On</span> (${AdminLock.bioName()})`
+    : `<span class="off">Off</span>${bio ? '' : ' · needs https or localhost'}`;
+  $('#stAddr').textContent = location.host;
+  $('#setupPanel').hidden = has;
+  $('#unlockPanel').hidden = !has || unlocked;
+  $('#managePanel').hidden = !has || !unlocked;
+  $('#bioUnlock').hidden = !(dev && bio);
+  $('#bioUnlock').textContent = `Unlock with ${AdminLock.bioName()}`;
+  $('#setupBio').hidden = !bio;
+  $('#setupBioText').textContent = `Also allow ${AdminLock.bioName()} on this device`;
+  $('#setupBioNote').hidden = bio;
+  $('#setupBioNote').textContent = `${AdminLock.bioName()} needs this page on https or localhost; the PIN works everywhere.`;
+  $('#bioDesc').textContent = dev ? `On: ${AdminLock.bioName()} can unlock admin actions on this device.`
+    : bio ? `Off: let ${AdminLock.bioName()} unlock admin actions on this device.` : 'Unavailable here: needs https or localhost.';
+  $('#bioToggle').textContent = dev ? 'Turn off' : 'Turn on';
+  $('#bioToggle').disabled = !dev && !bio;
+  const boards = Leaderboard.count();
+  $('#stSpins').textContent = `${plural(n, 'result')} stored`;
+  $('#stBoards').textContent = `${plural(boards, 'entry')} stored`.replace('entrys', 'entries');
+  fillSelect($('#lbGame'), Object.keys(Leaderboard.NAMES), g => Leaderboard.count(g), 'entry');
+  fillSelect($('#rrGame'), Object.keys(RECENT), recentCount, 'result');
+  document.querySelectorAll('#lbGame option, #rrGame option').forEach(o => { o.textContent = o.textContent.replace(/(\d+) entrys/, '$1 entries'); });
+  $('#lbDesc').textContent = 'Erase one game\'s leaderboard, or every leaderboard (master).';
+  $('#rrDesc').textContent = 'Erase one game\'s recent results, or all of them.';
+  $('#lbFlushBtn').disabled = !boards; $('#rrFlushBtn').disabled = !n; $('#masterFlushBtn').disabled = !boards && !n;
+}
+
+// ---- create ----
+$('#setupForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const p1 = $('#newPin').value.trim(), p2 = $('#newPin2').value.trim();
+  if (!AdminLock.validPin(p1)) return msg('#setupMsg', 'Use 4 to 8 digits.');
+  if (p1 !== p2) return msg('#setupMsg', "The two PINs don't match.");
+  AdminLock.setPin(p1);
+  unlocked = true;
+  if (bio && $('#setupBioChk').checked) {
+    try { await AdminLock.enableDeviceUnlock(); }
+    catch { msg('#manageMsg', `${AdminLock.bioName()} wasn't set up; the PIN works. You can turn it on below.`); }
+  }
+  render();
+  if (!$('#manageMsg').textContent) msg('#manageMsg', 'Admin lock created.', true);
+});
+
+// ---- unlock ----
+$('#unlockForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const r = AdminLock.checkPin($('#pin').value.trim());
+  $('#pin').value = '';
+  if (!r.ok) return msg('#unlockMsg', r.error);
+  unlocked = true; $('#manageMsg').textContent = ''; render();
+});
+$('#bioUnlock').addEventListener('click', async () => {
+  try {
+    if (await AdminLock.verifyPasskey()) { unlocked = true; $('#manageMsg').textContent = ''; return render(); }
+    msg('#unlockMsg', 'The device did not confirm it was you. Use the PIN instead.');
+  } catch { msg('#unlockMsg', "Device unlock was cancelled or isn't available. Use the PIN instead."); }
+});
+
+// ---- manage (only reachable while unlocked) ----
+// Destructive buttons ask for a second tap instead of a browser confirm dialog
+function confirmTap(btn, label, action) {
+  if (btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = label; return action(); }
+  btn.dataset.armed = '1'; btn.textContent = 'Tap again to confirm';
+  setTimeout(() => { if (btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = label; } }, 4000);
+}
+$('#changeForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const p1 = $('#chPin').value.trim(), p2 = $('#chPin2').value.trim();
+  if (!AdminLock.validPin(p1)) return msg('#manageMsg', 'Use 4 to 8 digits.');
+  if (p1 !== p2) return msg('#manageMsg', "The two PINs don't match.");
+  AdminLock.setPin(p1);
+  $('#chPin').value = $('#chPin2').value = '';
+  msg('#manageMsg', 'Admin PIN changed.', true);
+});
+$('#bioToggle').addEventListener('click', async () => {
+  if (AdminLock.hasDeviceUnlock()) {
+    const forgotten = await AdminLock.disableDeviceUnlock();
+    msg('#manageMsg', forgotten ? 'Device unlock turned off, and the browser was told to delete its saved entry.'
+      : 'Device unlock turned off. If the entry still shows in your passwords list, see the steps below to delete it.', true);
+  } else {
+    try { await AdminLock.enableDeviceUnlock(); msg('#manageMsg', `${AdminLock.bioName()} can now unlock admin actions.`, true); }
+    catch { msg('#manageMsg', `${AdminLock.bioName()} wasn't set up (cancelled or unavailable).`); }
+  }
+  render();
+});
+function flushRecent(g) {
+  const games = g === '*' ? Object.keys(RECENT) : [g], n = games.reduce((a, k) => a + recentCount(k), 0);
+  games.forEach(k => { try { localStorage.setItem(RECENT[k], '[]'); } catch {} });
+  return n;
+}
+$('#lbFlushBtn').addEventListener('click', e => confirmTap(e.currentTarget, 'Flush', () => {
+  const g = $('#lbGame').value, n = Leaderboard.flush(g === '*' ? undefined : g);
+  msg('#manageMsg', `${g === '*' ? 'All leaderboards' : Leaderboard.NAMES[g] + ' leaderboard'} erased (${plural(n, 'entry').replace('entrys', 'entries')}). Open game tabs update right away.`, true);
+  render();
+}));
+$('#rrFlushBtn').addEventListener('click', e => confirmTap(e.currentTarget, 'Flush', () => {
+  const g = $('#rrGame').value, n = flushRecent(g);
+  msg('#manageMsg', `${g === '*' ? 'All recent results' : Leaderboard.NAMES[g] + ' recent results'} erased (${plural(n, 'result')}). Open game tabs update right away.`, true);
+  render();
+}));
+$('#masterFlushBtn').addEventListener('click', e => confirmTap(e.currentTarget, 'Master flush', () => {
+  const r = flushRecent('*'), b = Leaderboard.flush();
+  msg('#manageMsg', `Master flush done: ${plural(b, 'leaderboard entry').replace('entrys', 'entries')} and ${plural(r, 'recent result')} erased.`, true);
+  render();
+}));
+window.addEventListener('storage', render);
+$('#removeBtn').addEventListener('click', e => confirmTap(e.currentTarget, 'Remove lock', async () => {
+  const forgotten = await AdminLock.removeLock();
+  unlocked = false;
+  render();
+  msg('#setupMsg', 'Admin lock removed.' + (forgotten ? ' The browser was told to delete the device-unlock entry.' : ''), true);
+}));
+$('#relockBtn').addEventListener('click', () => { unlocked = false; $('#unlockMsg').textContent = ''; render(); });
+
+(async () => { bio = await AdminLock.bioAvailable(); render(); })();
+render();
+</script>
+</body>
+</html>

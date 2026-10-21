@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Party Games · Game Night</title>
+<script src="storage-migrate.js"></script>
+<style>
+  :root {
+    --felt: #0d4a2e;
+    --felt-dark: #062417;
+    --gold: #d4af37;
+    --red: #c0262d;
+    --text: #f5f1e6;
+    --muted: #b9c4bc;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; min-height: 100vh; min-height: 100dvh;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text);
+    background: radial-gradient(ellipse at center, #135c3a 0%, var(--felt) 45%, var(--felt-dark) 100%) fixed;
+    background-color: var(--felt-dark);
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    display: flex; flex-direction: column; align-items: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; cursor: pointer; }
+
+  .hero { text-align: center; margin: 4vh 0 32px; }
+  .suits { color: var(--gold); letter-spacing: .6em; font-size: 1rem; opacity: .8; margin-left: .6em; }
+  h1 {
+    margin: 8px 0 6px; font-family: Georgia, "Times New Roman", serif; color: var(--gold);
+    font-size: clamp(2.2rem, 7vw, 3.6rem); letter-spacing: .06em;
+    text-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 30px rgba(212,175,55,.25);
+  }
+  .tagline { color: var(--muted); font-size: 1.05rem; margin: 0; }
+
+  .games {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px;
+    width: min(1100px, 100%);
+  }
+  .game {
+    position: relative; display: flex; flex-direction: column; align-items: center; text-align: center;
+    background: linear-gradient(#11402a, #082a1b); border: 2px solid var(--gold); border-radius: 18px;
+    padding: 26px 22px 22px; color: inherit; text-decoration: none;
+    box-shadow: 0 16px 40px rgba(0,0,0,.45); transition: transform .2s, box-shadow .2s;
+  }
+  .game:hover, .game:focus-visible { transform: translateY(-6px); box-shadow: 0 24px 50px rgba(0,0,0,.55), 0 0 0 4px rgba(212,175,55,.25); outline: none; }
+  .game svg { width: 150px; height: 150px; filter: drop-shadow(0 8px 14px rgba(0,0,0,.5)); }
+  .game:hover .spin { animation: spin 3s linear infinite; }
+  .spin { transform-origin: 75px 75px; transform-box: view-box; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .game:hover .fan-l { transform: rotate(-22deg); }
+  .game:hover .fan-r { transform: rotate(22deg); }
+  .fan-l, .fan-r { transform-origin: 75px 135px; transform-box: view-box; transition: transform .3s; }
+  .game h2 { margin: 14px 0 6px; font-family: Georgia, serif; color: var(--gold); font-size: 1.7rem; }
+  .game p { margin: 0 0 14px; color: #dfe7e1; line-height: 1.5; }
+  .features { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .features li { font-size: .78rem; padding: 3px 10px; border-radius: 99px; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.15); color: var(--muted); }
+  .play {
+    margin-top: auto; display: inline-block; padding: 12px 34px; border-radius: 10px; font-weight: 800; font-size: 1.05rem;
+    background: linear-gradient(#e6c55a, #b8901f); color: #1d1500; border: 1px solid #f3dc8b;
+  }
+
+  footer { margin-top: auto; padding-top: 36px; text-align: center; color: var(--muted); font-size: .9rem; }
+  footer .btn {
+    margin-bottom: 12px; padding: 10px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,.35);
+    background: rgba(0,0,0,.3); color: var(--text); font-weight: 600;
+  }
+  .join-table {
+    margin-top: 22px; display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 99px;
+    border: 1px solid rgba(212,175,55,.7); color: var(--gold); text-decoration: none; font-weight: 700; background: rgba(0,0,0,.25);
+  }
+  .join-table:hover { background: rgba(0,0,0,.4); }
+  .admin-link { display: inline-block; margin-top: 10px; color: var(--muted); font-size: .85rem; text-decoration: underline; text-underline-offset: 3px; }
+  .admin-link:hover { color: var(--gold); }
+  @media (max-width: 600px) {
+    .hero { margin: 2vh 0 22px; }
+    .game { padding: 20px 16px 18px; }
+    .game svg { width: 120px; height: 120px; }
+  }
+
+  .qr-join { display: none; align-items: center; gap: 18px; margin: 0 0 26px; padding: 14px 18px; border-radius: 16px; background: rgba(0,0,0,.28); border: 1px solid rgba(212,175,55,.5); }
+  .qr-join.on { display: flex; }
+  .qr-join img { width: 132px; height: 132px; background: #fff; border-radius: 10px; padding: 6px; }
+  .qr-join b { color: var(--gold); font-size: 1.1rem; display: block; margin-bottom: 4px; }
+  .qr-join code { display: inline-block; margin-top: 6px; background: rgba(0,0,0,.35); border-radius: 6px; padding: 4px 8px; }
+  .qr-join p { margin: 0; color: #dfe7e1; max-width: 340px; line-height: 1.45; }
+  .switch-lobby { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 10px 20px; border-radius: 99px; border: 1px solid rgba(212,175,55,.7); color: var(--gold); text-decoration: none; font-weight: 700; background: rgba(0,0,0,.25); }
+  .switch-lobby:hover { background: rgba(0,0,0,.4); }
+  .lobby-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  @media (max-width: 600px) { .qr-join.on { flex-direction: column; text-align: center; } }
+
+  .game svg { width: 150px; height: 150px; }
+  .game .emoji { font-size: 92px; line-height: 150px; height: 150px; filter: drop-shadow(0 8px 14px rgba(0,0,0,.5)); }
+</style>
+</head>
+<body>
+  <section class="hero">
+    <div class="suits">🐺 🎲 🐟 🃏</div>
+    <h1>Party Games</h1>
+    <p class="tagline">This Mac runs the game. Everyone plays on their own phone.</p>
+    <div class="lobby-links"><a class="switch-lobby" href="index.html">⌂ Home</a>
+    <a class="switch-lobby" href="casino.html">🎰 Casino games →</a></div>
+  </section>
+  <div class="qr-join" id="qrJoin">
+    <img id="qrImg" alt="QR code: scan to join from your phone">
+    <div><b>📱 Join from your phone</b><p>Scan with the phone's camera (same Wi-Fi as this Mac). The phone joins whatever game is running here.</p><code id="qrUrl"></code></div>
+  </div>
+
+  <main class="games">
+    <a class="game" href="party-table.html?g=werewolf">
+      <div class="emoji" aria-hidden="true">🐺</div>
+      <h2>One Night Werewolf</h2>
+      <p>One night, one vote. Secret roles on every phone; the Mac is the moderator and narrates the night.</p>
+      <ul class="features"><li>3–10 players</li><li>Seer · Robber · Troublemaker</li><li>Talking moderator</li></ul>
+      <span class="play">Play Werewolf</span>
+    </a>
+    <a class="game" href="party-table.html?g=catan">
+      <div class="emoji" aria-hidden="true">🏝️</div>
+      <h2>Catan</h2>
+      <p>Settle the island: build, trade and race to 10 points. The board is on the Mac; your cards are on your phone.</p>
+      <ul class="features"><li>2–4 players</li><li>Development cards</li><li>Longest Road · Largest Army</li></ul>
+      <span class="play">Play Catan</span>
+    </a>
+    <a class="game" href="party-table.html?g=gofish">
+      <div class="emoji" aria-hidden="true">🐟</div>
+      <h2>Go Fish</h2>
+      <p>Ask for the cards you need and collect books of four. Your hand stays private on your phone.</p>
+      <ul class="features"><li>2–6 players</li><li>Books of four</li><li>Easy for all ages</li></ul>
+      <span class="play">Play Go Fish</span>
+    </a>
+    <a class="game" href="party-table.html?g=bluff">
+      <div class="emoji" aria-hidden="true">🃏</div>
+      <h2>Bluff</h2>
+      <p>Play cards face down and claim the rank, truthfully or not. Call "Bluff!" from your phone when you doubt it.</p>
+      <ul class="features"><li>3–8 players</li><li>Lie with a straight face</li><li>First to empty their hand</li></ul>
+      <span class="play">Play Bluff</span>
+    </a>
+  </main>
+
+  <footer>
+    <div>Bring your friends and your phones: the more players, the better the night.</div>
+    <a class="admin-link" href="admin.html">Table admin</a>
+  </footer>
+<script src="admin-lock.js"></script>
+<script src="leaderboard.js"></script>
+<script>
+// The QR code phones scan to join (only on the host computer)
+function showJoinQr() {
+  fetch('/api/info').then(r => r.json()).then(info => {
+    if (info.master === false) return;
+    const ip = (info.addresses || [])[0];
+    if (!ip) return;
+    document.getElementById('qrUrl').textContent = `http://${ip}:${info.port}`;
+    const img = document.getElementById('qrImg');
+    img.onload = () => document.getElementById('qrJoin').classList.add('on');
+    img.src = '/api/qr.svg';
+  }).catch(() => {});
+}
+showJoinQr();
+
+// Phones: every card joins the game the host computer is running
+fetch('/api/info').then(r => r.json()).then(info => {
+  if (info.master !== false) return Leaderboard.mountAll(document.querySelector('footer'), Object.keys(Leaderboard.PARTY), 'party');
+  document.querySelectorAll('a.game').forEach(a => {
+    a.href = 'party-remote.html?g=' + new URL(a.href).searchParams.get('g');
+    a.querySelector('.play').textContent = 'Join the game';
+  });
+}).catch(() => Leaderboard.mountAll(document.querySelector('footer'), Object.keys(Leaderboard.PARTY), 'party'));
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+/* Shared look for the party games (Mac screens and phones) */
+.pcard { --cw: 56px; --ch: 80px; width: var(--cw); height: var(--ch); flex: none; position: relative; border-radius: 8px; }
+.pcard .face { position: absolute; inset: 0; border-radius: 8px; background: #fffdf8; color: #1b1b1b; border: 1px solid #d6d0c4; box-shadow: -2px 3px 8px rgba(0,0,0,.4); }
+.pcard .face.red { color: #c0262d; }
+.pcard .corner { position: absolute; font-weight: 800; font-size: calc(var(--cw) * .22); line-height: 1.05; text-align: center; }
+.pcard .corner.tl { top: 4px; left: 5px; } .pcard .corner.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
+.pcard .pip { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--cw) * .46); }
+.pcard .court { font-family: Georgia, serif; font-weight: 800; font-size: calc(var(--cw) * .4); width: 58%; height: 50%; display: grid; place-items: center; border: 2px solid currentColor; border-radius: 6px; background: rgba(212,175,55,.18); }
+.pcard.back { background: repeating-linear-gradient(45deg, #8f1d22 0 6px, #a8242a 6px 12px); border: 3px solid #fff; box-shadow: -2px 3px 8px rgba(0,0,0,.4); }
+.pcard.sm { --cw: 34px; --ch: 48px; } .pcard.lg { --cw: 76px; --ch: 108px; }
+.pcard.pick { cursor: pointer; transition: transform .12s; }
+.pcard.sel { transform: translateY(-12px); box-shadow: 0 0 0 3px var(--gold, #d4af37), 0 8px 14px rgba(0,0,0,.4); }
+.fan { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.fan.tight .pcard + .pcard { margin-left: calc(var(--cw) * -.55); }
+.stack { position: relative; display: inline-block; }
+.stack .n { position: absolute; right: -8px; bottom: -8px; min-width: 26px; height: 26px; border-radius: 13px; background: var(--gold, #d4af37); color: #1d1500; font-weight: 900; font-size: .8rem; display: grid; place-items: center; padding: 0 6px; }
+.seat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.seat-box { border-radius: 12px; padding: 12px; background: rgba(0,0,0,.28); border: 2px solid transparent; }
+.seat-box.now { border-color: var(--pc); box-shadow: 0 0 18px color-mix(in srgb, var(--pc) 55%, transparent); }
+.seat-box .who { display: flex; align-items: center; gap: 8px; font-weight: 800; margin-bottom: 8px; }
+.seat-box .who i { width: 12px; height: 12px; border-radius: 50%; background: var(--pc); }
+.seat-box .who .tag { margin-left: auto; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; background: var(--pc); color: #fff; padding: 2px 8px; border-radius: 99px; }
+.big-line { font-size: 1.25rem; font-weight: 800; text-align: center; margin: 12px 0; min-height: 1.6em; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pills .p { padding: 3px 9px; border-radius: 99px; background: rgba(0,0,0,.3); font-size: .8rem; font-weight: 700; }
+.choice { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.choice button { padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255,255,255,.3); background: rgba(0,0,0,.3); color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+.choice button.on { border-color: var(--gold, #d4af37); background: rgba(212,175,55,.2); }
+.choice button:disabled { opacity: .4; cursor: not-allowed; }
+.go { width: 100%; padding: 14px; font-size: 1.1rem; font-weight: 900; border-radius: 12px; border: 1px solid #f3dc8b; background: linear-gradient(#e6c55a, #b8901f); color: #1d1500; cursor: pointer; margin-top: 8px; }
+.go:disabled { opacity: .45; cursor: not-allowed; }
+.go.red { background: linear-gradient(#e0565c, #8f1d22); color: #fff; border-color: #ffb4b7; }
+.note { color: var(--muted, #b9c4bc); font-size: .88rem; margin: 6px 0; }
+.sec-title { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted, #b9c4bc); margin: 12px 0 6px; }

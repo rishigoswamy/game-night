@@ -1,0 +1,8 @@
+# Installed packages (npm install recreates them from package-lock.json)
+node_modules/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

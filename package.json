@@ -1,0 +1,11 @@
+{
+  "name": "game-night",
+  "private": true,
+  "description": "Game Night: local multi-player casino and party games",
+  "scripts": {
+    "start": "node server.js 8080"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
+}

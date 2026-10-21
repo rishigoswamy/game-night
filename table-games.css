@@ -1,0 +1,80 @@
+/* Shared by table.html (the host computer's table) and table-remote.html (phones):
+   betting board, playing cards, dice and the recent-results beads for Baccarat, Dragon Tiger, Sic Bo and Craps. */
+
+/* ---- Betting board: rows of spaces; each space grows by its --span ---- */
+.gboard { display: grid; gap: 6px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.brow { display: flex; flex-wrap: wrap; gap: 6px; }
+.b-cell {
+  position: relative; flex: var(--span, 1) 1 0; min-width: var(--minw, 54px); height: var(--rh, 56px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 4px 6px;
+  border: 2px solid rgba(255,255,255,.6); border-radius: 10px; cursor: pointer; text-align: center; line-height: 1.1;
+  transition: filter .12s, box-shadow .2s; color: #fff;
+}
+.b-cell .lbl { font-weight: 800; font-size: 1rem; }
+.b-cell .sub { font-size: .7rem; opacity: .85; font-weight: 600; }
+.b-cell.big .lbl { font-size: 1.3rem; font-family: Georgia, serif; letter-spacing: .06em; }
+.b-cell:hover { filter: brightness(1.3); }
+.gboard.locked .b-cell { cursor: default; }
+.gboard.locked .b-cell:hover { filter: none; }
+.b-cell.win { box-shadow: inset 0 0 0 3px var(--gold), 0 0 16px var(--gold); animation: bPulse 1s ease-in-out infinite alternate; z-index: 1; }
+@keyframes bPulse { from { filter: brightness(1); } to { filter: brightness(1.45); } }
+.b-blue { background: rgba(37,99,235,.55); } .b-red { background: rgba(192,38,45,.6); } .b-green { background: rgba(10,122,61,.65); }
+.b-orange { background: rgba(234,88,12,.6); } .b-dark { background: rgba(0,0,0,.4); } .b-gold { background: rgba(184,144,31,.55); }
+.b-cell .stacks { position: absolute; right: 3px; bottom: 3px; display: flex; gap: 2px; pointer-events: none; }
+.b-cell .chip-mini {
+  min-width: 22px; height: 22px; padding: 0 3px; border-radius: 11px; display: grid; place-items: center;
+  font-size: .58rem; font-weight: 800; color: #fff; background: var(--pc); border: 2px dashed rgba(255,255,255,.85); box-shadow: 0 2px 4px rgba(0,0,0,.5);
+}
+@media (max-width: 600px) {
+  .gboard, .brow { gap: 4px; }
+  .b-cell { min-width: var(--minw-s, 44px); padding: 3px 4px; border-radius: 8px; }
+  .b-cell .lbl { font-size: .88rem; } .b-cell.big .lbl { font-size: 1.1rem; } .b-cell .sub { font-size: .6rem; }
+  .b-cell .stacks { flex-direction: column; right: 1px; bottom: 1px; gap: 1px; }
+  .b-cell .chip-mini { min-width: 17px; height: 17px; font-size: .5rem; border-width: 1px; padding: 0 2px; }
+}
+
+/* ---- The stage: cards or dice in front of the dealer ---- */
+.stage { width: 100%; min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+.stage-note { min-height: 1.4em; color: var(--muted); font-weight: 700; text-align: center; }
+.stage-note b { color: var(--text); font-size: 1.15em; }
+
+/* ---- Playing cards ---- */
+.cards { display: flex; justify-content: center; min-height: var(--ch); }
+.pcard { --cw: 60px; --ch: 86px; width: var(--cw); height: var(--ch); flex: none; position: relative; }
+.cards .pcard + .pcard { margin-left: calc(var(--cw) * -.22); }
+.dt-card .pcard { --cw: 84px; --ch: 120px; }
+.pcard .face { position: absolute; inset: 0; border-radius: 8px; background: #fffdf8; color: #1b1b1b; border: 1px solid #d6d0c4; box-shadow: -2px 3px 8px rgba(0,0,0,.45); }
+.pcard .face.red { color: #c0262d; }
+.pcard .corner { position: absolute; font-weight: 800; font-size: calc(var(--cw) * .21); line-height: 1.05; text-align: center; }
+.pcard .corner.tl { top: 5px; left: 6px; }
+.pcard .corner.br { bottom: 5px; right: 6px; transform: rotate(180deg); }
+.pcard .pip { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--cw) * .48); }
+.pcard .court { font-family: Georgia, serif; font-weight: 800; font-size: calc(var(--cw) * .42); width: 58%; height: 52%;
+  display: grid; place-items: center; border: 2px solid currentColor; border-radius: 6px; background: rgba(212,175,55,.18); }
+.card-slot { width: 60px; height: 86px; border-radius: 8px; border: 2px dashed rgba(255,255,255,.25); }
+.dt-card .card-slot { width: 84px; height: 120px; }
+
+/* ---- Dice ---- */
+.die {
+  width: 62px; height: 62px; border-radius: 12px; background: linear-gradient(145deg, #ffffff, #e9e4d8); box-shadow: 0 6px 12px rgba(0,0,0,.45), inset 0 -3px 0 rgba(0,0,0,.12);
+  display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 9px; gap: 2px;
+}
+.die i { width: 11px; height: 11px; border-radius: 50%; background: #1b1b1b; place-self: center; visibility: hidden; }
+.die i.on { visibility: visible; }
+.die.v1 i.on, .die.v4 i.on { background: #c0262d; }
+.die.blank { place-items: center; color: #9ca3af; font-weight: 900; font-size: 1.6rem; display: grid; grid-template: 1fr / 1fr; }
+.rolling .die { animation: tumble .32s linear infinite; animation-delay: calc(var(--k) * -.1s); }
+@keyframes tumble { 0% { transform: rotate(0) translateY(0); } 25% { transform: rotate(90deg) translateY(-8px); } 50% { transform: rotate(180deg) translateY(0); }
+  75% { transform: rotate(270deg) translateY(-6px); } 100% { transform: rotate(360deg) translateY(0); } }
+@media (max-width: 600px) { .die { width: 50px; height: 50px; padding: 7px; } .die i { width: 9px; height: 9px; } }
+
+/* ---- Recent results beads ---- */
+.beads { display: flex; flex-wrap: wrap; gap: 5px; }
+.tok { min-width: 28px; height: 28px; padding: 0 5px; border-radius: 14px; display: inline-grid; place-items: center; font-size: .78rem; font-weight: 800; color: #fff;
+  border: 1px solid rgba(255,255,255,.35); }
+.tok.latest { outline: 2.5px solid var(--gold); outline-offset: 2px; }
+.tok-blue { background: #2563eb; } .tok-red { background: #c0262d; } .tok-green { background: #0a7a3d; }
+.tok-orange { background: #ea580c; } .tok-gold { background: #d4af37; color: #1d1500; } .tok-dark { background: #1b1b1b; }
+.log-stats { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .92rem; color: #dfe7e1; margin-bottom: 10px; }
+.log-stats .tok { min-width: 22px; height: 22px; font-size: .68rem; margin-right: 5px; vertical-align: middle; }
+.log-empty { color: var(--muted); font-style: italic; padding: 18px 0; text-align: center; }

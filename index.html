@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Game Night</title>
+<script src="storage-migrate.js"></script>
+<style>
+  :root {
+    --felt: #0d4a2e;
+    --felt-dark: #062417;
+    --gold: #d4af37;
+    --red: #c0262d;
+    --text: #f5f1e6;
+    --muted: #b9c4bc;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; min-height: 100vh; min-height: 100dvh;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text);
+    background: radial-gradient(ellipse at center, #135c3a 0%, var(--felt) 45%, var(--felt-dark) 100%) fixed;
+    background-color: var(--felt-dark);
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    display: flex; flex-direction: column; align-items: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; cursor: pointer; }
+
+  .hero { text-align: center; margin: 4vh 0 32px; }
+  .suits { color: var(--gold); letter-spacing: .6em; font-size: 1rem; opacity: .8; margin-left: .6em; }
+  h1 {
+    margin: 8px 0 6px; font-family: Georgia, "Times New Roman", serif; color: var(--gold);
+    font-size: clamp(2.2rem, 7vw, 3.6rem); letter-spacing: .06em;
+    text-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 30px rgba(212,175,55,.25);
+  }
+  .tagline { color: var(--muted); font-size: 1.05rem; margin: 0; }
+
+  .games {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px;
+    width: min(1100px, 100%);
+  }
+  .game {
+    position: relative; display: flex; flex-direction: column; align-items: center; text-align: center;
+    background: linear-gradient(#11402a, #082a1b); border: 2px solid var(--gold); border-radius: 18px;
+    padding: 26px 22px 22px; color: inherit; text-decoration: none;
+    box-shadow: 0 16px 40px rgba(0,0,0,.45); transition: transform .2s, box-shadow .2s;
+  }
+  .game:hover, .game:focus-visible { transform: translateY(-6px); box-shadow: 0 24px 50px rgba(0,0,0,.55), 0 0 0 4px rgba(212,175,55,.25); outline: none; }
+  .game svg { width: 150px; height: 150px; filter: drop-shadow(0 8px 14px rgba(0,0,0,.5)); }
+  .game:hover .spin { animation: spin 3s linear infinite; }
+  .spin { transform-origin: 75px 75px; transform-box: view-box; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .game:hover .fan-l { transform: rotate(-22deg); }
+  .game:hover .fan-r { transform: rotate(22deg); }
+  .fan-l, .fan-r { transform-origin: 75px 135px; transform-box: view-box; transition: transform .3s; }
+  .game h2 { margin: 14px 0 6px; font-family: Georgia, serif; color: var(--gold); font-size: 1.7rem; }
+  .game p { margin: 0 0 14px; color: #dfe7e1; line-height: 1.5; }
+  .features { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .features li { font-size: .78rem; padding: 3px 10px; border-radius: 99px; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.15); color: var(--muted); }
+  .play {
+    margin-top: auto; display: inline-block; padding: 12px 34px; border-radius: 10px; font-weight: 800; font-size: 1.05rem;
+    background: linear-gradient(#e6c55a, #b8901f); color: #1d1500; border: 1px solid #f3dc8b;
+  }
+
+  footer { margin-top: auto; padding-top: 36px; text-align: center; color: var(--muted); font-size: .9rem; }
+  footer .btn {
+    margin-bottom: 12px; padding: 10px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,.35);
+    background: rgba(0,0,0,.3); color: var(--text); font-weight: 600;
+  }
+  .join-table {
+    margin-top: 22px; display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 99px;
+    border: 1px solid rgba(212,175,55,.7); color: var(--gold); text-decoration: none; font-weight: 700; background: rgba(0,0,0,.25);
+  }
+  .join-table:hover { background: rgba(0,0,0,.4); }
+  .admin-link { display: inline-block; margin-top: 10px; color: var(--muted); font-size: .85rem; text-decoration: underline; text-underline-offset: 3px; }
+  .admin-link:hover { color: var(--gold); }
+
+  /* Hover animations for the newer tables (Roulette spins and Blackjack fans its cards, above) */
+  .bac-l, .bac-r { transform-box: view-box; transform-origin: 75px 130px; transition: transform .35s; }
+  .game:hover .bac-l { transform: rotate(-16deg); } .game:hover .bac-r { transform: rotate(16deg); }
+  .game:hover .hop { animation: hop .6s ease-in-out infinite alternate; }
+  @keyframes hop { from { transform: translateY(0); } to { transform: translateY(-9px); } }
+  .dt-card { transform-box: fill-box; transform-origin: center; }
+  .dt-face { opacity: 0; } .dt-back { opacity: 1; }
+  .game:hover .dt-card { animation: dtFlip .9s ease forwards; } .game:hover .dt-b { animation-delay: .35s; }
+  .game:hover .dt-face { animation: dtFace .9s ease forwards; } .game:hover .dt-back { animation: dtBack .9s ease forwards; }
+  .game:hover .dt-b .dt-face, .game:hover .dt-b .dt-back { animation-delay: .35s; }
+  @keyframes dtFlip { 0% { transform: scaleX(1); } 50% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+  @keyframes dtFace { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
+  @keyframes dtBack { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  .dt-dragon, .dt-tiger { transform-box: fill-box; transform-origin: center bottom; }
+  .game:hover .dt-dragon { animation: roar .5s ease-in-out infinite alternate; } .game:hover .dt-tiger { animation: roar .5s ease-in-out .25s infinite alternate; }
+  @keyframes roar { from { transform: translateY(0) scale(1); } to { transform: translateY(-6px) scale(1.18); } }
+  .sb { transform-box: view-box; }
+  .game:hover .sb1 { animation: tumble1 .8s cubic-bezier(.3,.7,.4,1) infinite; }
+  .game:hover .sb2 { animation: tumble2 .9s cubic-bezier(.3,.7,.4,1) .1s infinite; }
+  .game:hover .sb3 { animation: tumble1 .85s cubic-bezier(.3,.7,.4,1) .2s infinite reverse; }
+  @keyframes tumble1 { 0% { transform: translateY(0) rotate(0); } 40% { transform: translateY(-16px) rotate(200deg); } 100% { transform: translateY(0) rotate(360deg); } }
+  @keyframes tumble2 { 0% { transform: translateY(0) rotate(0); } 45% { transform: translateY(-22px) rotate(-220deg); } 100% { transform: translateY(0) rotate(-360deg); } }
+  .cr-roll, .cr-spin { transform-box: view-box; }
+  .game:hover .cr-roll { animation: crRoll 1.6s cubic-bezier(.2,.7,.3,1) infinite; } .game:hover .cr-b { animation-delay: .12s; }
+  .game:hover .cr-spin { animation: crSpin 1.6s cubic-bezier(.2,.7,.3,1) infinite; } .game:hover .cr-spin2 { animation-delay: .12s; }
+  @keyframes crRoll { 0% { transform: translate(-40px, -30px); opacity: 0; } 15% { opacity: 1; } 55% { transform: translate(6px, 4px); } 70% { transform: translate(0, -6px); } 85%, 100% { transform: translate(0, 0); } }
+  @keyframes crSpin { 0% { transform: rotate(-540deg); } 70%, 100% { transform: rotate(0); } }
+  .puck .on { opacity: 0; } .puck { transform-box: view-box; transition: transform .5s; }
+  .game:hover .puck { transform: rotateY(180deg); }
+  .game:hover .puck circle { fill: #fffdf5; stroke: #1b1b1b; transition: fill .01s .25s; } .game:hover .puck .off { opacity: 0; transition: opacity .01s .25s; }
+  .game:hover .puck .on { opacity: 1; transform: scaleX(-1); transform-box: fill-box; transform-origin: center; transition: opacity .01s .25s; }
+  @media (prefers-reduced-motion: reduce) { .game:hover * { animation: none !important; } }
+  @media (max-width: 600px) {
+    .hero { margin: 2vh 0 22px; }
+    .game { padding: 20px 16px 18px; }
+    .game svg { width: 120px; height: 120px; }
+  }
+
+  .qr-join { display: none; align-items: center; gap: 18px; margin: 0 0 26px; padding: 14px 18px; border-radius: 16px; background: rgba(0,0,0,.28); border: 1px solid rgba(212,175,55,.5); }
+  .qr-join.on { display: flex; }
+  .qr-join img { width: 132px; height: 132px; background: #fff; border-radius: 10px; padding: 6px; }
+  .qr-join b { color: var(--gold); font-size: 1.1rem; display: block; margin-bottom: 4px; }
+  .qr-join code { display: inline-block; margin-top: 6px; background: rgba(0,0,0,.35); border-radius: 6px; padding: 4px 8px; }
+  .qr-join p { margin: 0; color: #dfe7e1; max-width: 340px; line-height: 1.45; }
+  .switch-lobby { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 10px 20px; border-radius: 99px; border: 1px solid rgba(212,175,55,.7); color: var(--gold); text-decoration: none; font-weight: 700; background: rgba(0,0,0,.25); }
+  .switch-lobby:hover { background: rgba(0,0,0,.4); }
+  @media (max-width: 600px) { .qr-join.on { flex-direction: column; text-align: center; } }
+
+  .games.two { width: min(820px, 100%); }
+  .game .art { width: 170px; height: 170px; }
+  /* Party Games tile: mirror ball turning, light beams sweeping, a deck riffle-shuffling (while hovered, like the casino wheel) */
+  .party-art { overflow: visible; }
+  .party-art .ball-strip, .party-art .beams, .party-art .spot, .party-art .half-l, .party-art .half-r, .party-art .top-card, .party-art .sparkle { transform-box: view-box; }
+  .party-art .beams { transform-origin: 75px 40px; }
+  .party-art .half-l, .party-art .half-r, .party-art .top-card { transform-origin: 75px 128px; }
+  .party-art .spot { opacity: .35; }
+  .game:hover .party-art .ball-strip { animation: ballTurn 2.4s linear infinite; }
+  .game:hover .party-art .beams { animation: beamSpin 5s linear infinite; }
+  .game:hover .party-art .spot { animation: spotPulse 1.2s ease-in-out infinite alternate; }
+  .game:hover .party-art .s2 { animation-delay: .4s; } .game:hover .party-art .s3 { animation-delay: .8s; }
+  .game:hover .party-art .sparkle { animation: sparkle .8s ease-in-out infinite alternate; transform-origin: 66px 31px; }
+  .game:hover .party-art .half-l { animation: riffleL 1.4s ease-in-out infinite; }
+  .game:hover .party-art .half-r { animation: riffleR 1.4s ease-in-out infinite; }
+  .game:hover .party-art .top-card { animation: topCard 1.4s ease-in-out infinite; }
+  @keyframes ballTurn { from { transform: translateX(0); } to { transform: translateX(-96px); } }
+  @keyframes beamSpin { to { transform: rotate(360deg); } }
+  .party-art .gl { transform-box: view-box; transform-origin: 75px 40px; opacity: 0; }
+  .game:hover .party-art .gl { animation: glitter var(--t) cubic-bezier(.2,.6,.4,1) var(--d) infinite; }
+  @keyframes glitter {
+    0% { transform: translate(0, 0) scale(var(--s0)); opacity: 0; }
+    15% { opacity: 1; }
+    70% { opacity: .9; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(var(--s1)); opacity: 0; }
+  }
+  @keyframes spotPulse { from { opacity: .2; } to { opacity: .75; } }
+  @keyframes sparkle { from { transform: scale(.4); opacity: .4; } to { transform: scale(1.6); opacity: 1; } }
+  @keyframes riffleL { 0%, 100% { transform: translate(0, 0) rotate(0); } 35% { transform: translate(-16px, -4px) rotate(-10deg); } 65% { transform: translate(6px, -2px) rotate(4deg); } }
+  @keyframes riffleR { 0%, 100% { transform: translate(0, 0) rotate(0); } 35% { transform: translate(16px, -4px) rotate(10deg); } 65% { transform: translate(-6px, -2px) rotate(-4deg); } }
+  @keyframes topCard { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } 60% { transform: translateY(-14px) scale(1.06); } }
+  @media (prefers-reduced-motion: reduce) { .game:hover .party-art * { animation: none !important; } }
+  .count { color: var(--muted); font-size: .9rem; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+  <section class="hero">
+    <div class="suits">♠ 🎲 ♥ 🃏 ♦ 🐺 ♣</div>
+    <h1>Game Night</h1>
+    <p class="tagline">Casino tables or party games: what are we playing tonight?</p>
+  </section>
+  <div class="qr-join" id="qrJoin">
+    <img id="qrImg" alt="QR code: scan to join from your phone">
+    <div><b>📱 Join from your phone</b><p>Scan with the phone's camera (same Wi-Fi as this Mac). The phone joins whatever game is running here.</p><code id="qrUrl"></code></div>
+  </div>
+
+  <main class="games two">
+    <a class="game" href="casino.html">
+      <svg class="art" viewBox="0 0 150 150" aria-hidden="true">
+        <circle cx="75" cy="75" r="72" fill="#7a4520"/>
+        <circle cx="75" cy="75" r="66" fill="#d4af37"/>
+        <g class="spin" id="miniWheel"></g>
+        <circle cx="75" cy="75" r="30" fill="#d4af37"/>
+        <circle cx="75" cy="75" r="27" fill="#5a3317"/>
+        <path d="M75 52 L79 75 L75 98 L71 75 Z M52 75 L75 71 L98 75 L75 79 Z" fill="#e8c766"/>
+        <circle cx="75" cy="75" r="6" fill="#fff6cf"/>
+        <circle cx="112" cy="40" r="5" fill="#fff"/>
+      </svg>
+      <h2>Casino Games</h2>
+      <p>Talking dealer, chips and a betting window. Everyone bets from their own phone.</p>
+      <ul class="features"><li>Roulette</li><li>Blackjack</li><li>Baccarat</li><li>Dragon Tiger</li><li>Sic Bo</li><li>Craps</li></ul>
+      <span class="play">Enter the Casino</span>
+    </a>
+    <a class="game" href="party.html">
+      <svg class="art party-art" viewBox="0 0 150 150" aria-hidden="true">
+        <defs>
+          <!-- Light fades out before the top edge of the tile: beams look shorter as they swing up, full length to the sides and below -->
+          <linearGradient id="lightFade" x1="0" y1="-8" x2="0" y2="30" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="1"/></linearGradient>
+          <mask id="lightMask" maskUnits="userSpaceOnUse" x="-120" y="-24" width="390" height="200"><rect x="-120" y="-24" width="390" height="200" fill="url(#lightFade)"/></mask>
+          <clipPath id="ballClip"><circle cx="75" cy="40" r="22"/></clipPath>
+          <radialGradient id="ballShade" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></radialGradient></defs>
+        <g class="floor-spots">
+          <ellipse class="spot s1" cx="30" cy="140" rx="20" ry="6" fill="#ff4fd8"/><ellipse class="spot s2" cx="75" cy="144" rx="22" ry="6" fill="#3de0ff"/><ellipse class="spot s3" cx="120" cy="140" rx="20" ry="6" fill="#ffe14f"/>
+        </g>
+        <g mask="url(#lightMask)"><g class="beams"><polygon points="75,40 61,148 89,148" fill="#ff4fd8" opacity=".3" transform="rotate(0 75 40)"/><polygon points="75,40 61,148 89,148" fill="#3de0ff" opacity=".3" transform="rotate(45 75 40)"/><polygon points="75,40 61,148 89,148" fill="#ffe14f" opacity=".3" transform="rotate(90 75 40)"/><polygon points="75,40 61,148 89,148" fill="#9b6bff" opacity=".3" transform="rotate(135 75 40)"/><polygon points="75,40 61,148 89,148" fill="#ff4fd8" opacity=".3" transform="rotate(180 75 40)"/><polygon points="75,40 61,148 89,148" fill="#3de0ff" opacity=".3" transform="rotate(225 75 40)"/><polygon points="75,40 61,148 89,148" fill="#ffe14f" opacity=".3" transform="rotate(270 75 40)"/><polygon points="75,40 61,148 89,148" fill="#9b6bff" opacity=".3" transform="rotate(315 75 40)"/></g></g>
+        <line x1="75" y1="0" x2="75" y2="18" stroke="#d4af37" stroke-width="2"/>
+        <g clip-path="url(#ballClip)"><circle cx="75" cy="40" r="22" fill="#6b7280"/><g transform="translate(53 0)"><g class="ball-strip"><rect x="0" y="18" width="5.2" height="5.2" fill="#d9dde3"/><rect x="6" y="18" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="12" y="18" width="5.2" height="5.2" fill="#ff4fd8"/><rect x="18" y="18" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="24" y="18" width="5.2" height="5.2" fill="#d9dde3"/><rect x="30" y="18" width="5.2" height="5.2" fill="#9b6bff"/><rect x="36" y="18" width="5.2" height="5.2" fill="#d9dde3"/><rect x="42" y="18" width="5.2" height="5.2" fill="#9b6bff"/><rect x="48" y="18" width="5.2" height="5.2" fill="#ff4fd8"/><rect x="54" y="18" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="60" y="18" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="66" y="18" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="72" y="18" width="5.2" height="5.2" fill="#3de0ff"/><rect x="78" y="18" width="5.2" height="5.2" fill="#3de0ff"/><rect x="84" y="18" width="5.2" height="5.2" fill="#d9dde3"/><rect x="90" y="18" width="5.2" height="5.2" fill="#e9edf2"/><rect x="0" y="24" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="6" y="24" width="5.2" height="5.2" fill="#e9edf2"/><rect x="12" y="24" width="5.2" height="5.2" fill="#d9dde3"/><rect x="18" y="24" width="5.2" height="5.2" fill="#e9edf2"/><rect x="24" y="24" width="5.2" height="5.2" fill="#e9edf2"/><rect x="30" y="24" width="5.2" height="5.2" fill="#3de0ff"/><rect x="36" y="24" width="5.2" height="5.2" fill="#e9edf2"/><rect x="42" y="24" width="5.2" height="5.2" fill="#b8bec8"/><rect x="48" y="24" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="54" y="24" width="5.2" height="5.2" fill="#d9dde3"/><rect x="60" y="24" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="66" y="24" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="72" y="24" width="5.2" height="5.2" fill="#e9edf2"/><rect x="78" y="24" width="5.2" height="5.2" fill="#b8bec8"/><rect x="84" y="24" width="5.2" height="5.2" fill="#b8bec8"/><rect x="90" y="24" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="0" y="30" width="5.2" height="5.2" fill="#9b6bff"/><rect x="6" y="30" width="5.2" height="5.2" fill="#b8bec8"/><rect x="12" y="30" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="18" y="30" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="24" y="30" width="5.2" height="5.2" fill="#ffe14f"/><rect x="30" y="30" width="5.2" height="5.2" fill="#b8bec8"/><rect x="36" y="30" width="5.2" height="5.2" fill="#e9edf2"/><rect x="42" y="30" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="48" y="30" width="5.2" height="5.2" fill="#b8bec8"/><rect x="54" y="30" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="60" y="30" width="5.2" height="5.2" fill="#ffe14f"/><rect x="66" y="30" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="72" y="30" width="5.2" height="5.2" fill="#b8bec8"/><rect x="78" y="30" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="84" y="30" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="90" y="30" width="5.2" height="5.2" fill="#e9edf2"/><rect x="0" y="36" width="5.2" height="5.2" fill="#ff4fd8"/><rect x="6" y="36" width="5.2" height="5.2" fill="#b8bec8"/><rect x="12" y="36" width="5.2" height="5.2" fill="#d9dde3"/><rect x="18" y="36" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="24" y="36" width="5.2" height="5.2" fill="#9b6bff"/><rect x="30" y="36" width="5.2" height="5.2" fill="#b8bec8"/><rect x="36" y="36" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="42" y="36" width="5.2" height="5.2" fill="#b8bec8"/><rect x="48" y="36" width="5.2" height="5.2" fill="#b8bec8"/><rect x="54" y="36" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="60" y="36" width="5.2" height="5.2" fill="#d9dde3"/><rect x="66" y="36" width="5.2" height="5.2" fill="#3de0ff"/><rect x="72" y="36" width="5.2" height="5.2" fill="#d9dde3"/><rect x="78" y="36" width="5.2" height="5.2" fill="#3de0ff"/><rect x="84" y="36" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="90" y="36" width="5.2" height="5.2" fill="#e9edf2"/><rect x="0" y="42" width="5.2" height="5.2" fill="#e9edf2"/><rect x="6" y="42" width="5.2" height="5.2" fill="#d9dde3"/><rect x="12" y="42" width="5.2" height="5.2" fill="#e9edf2"/><rect x="18" y="42" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="24" y="42" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="30" y="42" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="36" y="42" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="42" y="42" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="48" y="42" width="5.2" height="5.2" fill="#9b6bff"/><rect x="54" y="42" width="5.2" height="5.2" fill="#ff4fd8"/><rect x="60" y="42" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="66" y="42" width="5.2" height="5.2" fill="#b8bec8"/><rect x="72" y="42" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="78" y="42" width="5.2" height="5.2" fill="#3de0ff"/><rect x="84" y="42" width="5.2" height="5.2" fill="#b8bec8"/><rect x="90" y="42" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="0" y="48" width="5.2" height="5.2" fill="#e9edf2"/><rect x="6" y="48" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="12" y="48" width="5.2" height="5.2" fill="#b8bec8"/><rect x="18" y="48" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="24" y="48" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="30" y="48" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="36" y="48" width="5.2" height="5.2" fill="#b8bec8"/><rect x="42" y="48" width="5.2" height="5.2" fill="#ff4fd8"/><rect x="48" y="48" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="54" y="48" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="60" y="48" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="66" y="48" width="5.2" height="5.2" fill="#e9edf2"/><rect x="72" y="48" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="78" y="48" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="84" y="48" width="5.2" height="5.2" fill="#b8bec8"/><rect x="90" y="48" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="0" y="54" width="5.2" height="5.2" fill="#b8bec8"/><rect x="6" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="12" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="18" y="54" width="5.2" height="5.2" fill="#e9edf2"/><rect x="24" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="30" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="36" y="54" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="42" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="48" y="54" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="54" y="54" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="60" y="54" width="5.2" height="5.2" fill="#b8bec8"/><rect x="66" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="72" y="54" width="5.2" height="5.2" fill="#b8bec8"/><rect x="78" y="54" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="84" y="54" width="5.2" height="5.2" fill="#b8bec8"/><rect x="90" y="54" width="5.2" height="5.2" fill="#ff4fd8"/><g transform="translate(96 0)"><rect x="0" y="18" width="5.2" height="5.2" fill="#d9dde3"/><rect x="6" y="18" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="12" y="18" width="5.2" height="5.2" fill="#ff4fd8"/><rect x="18" y="18" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="24" y="18" width="5.2" height="5.2" fill="#d9dde3"/><rect x="30" y="18" width="5.2" height="5.2" fill="#9b6bff"/><rect x="36" y="18" width="5.2" height="5.2" fill="#d9dde3"/><rect x="42" y="18" width="5.2" height="5.2" fill="#9b6bff"/><rect x="48" y="18" width="5.2" height="5.2" fill="#ff4fd8"/><rect x="54" y="18" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="60" y="18" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="66" y="18" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="72" y="18" width="5.2" height="5.2" fill="#3de0ff"/><rect x="78" y="18" width="5.2" height="5.2" fill="#3de0ff"/><rect x="84" y="18" width="5.2" height="5.2" fill="#d9dde3"/><rect x="90" y="18" width="5.2" height="5.2" fill="#e9edf2"/><rect x="0" y="24" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="6" y="24" width="5.2" height="5.2" fill="#e9edf2"/><rect x="12" y="24" width="5.2" height="5.2" fill="#d9dde3"/><rect x="18" y="24" width="5.2" height="5.2" fill="#e9edf2"/><rect x="24" y="24" width="5.2" height="5.2" fill="#e9edf2"/><rect x="30" y="24" width="5.2" height="5.2" fill="#3de0ff"/><rect x="36" y="24" width="5.2" height="5.2" fill="#e9edf2"/><rect x="42" y="24" width="5.2" height="5.2" fill="#b8bec8"/><rect x="48" y="24" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="54" y="24" width="5.2" height="5.2" fill="#d9dde3"/><rect x="60" y="24" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="66" y="24" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="72" y="24" width="5.2" height="5.2" fill="#e9edf2"/><rect x="78" y="24" width="5.2" height="5.2" fill="#b8bec8"/><rect x="84" y="24" width="5.2" height="5.2" fill="#b8bec8"/><rect x="90" y="24" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="0" y="30" width="5.2" height="5.2" fill="#9b6bff"/><rect x="6" y="30" width="5.2" height="5.2" fill="#b8bec8"/><rect x="12" y="30" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="18" y="30" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="24" y="30" width="5.2" height="5.2" fill="#ffe14f"/><rect x="30" y="30" width="5.2" height="5.2" fill="#b8bec8"/><rect x="36" y="30" width="5.2" height="5.2" fill="#e9edf2"/><rect x="42" y="30" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="48" y="30" width="5.2" height="5.2" fill="#b8bec8"/><rect x="54" y="30" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="60" y="30" width="5.2" height="5.2" fill="#ffe14f"/><rect x="66" y="30" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="72" y="30" width="5.2" height="5.2" fill="#b8bec8"/><rect x="78" y="30" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="84" y="30" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="90" y="30" width="5.2" height="5.2" fill="#e9edf2"/><rect x="0" y="36" width="5.2" height="5.2" fill="#ff4fd8"/><rect x="6" y="36" width="5.2" height="5.2" fill="#b8bec8"/><rect x="12" y="36" width="5.2" height="5.2" fill="#d9dde3"/><rect x="18" y="36" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="24" y="36" width="5.2" height="5.2" fill="#9b6bff"/><rect x="30" y="36" width="5.2" height="5.2" fill="#b8bec8"/><rect x="36" y="36" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="42" y="36" width="5.2" height="5.2" fill="#b8bec8"/><rect x="48" y="36" width="5.2" height="5.2" fill="#b8bec8"/><rect x="54" y="36" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="60" y="36" width="5.2" height="5.2" fill="#d9dde3"/><rect x="66" y="36" width="5.2" height="5.2" fill="#3de0ff"/><rect x="72" y="36" width="5.2" height="5.2" fill="#d9dde3"/><rect x="78" y="36" width="5.2" height="5.2" fill="#3de0ff"/><rect x="84" y="36" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="90" y="36" width="5.2" height="5.2" fill="#e9edf2"/><rect x="0" y="42" width="5.2" height="5.2" fill="#e9edf2"/><rect x="6" y="42" width="5.2" height="5.2" fill="#d9dde3"/><rect x="12" y="42" width="5.2" height="5.2" fill="#e9edf2"/><rect x="18" y="42" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="24" y="42" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="30" y="42" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="36" y="42" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="42" y="42" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="48" y="42" width="5.2" height="5.2" fill="#9b6bff"/><rect x="54" y="42" width="5.2" height="5.2" fill="#ff4fd8"/><rect x="60" y="42" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="66" y="42" width="5.2" height="5.2" fill="#b8bec8"/><rect x="72" y="42" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="78" y="42" width="5.2" height="5.2" fill="#3de0ff"/><rect x="84" y="42" width="5.2" height="5.2" fill="#b8bec8"/><rect x="90" y="42" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="0" y="48" width="5.2" height="5.2" fill="#e9edf2"/><rect x="6" y="48" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="12" y="48" width="5.2" height="5.2" fill="#b8bec8"/><rect x="18" y="48" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="24" y="48" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="30" y="48" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="36" y="48" width="5.2" height="5.2" fill="#b8bec8"/><rect x="42" y="48" width="5.2" height="5.2" fill="#ff4fd8"/><rect x="48" y="48" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="54" y="48" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="60" y="48" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="66" y="48" width="5.2" height="5.2" fill="#e9edf2"/><rect x="72" y="48" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="78" y="48" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="84" y="48" width="5.2" height="5.2" fill="#b8bec8"/><rect x="90" y="48" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="0" y="54" width="5.2" height="5.2" fill="#b8bec8"/><rect x="6" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="12" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="18" y="54" width="5.2" height="5.2" fill="#e9edf2"/><rect x="24" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="30" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="36" y="54" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="42" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="48" y="54" width="5.2" height="5.2" fill="#9aa1ad"/><rect x="54" y="54" width="5.2" height="5.2" fill="#f5f5f5"/><rect x="60" y="54" width="5.2" height="5.2" fill="#b8bec8"/><rect x="66" y="54" width="5.2" height="5.2" fill="#d9dde3"/><rect x="72" y="54" width="5.2" height="5.2" fill="#b8bec8"/><rect x="78" y="54" width="5.2" height="5.2" fill="#c7ccd4"/><rect x="84" y="54" width="5.2" height="5.2" fill="#b8bec8"/><rect x="90" y="54" width="5.2" height="5.2" fill="#ff4fd8"/></g></g></g></g>
+        <circle cx="75" cy="40" r="22" fill="url(#ballShade)" stroke="#e5e7eb" stroke-width="1.2"/>
+        <circle class="sparkle" cx="66" cy="31" r="2.2" fill="#fff"/>
+        <g mask="url(#lightMask)"><g class="glitter"><circle class="gl" cx="75" cy="40" r="2.2" fill="#ffffff" style="--dx:72.6px;--dy:-0.7px;--s0:0.4;--s1:2.4;--d:0.00s;--t:1.30s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ffe14f" style="--dx:63.4px;--dy:22.0px;--s0:1.4;--s1:0.15;--d:0.14s;--t:1.45s"/><circle class="gl" cx="75" cy="40" r="2.2" fill="#3de0ff" style="--dx:62.0px;--dy:34.0px;--s0:0.4;--s1:2.4;--d:0.27s;--t:1.60s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ff4fd8" style="--dx:50.1px;--dy:42.2px;--s0:1.4;--s1:0.15;--d:0.41s;--t:1.75s"/><circle class="gl" cx="75" cy="40" r="2.2" fill="#c4b5fd" style="--dx:32.1px;--dy:65.0px;--s0:0.4;--s1:2.4;--d:0.55s;--t:1.90s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ffffff" style="--dx:14.6px;--dy:50.6px;--s0:1.4;--s1:0.15;--d:0.69s;--t:1.30s"/><circle class="gl" cx="75" cy="40" r="2.2" fill="#ffffff" style="--dx:-3.7px;--dy:71.0px;--s0:0.4;--s1:2.4;--d:0.82s;--t:1.45s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ffe14f" style="--dx:-22.8px;--dy:37.7px;--s0:1.4;--s1:0.15;--d:0.96s;--t:1.60s"/><circle class="gl" cx="75" cy="40" r="2.2" fill="#3de0ff" style="--dx:-66.7px;--dy:51.9px;--s0:0.4;--s1:2.4;--d:1.10s;--t:1.75s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ff4fd8" style="--dx:-64.6px;--dy:32.5px;--s0:1.4;--s1:0.15;--d:1.23s;--t:1.90s"/><circle class="gl" cx="75" cy="40" r="2.2" fill="#c4b5fd" style="--dx:-45.4px;--dy:14.9px;--s0:0.4;--s1:2.4;--d:1.37s;--t:1.30s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ffffff" style="--dx:-50.6px;--dy:-0.3px;--s0:1.4;--s1:0.15;--d:1.51s;--t:1.45s"/><circle class="gl" cx="75" cy="40" r="2.2" fill="#ffffff" style="--dx:-57.3px;--dy:-10.5px;--s0:0.4;--s1:2.4;--d:0.04s;--t:1.60s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ffe14f" style="--dx:-61.3px;--dy:-25.7px;--s0:1.4;--s1:0.15;--d:0.18s;--t:1.75s"/><circle class="gl" cx="75" cy="40" r="2.2" fill="#3de0ff" style="--dx:-56.6px;--dy:-54.0px;--s0:0.4;--s1:2.4;--d:0.32s;--t:1.90s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ff4fd8" style="--dx:-31.3px;--dy:-59.0px;--s0:1.4;--s1:0.15;--d:0.46s;--t:1.30s"/><circle class="gl" cx="75" cy="40" r="2.2" fill="#c4b5fd" style="--dx:-11.0px;--dy:-64.9px;--s0:0.4;--s1:2.4;--d:0.59s;--t:1.45s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ffffff" style="--dx:8.0px;--dy:-50.8px;--s0:1.4;--s1:0.15;--d:0.73s;--t:1.60s"/><circle class="gl" cx="75" cy="40" r="2.2" fill="#ffffff" style="--dx:47.8px;--dy:-66.6px;--s0:0.4;--s1:2.4;--d:0.87s;--t:1.75s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ffe14f" style="--dx:56.5px;--dy:-47.1px;--s0:1.4;--s1:0.15;--d:1.00s;--t:1.90s"/><circle class="gl" cx="75" cy="40" r="2.2" fill="#3de0ff" style="--dx:47.4px;--dy:-28.5px;--s0:0.4;--s1:2.4;--d:1.14s;--t:1.30s"/><circle class="gl" cx="75" cy="40" r="1.8" fill="#ff4fd8" style="--dx:48.2px;--dy:-14.3px;--s0:1.4;--s1:0.15;--d:1.28s;--t:1.45s"/></g></g>
+        <g class="deck">
+          <g class="half-l"><g class="" transform="translate(-14 0) rotate(-12 75 128)"><rect x="61" y="104" width="28" height="40" rx="4" fill="#a8242a" stroke="#fff" stroke-width="2"/><path d="M65 108 h20 v32 h-20 z" fill="none" stroke="#f3dc8b" stroke-width="1" stroke-dasharray="2.5 2"/></g><g class="" transform="translate(-12 0) rotate(-10 75 128)"><rect x="61" y="104" width="28" height="40" rx="4" fill="#a8242a" stroke="#fff" stroke-width="2"/><path d="M65 108 h20 v32 h-20 z" fill="none" stroke="#f3dc8b" stroke-width="1" stroke-dasharray="2.5 2"/></g><g class="" transform="translate(-10 0) rotate(-8 75 128)"><rect x="61" y="104" width="28" height="40" rx="4" fill="#a8242a" stroke="#fff" stroke-width="2"/><path d="M65 108 h20 v32 h-20 z" fill="none" stroke="#f3dc8b" stroke-width="1" stroke-dasharray="2.5 2"/></g></g>
+          <g class="half-r"><g class="" transform="translate(14 0) rotate(12 75 128)"><rect x="61" y="104" width="28" height="40" rx="4" fill="#a8242a" stroke="#fff" stroke-width="2"/><path d="M65 108 h20 v32 h-20 z" fill="none" stroke="#f3dc8b" stroke-width="1" stroke-dasharray="2.5 2"/></g><g class="" transform="translate(12 0) rotate(10 75 128)"><rect x="61" y="104" width="28" height="40" rx="4" fill="#a8242a" stroke="#fff" stroke-width="2"/><path d="M65 108 h20 v32 h-20 z" fill="none" stroke="#f3dc8b" stroke-width="1" stroke-dasharray="2.5 2"/></g><g class="" transform="translate(10 0) rotate(8 75 128)"><rect x="61" y="104" width="28" height="40" rx="4" fill="#a8242a" stroke="#fff" stroke-width="2"/><path d="M65 108 h20 v32 h-20 z" fill="none" stroke="#f3dc8b" stroke-width="1" stroke-dasharray="2.5 2"/></g></g>
+          <g class="top-card"><g class="" transform="translate(0 0) rotate(0 75 128)"><rect x="61" y="104" width="28" height="40" rx="4" fill="#a8242a" stroke="#fff" stroke-width="2"/><path d="M65 108 h20 v32 h-20 z" fill="none" stroke="#f3dc8b" stroke-width="1" stroke-dasharray="2.5 2"/></g><text x="75" y="129" font-size="14" text-anchor="middle">🐺</text></g>
+        </g>
+      </svg>
+      <h2>Party Games</h2>
+      <p>The Mac runs the game; everyone plays on their phone. Secret roles, hidden hands, a shared board.</p>
+      <ul class="features"><li>One Night Werewolf</li><li>Catan</li><li>Go Fish</li><li>Bluff</li></ul>
+      <span class="play">Play party games</span>
+    </a>
+  </main>
+
+  <footer>
+    <button class="btn" id="installBtn" hidden>Install app</button>
+    <div>Gather round, grab your phones, and let the games begin.</div>
+    <a class="admin-link" href="admin.html">Table admin</a>
+  </footer>
+<script>
+// The QR code phones scan to join (only on the host computer)
+function showJoinQr() {
+  fetch('/api/info').then(r => r.json()).then(info => {
+    if (info.master === false) return;
+    const ip = (info.addresses || [])[0];
+    if (!ip) return;
+    document.getElementById('qrUrl').textContent = `http://${ip}:${info.port}`;
+    const img = document.getElementById('qrImg');
+    img.onload = () => document.getElementById('qrJoin').classList.add('on');
+    img.src = '/api/qr.svg';
+  }).catch(() => {});
+}
+showJoinQr();
+
+// Mini roulette wheel for the Casino tile
+(function () {
+  const g = document.getElementById('miniWheel');
+  const RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+  const ORDER = [0,28,9,26,30,11,7,20,32,17,5,22,34,15,3,24,36,13,1,37,27,10,25,29,12,8,19,31,18,6,21,33,16,4,23,35,14,2];
+  const seg = Math.PI * 2 / ORDER.length, R = 62, r = 30;
+  ORDER.forEach((n, i) => {
+    const a0 = i * seg - Math.PI / 2, a1 = a0 + seg;
+    const p = (rad, a) => `${75 + Math.cos(a) * rad} ${75 + Math.sin(a) * rad}`;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M${p(r, a0)} L${p(R, a0)} A${R} ${R} 0 0 1 ${p(R, a1)} L${p(r, a1)} A${r} ${r} 0 0 0 ${p(r, a0)} Z`);
+    path.setAttribute('fill', n === 0 || n === 37 ? '#0a8a45' : RED.has(n) ? '#c0262d' : '#151515');
+    path.setAttribute('stroke', '#d4af37'); path.setAttribute('stroke-width', '.6');
+    g.appendChild(path);
+  });
+})();
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+let installPrompt = null;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; installBtn.hidden = false; });
+installBtn.addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt(); await installPrompt.userChoice;
+  installPrompt = null; installBtn.hidden = true;
+});
+window.addEventListener('appinstalled', () => { installBtn.hidden = true; });
+</script>
+</body>
+</html>
