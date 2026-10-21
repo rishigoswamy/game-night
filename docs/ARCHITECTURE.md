@@ -41,7 +41,8 @@ game-night/
 │   │   ├── lib/              modules shared by several pages (see below)
 │   │   └── pages/<page>.js   the code of one page (loaded at the end of that page's <body>)
 │   ├── games/
-│   │   ├── casino/*.js       one module per table game: bets, how a round plays, payouts, drawing
+│   │   ├── casino/*.js       rules of the casino tables: one module per table game (bets, how a round plays,
+│   │   │                     payouts, drawing) + roulette-rules.js and blackjack-rules.js (rules only)
 │   │   └── party/*.js        one module per party game (+ common.js: card helpers)
 │   ├── sw.js                 offline cache (bump VERSION when files change)
 │   ├── manifest.webmanifest  installable app
@@ -85,6 +86,12 @@ They are classic scripts (not ES modules) that define globals, loaded with `<scr
 
 ## Game modules
 
+**Roulette and Blackjack rules** (`games/casino/roulette-rules.js`, `blackjack-rules.js`) set `window.RouletteRules` /
+`window.BlackjackRules`: pure rules with no screen code (wheel, colours, bets and payouts, `settle`; card values, totals,
+blackjack, when Double / Split are allowed, the dealer's peek and drawing, each hand's result and payout). `roulette.js` and
+`blackjack.js` keep the screen, animation, voice and the order of play, and call these.
+
+
 **Casino table modules** (`games/casino/*.js`) set `window.GAME` with: `bets` (the betting board), `play(ctx)`
 (deals cards / rolls dice through `ctx.setStage`, `ctx.wait`, `ctx.say`), `settle(betKey, amount, outcome)` (chips
 returned), `announce`, `token` (recent-results bead), `stageHTML`, payout table and rules. `table.html` handles
@@ -119,7 +126,7 @@ memory only.
 |---|---|---|
 | Where | `test/unit/*.test.js` | `test/e2e/*.js` (runner: `run.js`) |
 | How | Node's built-in test runner; browser files run in a sandbox (`helpers.js`: fake `window` and storage, seeded random, a stand-in for the party page) | Real games in a muted Chrome (`playwright-core`); phones simulated through the computer's Wi-Fi address |
-| Covers | Every casino payout and drawing rule; Werewolf, Catan, Go Fish and Bluff rules; leaderboard, admin lock, storage migration; server security and relay | Whole games end to end: pages, phones, timers, voice, leaderboards |
+| Covers | Every casino payout and drawing rule (all six tables, incl. Roulette and Blackjack); Werewolf, Catan, Go Fish and Bluff rules; leaderboard, admin lock, storage migration; server security and relay | Whole games end to end: pages, phones, timers, voice, leaderboards |
 | Time | a few seconds | about 15 minutes |
 
 Game modules expose a few internals for the unit tests as `_test` (e.g. Catan's `longest`, Baccarat's `bankerDraws`); pages

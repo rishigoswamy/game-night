@@ -4,8 +4,6 @@ const PCOLORS = ['var(--p0)', 'var(--p1)', 'var(--p2)', 'var(--p3)', 'var(--p4)'
 const pc = i => S?.players[i]?.color ?? PCOLORS[i % PCOLORS.length];
 const CHIPS = [[5,'#6b7280'],[10,'#2563eb'],[25,'#16a34a'],[50,'#dc2626'],[100,'#111827'],[500,'#7c3aed']];
 const chipColor = v => (CHIPS.find(c => c[0] === v) || [0, '#6b7280'])[1];
-const SUITS = ['♠', '♥', '♦', '♣'];
-const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const MIN_BET = 5;
 const ABORT = Symbol('abort');   // thrown when the game is exited mid-sequence
 
@@ -24,36 +22,14 @@ function randInt(n) {
   do crypto.getRandomValues(a); while (a[0] >= lim);
   return a[0] % n;
 }
-function newShoe(decks) {
-  const shoe = [];
-  for (let d = 0; d < decks; d++) for (const s of SUITS) for (const r of RANKS) shoe.push({ r, s });
-  for (let i = shoe.length - 1; i > 0; i--) { const j = randInt(i + 1); [shoe[i], shoe[j]] = [shoe[j], shoe[i]]; }
-  return shoe;
-}
+const newShoe = decks => BlackjackRules.newShoe(decks, randInt);
 function drawCard() {
   if (!S.shoe.length) S.shoe = newShoe(S.decks);
   return { ...S.shoe.pop(), id: ++cardSeq, down: false };
 }
-const cardVal = c => c.r === 'A' ? 11 : 'JQK'.includes(c.r) || c.r === '10' ? 10 : +c.r;
-// Best total; face-down cards are skipped unless `all` is set.
-function handTotal(cards, all = false) {
-  let t = 0, aces = 0;
-  for (const c of cards) {
-    if (c.down && !all) continue;
-    t += cardVal(c);
-    if (c.r === 'A') aces++;
-  }
-  while (t > 21 && aces) { t -= 10; aces--; }
-  return { t, soft: aces > 0 };
-}
-const isBlackjack = h => h.cards.length === 2 && !h.split && handTotal(h.cards, true).t === 21;
-const dealerBJ = () => S.dealer.cards.length === 2 && handTotal(S.dealer.cards, true).t === 21;
-function totalLabel(cards) {
-  const { t, soft } = handTotal(cards);
-  if (t > 21) return `Bust ${t}`;
-  return soft && t < 21 ? `${t - 10} / ${t}` : String(t);
-}
-const spokenTotal = cards => { const { t, soft } = handTotal(cards); return soft && t < 21 ? `soft ${t}` : String(t); };
+// The rules (card values, totals, blackjack, double/split, the dealer, payouts) live in games/casino/blackjack-rules.js
+const { cardVal, handTotal, isBlackjack, totalLabel, spokenTotal } = BlackjackRules;
+const dealerBJ = () => BlackjackRules.isDealerBlackjack(S.dealer.cards);
 
 function cardEl(c) {
   let el = cardEls.get(c.id);
@@ -237,9 +213,7 @@ function handEl(i, h, k) {
   return d;
 }
 
-function canDouble(h) {
-  return h && h.cards.length === 2 && !h.done && !(h.split && h.cards[0].r === 'A') && S.players[S.turn.p].bal >= h.bet;
-}
+const canDouble = h => BlackjackRules.canDouble(h, S.players[S.turn.p].bal);
 // Why Double / Split can't be used right now (shown under the buttons)
 function moveHint(h) {
   if (!h) return '';
@@ -248,10 +222,7 @@ function moveHint(h) {
   if (!canSplit(h)) notes.push(h.cards.length !== 2 ? 'Split: only on your first two cards' : h.split || S.hands[S.turn.p].length > 1 ? 'Split: once per hand' : cardVal(h.cards[0]) !== cardVal(h.cards[1]) ? 'Split: needs a pair (same value)' : bal < h.bet ? `Split: needs ${fmt(h.bet)} more chips` : '');
   return notes.filter(Boolean).join(' · ');
 }
-function canSplit(h) {
-  return h && h.cards.length === 2 && !h.split && S.hands[S.turn.p].length === 1
-    && cardVal(h.cards[0]) === cardVal(h.cards[1]) && S.players[S.turn.p].bal >= h.bet;
-}
+const canSplit = h => BlackjackRules.canSplit(h, S.hands[S.turn.p].length, S.players[S.turn.p].bal);
 
 function renderControls() {
   const betting = S.phase === 'bet';
@@ -589,7 +560,7 @@ async function deal() {
   }
 
   // Dealer peeks for blackjack when showing an Ace or a 10
-  if (cardVal(S.dealer.cards[0]) >= 10) {
+  if (BlackjackRules.dealerChecksForBlackjack(S.dealer.cards[0])) {
     await step(g, say('Dealer checks for blackjack…', 'point'));
     await step(g, pwait(500));
     if (dealerBJ()) {
@@ -662,7 +633,7 @@ async function act(kind, fromPhone = false) {
       say(`${P.name} splits.`, 'point');
       await step(g, dealTo(h, i));
       await step(g, dealTo(h2, i));
-      if (h.cards[0].r === 'A') h.done = h2.done = true;     // split Aces: one card each
+      if (BlackjackRules.isSplitAces(h)) h.done = h2.done = true;     // split Aces: one card each
       for (const x of [h, h2]) if (handTotal(x.cards).t === 21) x.done = true;
     }
     const t = handTotal(h.cards).t;
@@ -687,7 +658,7 @@ async function dealerPlay(g) {
   let t = handTotal(S.dealer.cards).t;
   await step(g, say(`Dealer has ${t}.`, 'point'));
   if (live.length) {
-    while (t < 17) {
+    while (BlackjackRules.dealerHits(t)) {
       await step(g, pwait(350));
       await step(g, dealTo(S.dealer, -1));
       t = handTotal(S.dealer.cards).t;
@@ -718,23 +689,13 @@ async function settle(g) {
   S.turn = null;
   stopTurnTimer();
   const d = handTotal(S.dealer.cards, true).t, dBJ = dealerBJ();
-  for (const [h] of allHands()) {
-    if (h.outcome) continue;
-    const t = handTotal(h.cards, true).t, bj = isBlackjack(h);
-    if (bj && dBJ) h.outcome = 'push';
-    else if (bj) h.outcome = 'bj';
-    else if (dBJ) h.outcome = 'lose';
-    else if (d > 21 || t > d) h.outcome = 'win';
-    else if (t === d) h.outcome = 'push';
-    else h.outcome = 'lose';
-    h.net = h.outcome === 'bj' ? h.bet * 1.5 : h.outcome === 'win' ? h.bet : h.outcome === 'push' ? 0 : -h.bet;
-  }
+  for (const [h] of allHands()) Object.assign(h, BlackjackRules.result(h, S.dealer.cards));
   S.history.unshift(dBJ ? 'BJ' : d > 21 ? 'Bust' : String(d));
 
   const summary = S.players.map((_, i) => ({
     hands: S.hands[i].map(h => ({ total: handTotal(h.cards, true).t, bj: isBlackjack(h), bet: h.bet, outcome: h.outcome, net: h.net, doubled: h.doubled })),
     staked: sum(S.hands[i].map(h => h.bet)),
-    returned: sum(S.hands[i].map(h => h.outcome === 'lose' || h.outcome === 'bust' ? 0 : h.bet + h.net)),
+    returned: sum(S.hands[i].map(BlackjackRules.returned)),
   }));
 
   // One player at a time: show their seat, take losing chips, pay winnings

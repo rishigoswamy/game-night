@@ -165,7 +165,7 @@ docs/                 ARCHITECTURE.md (how it all fits together) and change note
 ```
 
 - **Run it:** `npm start` (or `scripts/serve.sh [port]`).
-- **Unit tests:** `npm test`, a few seconds. Game rules and payouts, leaderboards, the admin lock, the storage
+- **Unit tests:** `npm test`, a few seconds. Game rules and payouts (all six casino tables and the four party games), leaderboards, the admin lock, the storage
   migration and the server's security checks (`test/unit/`, Node's built-in test runner, no extra packages).
 - **End-to-end tests:** `npm install` once (adds the browser-automation tool), then `npm run test:e2e`, about 15 minutes:
   real games in a muted Chrome (`test/e2e/`). Run single ones with e.g. `npm run test:e2e -- party-gofish blackjack-phone`.
