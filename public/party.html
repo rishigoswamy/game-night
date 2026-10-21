@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Party Games · Game Night</title>
+<script src="js/lib/storage-migrate.js"></script>
+<link rel="stylesheet" href="css/pages/party.css">
+</head>
+<body>
+  <section class="hero">
+    <div class="suits">🐺 🎲 🐟 🃏</div>
+    <h1>Party Games</h1>
+    <p class="tagline">This Mac runs the game. Everyone plays on their own phone.</p>
+    <div class="lobby-links"><a class="switch-lobby" href="index.html">⌂ Home</a>
+    <a class="switch-lobby" href="casino.html">🎰 Casino games →</a></div>
+  </section>
+  <div class="qr-join" id="qrJoin">
+    <img id="qrImg" alt="QR code: scan to join from your phone">
+    <div><b>📱 Join from your phone</b><p>Scan with the phone's camera (same Wi-Fi as this Mac). The phone joins whatever game is running here.</p><code id="qrUrl"></code></div>
+  </div>
+
+  <main class="games">
+    <a class="game" href="party-table.html?g=werewolf">
+      <div class="emoji" aria-hidden="true">🐺</div>
+      <h2>One Night Werewolf</h2>
+      <p>One night, one vote. Secret roles on every phone; the Mac is the moderator and narrates the night.</p>
+      <ul class="features"><li>3–10 players</li><li>Seer · Robber · Troublemaker</li><li>Talking moderator</li></ul>
+      <span class="play">Play Werewolf</span>
+    </a>
+    <a class="game" href="party-table.html?g=catan">
+      <div class="emoji" aria-hidden="true">🏝️</div>
+      <h2>Catan</h2>
+      <p>Settle the island: build, trade and race to 10 points. The board is on the Mac; your cards are on your phone.</p>
+      <ul class="features"><li>2–4 players</li><li>Development cards</li><li>Longest Road · Largest Army</li></ul>
+      <span class="play">Play Catan</span>
+    </a>
+    <a class="game" href="party-table.html?g=gofish">
+      <div class="emoji" aria-hidden="true">🐟</div>
+      <h2>Go Fish</h2>
+      <p>Ask for the cards you need and collect books of four. Your hand stays private on your phone.</p>
+      <ul class="features"><li>2–6 players</li><li>Books of four</li><li>Easy for all ages</li></ul>
+      <span class="play">Play Go Fish</span>
+    </a>
+    <a class="game" href="party-table.html?g=bluff">
+      <div class="emoji" aria-hidden="true">🃏</div>
+      <h2>Bluff</h2>
+      <p>Play cards face down and claim the rank, truthfully or not. Call "Bluff!" from your phone when you doubt it.</p>
+      <ul class="features"><li>3–8 players</li><li>Lie with a straight face</li><li>First to empty their hand</li></ul>
+      <span class="play">Play Bluff</span>
+    </a>
+  </main>
+
+  <footer>
+    <div>Bring your friends and your phones: the more players, the better the night.</div>
+    <a class="admin-link" href="admin.html">Table admin</a>
+  </footer>
+<script src="js/lib/admin-lock.js"></script>
+<script src="js/lib/leaderboard.js"></script>
+<script src="js/pages/party.js"></script>
+</body>
+</html>

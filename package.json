@@ -3,9 +3,13 @@
   "private": true,
   "description": "Game Night: local multi-player casino and party games",
   "scripts": {
-    "start": "node server.js 8080"
+    "start": "node server/server.js",
+    "test": "node test/e2e/run.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.64.1"
   }
 }

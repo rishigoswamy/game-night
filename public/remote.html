@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Join the Table</title>
+<script src="js/lib/storage-migrate.js"></script>
+<link rel="stylesheet" href="css/base-phone.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Casino<small id="where">Join a table</small></h1>
+    <div class="head-btns">
+      <button class="btn" id="voiceBtn" type="button" title="Hear the dealer and the crowd on this phone"></button>
+      <button class="btn" id="rulesBtn" type="button">Rules</button>
+      <a class="btn" href="casino.html">← Lobby</a>
+    </div>
+  </header>
+
+  <!-- Waiting for the table -->
+  <section id="joinView">
+    <div class="panel waiting">
+      <div class="spinner" aria-hidden="true"></div>
+      <h2>Waiting for the table…</h2>
+      <p class="muted" id="waitText">The host computer isn't running a Casino-style Roulette game right now. This page joins the table automatically as soon as it is.</p>
+    </div>
+    <p class="muted" style="font-size:.85rem">Your phone needs to be on the same Wi-Fi as the host computer.</p>
+  </section>
+
+  <!-- At the table -->
+  <section id="tableView" hidden>
+    <div class="panel stale" id="staleTable" hidden>⚠️ The table screen is running an older version of the game, so the wheel spin and Recent Numbers can't show here. On the host computer, reload the Roulette page.</div>
+    <div class="panel">
+      <div class="status">
+        <div><div class="phase" id="phase"></div><div class="round-no" id="roundNo"></div></div>
+        <div class="hist" id="hist"></div>
+      </div>
+      <div class="bar" id="bar" hidden><i id="barFill"></i></div>
+    </div>
+
+    <div class="panel wheel-panel">
+      <div class="dealer" id="dealer">
+      <svg class="dealer-svg" viewBox="-20 0 200 178" aria-label="Dealer">
+        <path d="M30 178 L34 122 Q40 108 80 104 Q120 108 126 122 L130 178 Z" fill="#141414"/>
+        <rect x="72" y="86" width="16" height="22" fill="#e9b98f"/>
+        <path d="M65 106 L80 146 L95 106 Z" fill="#f5f5f5"/>
+        <circle cx="80" cy="130" r="1.8" fill="#333"/><circle cx="80" cy="140" r="1.8" fill="#333"/>
+        <path d="M67 108 L80 114 L93 108 L93 121 L80 114 L67 121 Z" fill="#c0262d"/>
+        <circle cx="80" cy="114" r="2.8" fill="#8f1a1f"/>
+        <g class="head">
+          <circle cx="50" cy="65" r="6" fill="#e9b98f"/><circle cx="110" cy="65" r="6" fill="#e9b98f"/>
+          <circle cx="80" cy="62" r="30" fill="#f1c7a1"/>
+          <path d="M49 60 Q50 28 80 28 Q111 28 111 60 Q106 42 82 41 Q62 41 49 60 Z" fill="#2b1a10"/>
+          <path d="M62 53 Q69 49 75 53" stroke="#2b1a10" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M85 53 Q91 49 98 53" stroke="#2b1a10" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <g class="eyes"><circle cx="69" cy="62" r="3.2" fill="#222"/><circle cx="91" cy="62" r="3.2" fill="#222"/></g>
+          <path d="M80 63 Q76 71 81 72" stroke="#c9946b" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M67 77 Q80 70 93 77 Q80 74 67 77 Z" fill="#2b1a10"/>
+          <ellipse class="mouth" cx="80" cy="81" rx="7" ry="3" fill="#7a2a2a"/>
+        </g>
+        <g class="arm arm-l">
+          <line x1="38" y1="118" x2="30" y2="158" stroke="#141414" stroke-width="14" stroke-linecap="round"/>
+          <circle id="dealerHandL" cx="29" cy="163" r="7" fill="#f1c7a1"/>
+        </g>
+        <g class="arm arm-r">
+          <line x1="122" y1="118" x2="130" y2="158" stroke="#141414" stroke-width="14" stroke-linecap="round"/>
+          <circle id="dealerHand" cx="131" cy="163" r="7" fill="#f1c7a1"/>
+        </g>
+      </svg>
+        <div class="bubble" id="bubble">Welcome to the table!</div>
+      </div>
+      <canvas id="wheel" aria-label="Roulette wheel"></canvas>
+      <div class="wheel-cap" id="wheelCap">Place your bets</div>
+    </div>
+
+    <div class="panel">
+      <h2>Your players</h2>
+      <div class="tabs" id="tabs"></div>
+      <form class="row" id="addForm" autocomplete="off" hidden style="margin-top:10px">
+        <div class="field"><label for="nameIn">Name</label><input id="nameIn" maxlength="16" placeholder="Your name"></div>
+        <button class="btn primary" type="submit">Join the table</button>
+        <button class="btn" type="button" id="addCancel">Cancel</button>
+      </form>
+      <div class="me" id="me" hidden>
+        <div><div class="big" id="meBal"></div><div class="sub" id="meSub"></div></div>
+        <button class="btn danger" id="cashBtn" type="button">Cash out</button>
+      </div>
+      <div class="wl" id="wlCard" hidden></div>
+    </div>
+
+    <div class="panel" id="betPanel" hidden>
+      <div class="chips" id="chips"></div>
+      <div class="board" id="board"></div>
+      <div class="actions">
+        <button class="btn" id="undoBtn" type="button">Undo</button>
+        <button class="btn" id="clearBtn" type="button">Clear</button>
+        <button class="btn" id="rebetBtn" type="button">Rebet</button>
+      </div>
+      <div class="hint">Tap a space to bet the selected chip. Long-press a space to take your bets off it. Outlined chips are yours.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent Numbers</h2>
+      <div class="muted" id="spinSub" style="font-size:.82rem;margin:-4px 0 8px"></div>
+      <div class="spin-stats" id="spinStats"></div>
+      <div id="spinChart"></div>
+      <div class="chart-hint" id="spinHint" hidden>← Swipe for older spins</div>
+    </div>
+
+    <div class="panel" id="payouts">
+      <h2>Payout Table</h2>
+      <div class="ptools">
+        <label class="switch"><input type="checkbox" id="exToggle"><span class="track"></span>Show example bet</label>
+        <label class="stake-pick ex">Example bet
+          <select id="exStake"><option>5</option><option selected>10</option><option>25</option><option>50</option><option>100</option><option>500</option></select>
+        </label>
+      </div>
+      <div class="ptable-wrap">
+        <table class="ptable">
+          <thead><tr><th>Bet</th><th>Where</th><th>Covers</th><th class="num">Pays</th><th class="num ex">Profit</th><th class="num ex">Returned</th><th class="ex">Chance</th></tr></thead>
+          <tbody id="payoutRows"></tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:.82rem;margin:10px 0 0">0 and 00 are green: they aren't red/black, odd/even, low/high, or in any dozen or column, so every outside bet loses when one comes up.</p>
+    </div>
+  </section>
+</div>
+
+<div class="cover" id="offline" hidden><div class="panel"><h2 id="offTitle">Table offline</h2><p id="offText" class="muted"></p></div></div>
+<div class="rules" id="rules" hidden>
+  <div class="rules-head"><h3>Rules</h3><button class="rules-close" id="rulesClose" aria-label="Close rules">×</button></div>
+  <ul>
+    <li><b>The table:</b> the Roulette table runs on the host computer. This phone joins it with your own players and bets for them; the wheel here spins in step with the table.</li>
+    <li><b>Your players:</b> add up to 6 seats (shared with everyone at the table) with <b>+ Add player</b> and switch between them with the tabs. Only this phone can bet for its players.</li>
+    <li><b>Betting:</b> pick a chip and tap a space. Long-press a space to take your bets off it. Undo, Clear and Rebet act for the selected player.</li>
+    <li><b>The betting window:</b> bets close when the countdown ends, then the wheel spins. Nobody can spin early.</li>
+    <li><b>Payouts:</b> single number (incl. 0 and 00) <b>35:1</b> · dozen or column <b>2:1</b> · red/black, odd/even, 1–18/19–36 <b>1:1</b>. Full details in the Payout Table below.</li>
+    <li><b>0 and 00:</b> green; every outside bet loses when either comes up.</li>
+    <li><b>Hot numbers and big wins:</b> 🔥 hot numbers are repeats in the recent spins. Win $500 or more on one spin for a BIG WIN.</li>
+    <li><b>Cash out:</b> leaves the table with the player's balance (bets not yet spun come back first).</li>
+    <li><b>Connection:</b> if this phone drops off, your players stay at the table; reopen this page to carry on.</li>
+  </ul>
+</div>
+<div class="tip" id="tip" hidden></div>
+<div id="toast" hidden></div>
+
+<script src="js/lib/casino-sounds.js"></script>
+<script src="js/lib/roulette-view.js"></script>
+<script src="js/pages/remote.js"></script>
+</body>
+</html>

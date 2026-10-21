@@ -1,0 +1,8 @@
+  .stage-panel .dealer { width: 100%; margin-bottom: 8px; }
+  .stage-panel .dealer-svg { width: 74px; }
+  .stage-panel .bubble { font-size: .92rem; padding: 9px 12px; min-height: 40px; }
+  .stage { min-height: 120px; }
+  .board-wrap { margin-top: 8px; }
+  .banner .tok { min-width: 74px; height: 74px; margin: 0 auto 10px; border-radius: 37px; font-size: 1.9rem; display: grid; border: 3px solid var(--gold); }
+  .banner.special { border-color: #ffd54f; background: radial-gradient(circle, rgba(255,213,79,.45), rgba(6,36,23,.96) 70%); }
+  .hist .tok { min-width: 24px; height: 24px; }

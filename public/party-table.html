@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d4a2e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>Party Games · Game Night</title>
+<script src="js/lib/storage-migrate.js"></script>
+<script src="games/party/common.js"></script>
+<script>
+// Which party game this screen moderates: party-table.html?g=werewolf | catan | gofish | bluff
+window.PARTY_IDS = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff' };
+window.PARTY_ID = new URLSearchParams(location.search).get('g');
+if (!PARTY_IDS[PARTY_ID]) PARTY_ID = 'gofish';
+document.write(`<script src="games/party/${PARTY_ID}.js"><\/script>`);
+</script>
+<link rel="stylesheet" href="css/party.css">
+<link rel="stylesheet" href="css/base-table.css">
+<link rel="stylesheet" href="css/pages/party-table.css">
+</head>
+<body>
+<div class="sound-bar" id="soundBar" hidden>
+  <span id="soundMsg">🔇 The browser is blocking sound until you click this page.</span>
+  <button class="btn primary" id="soundCheck" type="button">Sound check</button>
+  <button class="btn" id="soundClose" type="button" aria-label="Dismiss">✕</button>
+</div>
+<div class="update-bar" id="updateBar" hidden>A new version of the game is ready. <button class="btn primary" id="updateBtn" type="button">Reload</button></div>
+<header>
+  <div>
+    <h1 id="title"></h1>
+    <div class="round-info" id="info"></div>
+  </div>
+  <div class="head-right">
+    <a class="btn" id="lobbyBtn" href="party.html">← Party games</a>
+    <button class="btn" id="voiceBtn" type="button"></button>
+    <button class="btn" id="rulesBtn" type="button" aria-pressed="false">Rules</button>
+    <button class="btn danger" id="endBtn" type="button" hidden>End game</button>
+  </div>
+</header>
+
+<main class="party">
+  <section class="lobby" id="lobbyView">
+    <div class="panel qr-card">
+      <h2>Join on your phone</h2>
+      <img id="qr" alt="QR code: scan to join the game" hidden>
+      <code id="joinUrl"></code>
+      <p class="muted">Scan with the phone's camera, or type the address. Phones must be on the same Wi-Fi as this Mac.</p>
+    </div>
+    <div class="panel">
+      <h2 id="seatTitle">Players</h2>
+      <ul class="seats" id="seats"></ul>
+      <div class="opts" id="opts"></div>
+      <div class="start-row">
+        <button class="btn primary" id="startBtn" type="button">Start</button>
+        <span class="muted" id="startNote"></span>
+      </div>
+      <p class="muted" id="blurb"></p>
+    </div>
+  </section>
+
+  <section class="game-view" id="gameView" hidden>
+    <div class="side">
+      <div class="panel">
+        <div class="dealer" id="dealer">
+      <svg class="dealer-svg" viewBox="-20 0 200 178" aria-label="Dealer">
+        <path d="M30 178 L34 122 Q40 108 80 104 Q120 108 126 122 L130 178 Z" fill="#141414"/>
+        <rect x="72" y="86" width="16" height="22" fill="#e9b98f"/>
+        <path d="M65 106 L80 146 L95 106 Z" fill="#f5f5f5"/>
+        <circle cx="80" cy="130" r="1.8" fill="#333"/><circle cx="80" cy="140" r="1.8" fill="#333"/>
+        <path d="M67 108 L80 114 L93 108 L93 121 L80 114 L67 121 Z" fill="#c0262d"/>
+        <circle cx="80" cy="114" r="2.8" fill="#8f1a1f"/>
+        <g class="head">
+          <circle cx="50" cy="65" r="6" fill="#e9b98f"/><circle cx="110" cy="65" r="6" fill="#e9b98f"/>
+          <circle cx="80" cy="62" r="30" fill="#f1c7a1"/>
+          <path d="M49 60 Q50 28 80 28 Q111 28 111 60 Q106 42 82 41 Q62 41 49 60 Z" fill="#2b1a10"/>
+          <path d="M62 53 Q69 49 75 53" stroke="#2b1a10" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M85 53 Q91 49 98 53" stroke="#2b1a10" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <g class="eyes"><circle cx="69" cy="62" r="3.2" fill="#222"/><circle cx="91" cy="62" r="3.2" fill="#222"/></g>
+          <path d="M80 63 Q76 71 81 72" stroke="#c9946b" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M67 77 Q80 70 93 77 Q80 74 67 77 Z" fill="#2b1a10"/>
+          <ellipse class="mouth" cx="80" cy="81" rx="7" ry="3" fill="#7a2a2a"/>
+        </g>
+        <g class="arm arm-l">
+          <line x1="38" y1="118" x2="30" y2="158" stroke="#141414" stroke-width="14" stroke-linecap="round"/>
+          <circle id="dealerHandL" cx="29" cy="163" r="7" fill="#f1c7a1"/>
+        </g>
+        <g class="arm arm-r">
+          <line x1="122" y1="118" x2="130" y2="158" stroke="#141414" stroke-width="14" stroke-linecap="round"/>
+          <circle id="dealerHand" cx="131" cy="163" r="7" fill="#f1c7a1"/>
+        </g>
+      </svg>
+          <div class="bubble" id="bubble"></div>
+        </div>
+      </div>
+      <div class="panel" id="clockPanel" hidden><div class="clock" id="clock"><span id="clockText"></span><div class="t-bar"><i id="clockBar"></i></div></div></div>
+      <div class="panel"><h2>Table log</h2><div class="plog" id="log"></div></div>
+    </div>
+    <div class="panel" id="stage"></div>
+  </section>
+</main>
+
+<div class="rules" id="rules" hidden style="position:fixed;top:80px;left:50%;transform:translateX(-50%);width:min(760px,94vw);max-height:80vh">
+  <div class="rules-head"><h3 id="rulesTitle">Rules</h3><button class="rules-close" id="rulesClose" aria-label="Close rules">×</button></div>
+  <ul id="rulesList"></ul>
+</div>
+<div id="lbAnchor"></div>
+
+<div class="overlay" id="endModal" hidden>
+  <div class="card" style="width:min(560px,100%)">
+    <h2 id="endTitle"></h2>
+    <div id="endBody"></div>
+    <div class="row2" style="margin-top:14px">
+      <button class="btn primary" id="againBtn" type="button">Play again</button>
+      <button class="btn" id="toLobbyBtn" type="button">Change players</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="confirmModal" hidden>
+  <div class="card">
+    <h2>End this game?</h2>
+    <p class="center">Nobody wins and nothing goes on the leaderboard. Players stay seated for the next game.</p>
+    <div class="row2"><button class="btn" id="confirmNo" type="button">Keep playing</button><button class="btn danger" id="confirmYes" type="button">End game</button></div>
+  </div>
+</div>
+<div class="overlay" id="takeoverModal" hidden>
+  <div class="card">
+    <h2>Only one table at a time</h2>
+    <p class="center">Another screen is already running a table for the phones. Take it over? Its phones move to this game.</p>
+    <div class="row2"><button class="btn" id="takeoverNo" type="button">Cancel</button><button class="btn primary" id="takeoverYes" type="button">Take over</button></div>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+<div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:90"></div>
+
+<script src="js/lib/admin-lock.js"></script>
+<script src="js/lib/leaderboard.js"></script>
+<script src="js/lib/casino-sounds.js"></script>
+<script src="js/pages/party-table.js"></script>
+</body>
+</html>

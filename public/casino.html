@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Casino</title>
+<script src="js/lib/storage-migrate.js"></script>
+<link rel="stylesheet" href="css/pages/casino.css">
+</head>
+<body>
+  <section class="hero">
+    <div class="suits">♠ ♥ ♦ ♣</div>
+    <h1>Casino</h1>
+    <p class="tagline">Pick a table. Guests on the Wi-Fi join from their phones.</p>
+    <div class="lobby-links"><a class="switch-lobby" href="index.html">⌂ Home</a>
+    <a class="switch-lobby" href="party.html">🎉 Party Games →</a></div>
+  </section>
+  <div class="qr-join" id="qrJoin">
+    <img id="qrImg" alt="QR code: scan to join from your phone">
+    <div><b>📱 Join from your phone</b><p>Scan with the phone's camera (same Wi-Fi as this Mac). The phone joins whatever game is running here.</p><code id="qrUrl"></code></div>
+  </div>
+
+
+  <main class="games">
+    <a class="game" href="roulette.html" id="rouletteCard">
+      <svg viewBox="0 0 150 150" aria-hidden="true">
+        <circle cx="75" cy="75" r="72" fill="#7a4520"/>
+        <circle cx="75" cy="75" r="66" fill="#d4af37"/>
+        <g class="spin" id="miniWheel"></g>
+        <circle cx="75" cy="75" r="30" fill="#d4af37"/>
+        <circle cx="75" cy="75" r="27" fill="#5a3317"/>
+        <path d="M75 52 L79 75 L75 98 L71 75 Z M52 75 L75 71 L98 75 L75 79 Z" fill="#e8c766"/>
+        <circle cx="75" cy="75" r="6" fill="#fff6cf"/>
+        <circle cx="112" cy="40" r="5" fill="#fff"/>
+      </svg>
+      <h2>Roulette</h2>
+      <p>American double-zero wheel. Take turns betting on the same table, then spin.</p>
+      <ul class="features"><li>0 &amp; 00</li><li>Drag-and-drop chips</li><li>Talking dealer</li></ul>
+      <span class="play">Play Roulette</span>
+    </a>
+
+    <a class="game" href="blackjack.html">
+      <svg viewBox="0 0 150 150" aria-hidden="true">
+        <g class="fan-l">
+          <rect x="30" y="28" width="62" height="88" rx="7" fill="#fff" stroke="#ccc" transform="rotate(-12 61 72)"/>
+          <text x="40" y="50" font-size="16" font-weight="800" fill="#1b1b1b" transform="rotate(-12 61 72)">A</text>
+          <text x="52" y="90" font-size="34" fill="#1b1b1b" transform="rotate(-12 61 72)">♠</text>
+        </g>
+        <g class="fan-r">
+          <rect x="58" y="28" width="62" height="88" rx="7" fill="#fff" stroke="#ccc" transform="rotate(12 89 72)"/>
+          <text x="68" y="50" font-size="16" font-weight="800" fill="#c0262d" transform="rotate(12 89 72)">K</text>
+          <text x="78" y="90" font-size="34" fill="#c0262d" transform="rotate(12 89 72)">♥</text>
+        </g>
+        <circle cx="75" cy="128" r="16" fill="#16a34a" stroke="#fff" stroke-width="3" stroke-dasharray="5 4"/>
+        <text x="75" y="133" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">25</text>
+      </svg>
+      <h2>Blackjack</h2>
+      <p>Both players take on the dealer. Get closer to 21 than the dealer without going over.</p>
+      <ul class="features"><li>Blackjack pays 3:2</li><li>Double &amp; split</li><li>6-deck shoe</li></ul>
+      <span class="play">Play Blackjack</span>
+    </a>
+    <a class="game" href="table.html?g=baccarat">
+      <svg viewBox="0 0 150 150" aria-hidden="true"><g class="bac-l"><rect x="22" y="26" width="62" height="88" rx="7" fill="#fff" stroke="#ccc"/><text x="31" y="48" font-size="16" font-weight="800" fill="#c0262d">9</text><text x="41" y="88" font-size="32" fill="#c0262d">♦</text></g><g class="bac-r"><rect x="66" y="26" width="62" height="88" rx="7" fill="#fff" stroke="#ccc"/><text x="75" y="48" font-size="16" font-weight="800" fill="#1b1b1b">K</text><text x="85" y="88" font-size="32" fill="#1b1b1b">♠</text></g>
+        <g class="hop"><circle cx="75" cy="124" r="13" fill="#7c3aed" stroke="#fff" stroke-width="3" stroke-dasharray="5 4"/><text x="75" y="128.5" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">500</text></g>
+        <text x="75" y="147" font-size="11" font-weight="800" fill="#d4af37" text-anchor="middle" letter-spacing="1">PLAYER · BANKER</text></svg>
+      <h2>Baccarat</h2>
+      <p>Bet on Player, Banker or Tie. The dealer draws by the rules; closest to 9 wins.</p>
+      <ul class="features"><li>Banker 0.95:1</li><li>Tie 8:1</li><li>Pair bets 11:1</li></ul>
+      <span class="play">Play Baccarat</span>
+    </a>
+    <a class="game" href="table.html?g=dragontiger">
+      <svg viewBox="0 0 150 150" aria-hidden="true"><g class="dt-card dt-a"><g class="dt-back"><rect x="14" y="40" width="62" height="88" rx="7" fill="#a8242a" stroke="#fff" stroke-width="3"/><path d="M22 48 h46 v72 h-46 z" fill="none" stroke="#f3dc8b" stroke-width="1.5" stroke-dasharray="4 3"/></g><g class="dt-face"><rect x="14" y="40" width="62" height="88" rx="7" fill="#fff" stroke="#ccc"/><text x="23" y="62" font-size="16" font-weight="800" fill="#c0262d">Q</text><text x="33" y="102" font-size="32" fill="#c0262d">♥</text></g></g>
+        <g class="dt-card dt-b"><g class="dt-back"><rect x="74" y="40" width="62" height="88" rx="7" fill="#a8242a" stroke="#fff" stroke-width="3"/><path d="M82 48 h46 v72 h-46 z" fill="none" stroke="#f3dc8b" stroke-width="1.5" stroke-dasharray="4 3"/></g><g class="dt-face"><rect x="74" y="40" width="62" height="88" rx="7" fill="#fff" stroke="#ccc"/><text x="83" y="62" font-size="16" font-weight="800" fill="#1b1b1b">7</text><text x="93" y="102" font-size="32" fill="#1b1b1b">♣</text></g></g>
+        <text class="dt-dragon" x="45" y="30" font-size="26" text-anchor="middle">🐉</text><text class="dt-tiger" x="105" y="30" font-size="26" text-anchor="middle">🐯</text>
+        <text x="75" y="92" font-size="13" font-weight="900" fill="#d4af37" text-anchor="middle">VS</text></svg>
+      <h2>Dragon Tiger</h2>
+      <p>One card to the Dragon, one to the Tiger. Higher card wins. Fast rounds for a big group.</p>
+      <ul class="features"><li>1:1</li><li>Tie 8:1</li><li>One card each</li></ul>
+      <span class="play">Play Dragon Tiger</span>
+    </a>
+    <a class="game" href="table.html?g=sicbo">
+      <svg viewBox="0 0 150 150" aria-hidden="true"><ellipse cx="75" cy="128" rx="58" ry="10" fill="rgba(0,0,0,.25)"/><g class="sb sb1" style="transform-origin:42px 52px"><rect x="19" y="29" width="46" height="46" rx="9" fill="#fff" stroke="#ccc"/><circle cx="30" cy="40" r="4.5" fill="#1b1b1b"/><circle cx="54" cy="40" r="4.5" fill="#1b1b1b"/><circle cx="30" cy="52" r="4.5" fill="#1b1b1b"/><circle cx="54" cy="52" r="4.5" fill="#1b1b1b"/><circle cx="30" cy="64" r="4.5" fill="#1b1b1b"/><circle cx="54" cy="64" r="4.5" fill="#1b1b1b"/></g><g class="sb sb2" style="transform-origin:106px 46px"><rect x="83" y="23" width="46" height="46" rx="9" fill="#fff" stroke="#ccc"/><circle cx="94" cy="34" r="4.5" fill="#1b1b1b"/><circle cx="106" cy="46" r="4.5" fill="#1b1b1b"/><circle cx="118" cy="58" r="4.5" fill="#1b1b1b"/></g><g class="sb sb3" style="transform-origin:74px 100px"><rect x="51" y="77" width="46" height="46" rx="9" fill="#fff" stroke="#ccc"/><circle cx="62" cy="88" r="4.5" fill="#1b1b1b"/><circle cx="86" cy="88" r="4.5" fill="#1b1b1b"/><circle cx="74" cy="100" r="4.5" fill="#1b1b1b"/><circle cx="62" cy="112" r="4.5" fill="#1b1b1b"/><circle cx="86" cy="112" r="4.5" fill="#1b1b1b"/></g></svg>
+      <h2>Sic Bo</h2>
+      <p>Three dice. Bet on Big or Small, a total, a number, a double or a triple.</p>
+      <ul class="features"><li>Triple 180:1</li><li>Totals up to 60:1</li><li>Dice roll</li></ul>
+      <span class="play">Play Sic Bo</span>
+    </a>
+    <a class="game" href="table.html?g=craps">
+      <svg viewBox="0 0 150 150" aria-hidden="true"><rect x="6" y="104" width="138" height="34" rx="8" fill="#0a5a2f" stroke="#d4af37" stroke-width="2"/><text x="75" y="126" font-size="12" font-weight="900" fill="#f3dc8b" text-anchor="middle" letter-spacing="2">PASS LINE</text>
+        <g class="cr-roll cr-a"><g class="cr-spin" style="transform-origin:40px 62px"><rect x="17" y="39" width="46" height="46" rx="9" fill="#fff" stroke="#ccc"/><circle cx="28" cy="50" r="4.5" fill="#1b1b1b"/><circle cx="52" cy="50" r="4.5" fill="#1b1b1b"/><circle cx="40" cy="62" r="4.5" fill="#1b1b1b"/><circle cx="28" cy="74" r="4.5" fill="#1b1b1b"/><circle cx="52" cy="74" r="4.5" fill="#1b1b1b"/></g></g><g class="cr-roll cr-b"><g class="cr-spin cr-spin2" style="transform-origin:94px 74px"><rect x="71" y="51" width="46" height="46" rx="9" fill="#fff" stroke="#ccc"/><circle cx="82" cy="62" r="4.5" fill="#1b1b1b"/><circle cx="106" cy="86" r="4.5" fill="#1b1b1b"/></g></g>
+        <g class="puck" style="transform-origin:122px 28px"><circle cx="122" cy="28" r="17" fill="#1b1b1b" stroke="#fff" stroke-width="3"/><text class="off" x="122" y="32.5" font-size="11" font-weight="900" fill="#fff" text-anchor="middle">OFF</text><text class="on" x="122" y="32.5" font-size="12" font-weight="900" fill="#1b1b1b" text-anchor="middle">ON</text></g></svg>
+      <h2>Craps</h2>
+      <p>Simplified craps: Pass or Don't Pass. The dealer rolls the come-out, then for the point.</p>
+      <ul class="features"><li>Pass line</li><li>Field</li><li>One-roll bets</li></ul>
+      <span class="play">Play Craps</span>
+    </a>
+  </main>
+
+
+  <footer>
+    <button class="btn" id="installBtn" hidden>Install app</button>
+    <div>Play for fun with pretend chips. No real money.</div>
+    <a class="admin-link" href="admin.html">Table admin</a>
+  </footer>
+
+<script src="js/lib/admin-lock.js"></script>
+<script src="js/lib/leaderboard.js"></script>
+<script src="js/pages/casino.js"></script>
+</body>
+</html>

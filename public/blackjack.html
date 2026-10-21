@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Blackjack · Casino</title>
+<script src="js/lib/storage-migrate.js"></script>
+<link rel="stylesheet" href="css/pages/blackjack.css">
+</head>
+<body>
+
+<div class="sound-bar" id="soundBar" hidden>
+  <span id="soundMsg"></span>
+  <button class="btn primary" id="soundCheck" type="button">Sound check</button>
+  <button class="btn" id="soundClose" type="button" aria-label="Dismiss">✕</button>
+  <div class="sound-tips" id="soundTips" hidden>Still nothing? Check that the tab isn't muted (a crossed-out speaker on the tab: right-click it → <b>Unmute site</b>), that <b>Dealer voice: On</b> is set, and the Mac's volume and output device (menu bar ▸ Sound).</div>
+</div>
+<div class="update-bar" id="updateBar" hidden>A new version of the game is ready. <button class="btn primary" id="updateBtn" type="button">Reload</button></div>
+<header>
+  <div>
+    <h1>Blackjack</h1>
+    <div class="round-info" id="roundInfo"></div>
+  </div>
+  <div class="head-right">
+    <div class="history" id="history" title="Dealer's last result"></div>
+    <a class="btn" id="lobbyBtn" href="casino.html" title="Back to the casino lobby">← Lobby</a>
+    <button class="btn" id="installBtn" hidden title="Install as an app">Install app</button>
+    <button class="btn share-btn" id="shareBtn" hidden title="Phones at this table, and the address they use to join">📱 0 phones</button>
+    <button class="btn" id="pauseBtn" disabled title="Pause / resume (P)">Pause</button>
+    <button class="btn danger" id="quitBtn" disabled title="Exit to setup">Exit</button>
+    <button class="btn" id="rulesBtn" aria-pressed="false" aria-controls="rules">Rules</button>
+    <button class="btn" id="voiceBtn" title="Toggle dealer voice"></button>
+  </div>
+</header>
+
+<main class="table-area">
+  <section class="dealer-zone">
+    <div class="dealer" id="dealer">
+      <svg class="dealer-svg" viewBox="-20 0 200 178" aria-label="Dealer">
+        <path d="M30 178 L34 122 Q40 108 80 104 Q120 108 126 122 L130 178 Z" fill="#141414"/>
+        <rect x="72" y="86" width="16" height="22" fill="#e9b98f"/>
+        <path d="M65 106 L80 146 L95 106 Z" fill="#f5f5f5"/>
+        <circle cx="80" cy="130" r="1.8" fill="#333"/><circle cx="80" cy="140" r="1.8" fill="#333"/>
+        <path d="M67 108 L80 114 L93 108 L93 121 L80 114 L67 121 Z" fill="#c0262d"/>
+        <circle cx="80" cy="114" r="2.8" fill="#8f1a1f"/>
+        <g class="head">
+          <circle cx="50" cy="65" r="6" fill="#e9b98f"/><circle cx="110" cy="65" r="6" fill="#e9b98f"/>
+          <circle cx="80" cy="62" r="30" fill="#f1c7a1"/>
+          <path d="M49 60 Q50 28 80 28 Q111 28 111 60 Q106 42 82 41 Q62 41 49 60 Z" fill="#2b1a10"/>
+          <path d="M62 53 Q69 49 75 53" stroke="#2b1a10" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M85 53 Q91 49 98 53" stroke="#2b1a10" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <g class="eyes"><circle cx="69" cy="62" r="3.2" fill="#222"/><circle cx="91" cy="62" r="3.2" fill="#222"/></g>
+          <path d="M80 63 Q76 71 81 72" stroke="#c9946b" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M67 77 Q80 70 93 77 Q80 74 67 77 Z" fill="#2b1a10"/>
+          <ellipse class="mouth" cx="80" cy="81" rx="7" ry="3" fill="#7a2a2a"/>
+        </g>
+        <g class="arm arm-l">
+          <line x1="38" y1="118" x2="30" y2="158" stroke="#141414" stroke-width="14" stroke-linecap="round"/>
+          <circle id="dealerHandL" cx="29" cy="163" r="7" fill="#f1c7a1"/>
+        </g>
+        <g class="arm arm-r">
+          <line x1="122" y1="118" x2="130" y2="158" stroke="#141414" stroke-width="14" stroke-linecap="round"/>
+          <circle id="dealerHand" cx="131" cy="163" r="7" fill="#f1c7a1"/>
+        </g>
+      </svg>
+      <div class="bubble" id="bubble">Welcome to the blackjack table!</div>
+    </div>
+    <div class="dealer-hand">
+      <div class="label">Dealer</div>
+      <div class="cards" id="dealerCards"></div>
+      <span class="total" id="dealerTotal" hidden></span>
+    </div>
+    <div class="shoe" id="shoe" title="Shoe">
+      <div class="shoe-stack"><span></span><span></span><span id="shoeTop"></span></div>
+      <div class="shoe-count" id="shoeCount"></div>
+    </div>
+  </section>
+
+  <div class="table-text">
+    <div class="big">BLACKJACK PAYS 3 TO 2</div>
+    <div class="small">Dealer stands on all 17s · Insurance not offered</div>
+  </div>
+
+  <div class="order" id="order" aria-label="Players at the table"></div>
+  <section class="seats">
+    <div class="seat" id="seat">
+      <div class="seat-head"><span class="dot"></span><span class="nm"></span><span class="tag" hidden></span><span class="bal"></span></div>
+      <div class="wl" id="wlCard" hidden></div>
+      <div class="seat-body"></div>
+    </div>
+  </section>
+
+  <div class="turn-row">
+    <div class="turn" id="turn"></div>
+    <div class="timer" id="timer" hidden title="Time left"><span id="tText"></span><div class="t-bar"><i id="tBar"></i></div></div>
+  </div>
+
+  <div class="controls bet-controls" id="betControls">
+    <div class="chips" id="chips"></div>
+    <div class="spacer"></div>
+    <button class="btn" id="rebetBtn" title="Repeat your bet from last round">Rebet</button>
+    <button class="btn" id="undoBtn">Undo</button>
+    <button class="btn" id="clearBtn">Clear</button>
+    <button class="btn primary" id="mainBtn"></button>
+  </div>
+  <div class="controls play-controls" id="playControls" hidden>
+    <button class="btn act hit" id="hitBtn">Hit<kbd>H</kbd></button>
+    <button class="btn act stand" id="standBtn">Stand<kbd>S</kbd></button>
+    <button class="btn act double" id="doubleBtn">Double<kbd>D</kbd></button>
+    <button class="btn act split" id="splitBtn">Split<kbd>X</kbd></button>
+  </div>
+  <div class="act-hint" id="actHint"></div>
+  <div id="toast"></div>
+
+  <div class="rules" id="rules" hidden>
+    <div class="rules-head"><h3>Rules</h3><button class="rules-close" id="rulesClose" aria-label="Close rules">×</button></div>
+    <ul>
+      <li><b>Goal:</b> beat the dealer by finishing closer to 21 without going over. You each play against the dealer, not against each other.</li>
+      <li><b>Card values:</b> 2–10 count as shown, J/Q/K count 10, an Ace counts 1 or 11 (shown as e.g. "7 / 17").</li>
+      <li><b>Players:</b> 2–6. Only the player who is betting, playing or being paid is shown on the table; the strip above the seat shows everyone's bet or hand at a glance.</li>
+      <li><b>Betting:</b> players bet in turn. Tap a chip to add it to your bet, or drag it onto your seat. Drag your bet off the circle to take it back. Minimum bet $5.</li>
+      <li><b>The deal:</b> everyone gets two cards face up; the dealer gets one up and one face down. With an Ace or 10 showing, the dealer checks for blackjack first.</li>
+      <li><b>Your turn:</b> <b>Hit</b> takes a card · <b>Stand</b> keeps your total · <b>Double</b> doubles your bet for exactly one more card · <b>Split</b> a pair into two hands (one split per hand; split Aces get one card each).</li>
+      <li><b>Dealer:</b> reveals the hidden card, then must hit until 17 or more and stands on all 17s.</li>
+      <li><b>Payouts:</b> blackjack (Ace + 10-value as first two cards) pays <b>3:2</b> · a win pays <b>1:1</b> · a tie is a <b>push</b> (bet returned) · going over 21 is a <b>bust</b> and loses straight away.</li>
+      <li><b>Time limit:</b> each bet and each decision has the time chosen at setup (15 seconds to 3 minutes, or a custom number of seconds). If it runs out, betting passes on, or your hand stands.</li>
+      <li><b>Cash out:</b> during your betting turn, tap "Cash out" on your seat to leave with your balance (any bet not yet dealt is returned). Your total counts in the final standings; the others keep playing until everyone has cashed out or gone bust.</li>
+      <li><b>Winning:</b> most chips after the last round wins. Go broke and you're out; the game also ends when only one player is left.</li>
+      <li><b>Pause / Exit:</b> buttons in the top bar. Pausing freezes the timer and dealer.</li>
+      <li><b>Keys:</b> Space = pass / deal · H hit · S stand · D double · X split · Enter = next round · P = pause · Esc = resume / close rules.</li>
+    </ul>
+  </div>
+</main>
+
+<section class="payouts" id="payouts">
+  <div class="payouts-head">
+    <h2>Payout Table</h2>
+    <div class="payout-tools">
+      <label class="switch"><input type="checkbox" id="exToggle"><span class="track"></span>Show example bet</label>
+      <label class="stake-pick ex">Example bet
+        <select id="exStake"><option>5</option><option selected>10</option><option>25</option><option>50</option><option>100</option><option>500</option></select>
+      </label>
+    </div>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Outcome</th><th>When it happens</th><th class="num">Pays</th>
+            <th class="num ex">Profit</th><th class="num ex">Returned</th><th class="ex">How often</th></tr>
+      </thead>
+      <tbody id="payoutRows"></tbody>
+    </table>
+  </div>
+  <ul class="notes">
+    <li class="ex"><b>Profit</b> is what you win on top of your bet. <b>Returned</b> is profit plus your original chips. "How often" is a rough figure per hand with good play.</li>
+    <li>Each hand is settled on its own. A split hand that makes 21 with two cards is <b>not</b> a blackjack and pays 1:1.</li>
+    <li>If the dealer has blackjack, every hand loses except a player blackjack, which pushes.</li>
+    <li>You can double on any first two cards, including after a split (except split Aces). Doubling or splitting needs enough chips to match your bet.</li>
+    <li>The shoe is shuffled when about a quarter of it is left.</li>
+  </ul>
+</section>
+
+<!-- Setup -->
+<div class="overlay" id="setup">
+  <form class="card-modal" id="setupForm">
+    <h2>New Blackjack Game</h2>
+    <div class="row2">
+      <div class="field"><label for="numPlayers">Players</label>
+        <select id="numPlayers"><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+      </div>
+      <div class="field"><label for="startBal">Starting chips</label>
+        <select id="startBal"><option>500</option><option selected>1000</option><option>2500</option><option>5000</option></select>
+      </div>
+    </div>
+    <div class="names" id="names"></div>
+    <div class="field"><label for="tableMode">Table style</label>
+      <select id="tableMode">
+        <option value="casino" selected>Casino: one betting window, everyone bets, then the deal</option>
+        <option value="turns">Turns: players bet one after another</option>
+      </select>
+    </div>
+    <div class="field"><label for="rounds">Rounds</label>
+      <input id="rounds" type="number" min="1" max="999" step="1" value="5" inputmode="numeric">
+    </div>
+    <label class="check"><input type="checkbox" id="untilBust"> No round limit: play until one player is left</label>
+    <div class="row2">
+      <div class="field"><label for="timeLimit">Time per turn</label>
+        <select id="timeLimit"><option value="0">No limit</option><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="60" selected>1 minute</option><option value="90">1.5 minutes</option><option value="120">2 minutes</option><option value="180">3 minutes</option><option value="custom">Custom…</option></select>
+      <input id="customTime" type="number" min="5" max="600" step="1" value="45" inputmode="numeric" hidden aria-label="Custom seconds per turn" placeholder="Seconds (5–600)">
+      </div>
+      <div class="field"><label for="decks">Decks in shoe</label>
+        <select id="decks"><option>1</option><option>2</option><option>4</option><option selected>6</option><option>8</option></select>
+      </div>
+    </div>
+    <p class="center">2–6 players each play against the dealer. Most chips at the end wins. Go broke and you're out. Players can join mid-game with "+ Add player", and phones on the Wi-Fi can join a Casino-style table.</p>
+    <button class="btn primary" type="submit">Start</button>
+    <button class="btn open-table" type="button" id="openTableBtn">Open the table now (players join later)</button>
+    <a class="btn lobby-exit" href="casino.html">← Exit to lobby</a>
+  </form>
+</div>
+
+<!-- Pause / exit -->
+<div class="overlay" id="pauseModal" hidden>
+  <div class="card-modal">
+    <div id="pmMain">
+      <div class="paused-icon">❚❚</div>
+      <h2>Game Paused</h2>
+      <p class="center">The cards, timer and dealer are on hold.</p>
+      <div class="stack">
+        <button class="btn primary" id="resumeBtn">Resume</button>
+        <button class="btn danger" id="exitBtn">Exit game</button>
+      </div>
+    </div>
+    <div id="pmConfirm" hidden>
+      <h2 id="pmConfirmTitle">Exit game?</h2>
+      <p class="center" id="pmConfirmText"></p>
+      <div class="row2">
+        <button class="btn" id="exitNo">Cancel</button>
+        <button class="btn danger" id="exitYes">Yes, exit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Round result -->
+<div class="overlay" id="addModal" hidden>
+  <form class="card-modal" id="addForm">
+    <h2>Add a player</h2>
+    <div class="field"><label for="newName">Name</label><input id="newName" maxlength="16"></div>
+    <p class="center" id="addNote"></p>
+    <div class="row2">
+      <button type="button" class="btn" id="addCancel">Cancel</button>
+      <button type="submit" class="btn primary">Add player</button>
+    </div>
+  </form>
+</div>
+
+<div class="overlay" id="takeoverModal" hidden>
+  <div class="card-modal">
+    <h2>Only one shared table</h2>
+    <p class="center" id="takeoverText"></p>
+    <div class="row2">
+      <button type="button" class="btn" id="takeoverNo">Cancel</button>
+      <button type="button" class="btn primary" id="takeoverYes">Take over</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="shareModal" hidden>
+  <div class="card-modal share-card">
+    <h2>Phones at this table</h2>
+    <p class="center">This is the master table. Guests on the same Wi-Fi open this address on their phone and join it automatically:</p>
+    <div class="share-urls" id="shareUrls"></div>
+    <h3>Phones at the table</h3>
+    <ul class="share-phones" id="sharePhones"></ul>
+    <p class="note">This device runs the dealer and the cards. Each phone controls only its own players: their bets and their hands (Hit, Stand, Double, Split). This screen controls only players added here. With phones connected, cards are dealt when the betting window closes.</p>
+    <button type="button" class="btn primary" id="shareClose" style="width:100%">Done</button>
+  </div>
+</div>
+
+<div class="overlay" id="cashModal" hidden>
+  <div class="card-modal">
+    <h2>Cash out?</h2>
+    <p class="center" id="cashText"></p>
+    <div class="row2">
+      <button type="button" class="btn" id="cashCancel">Keep playing</button>
+      <button type="button" class="btn primary" id="cashYes">Cash out</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="roundModal" hidden>
+  <div class="card-modal">
+    <h2 id="rmTitle"></h2>
+    <div class="dealer-line" id="rmDealer"></div>
+    <div id="rmRows"></div>
+    <button class="btn primary" id="rmBtn"></button>
+  </div>
+</div>
+
+<!-- Game over -->
+<div class="overlay" id="endModal" hidden>
+  <div class="card-modal">
+    <h2 id="endTitle"></h2>
+    <p class="center" id="endSub"></p>
+    <div id="endRows"></div>
+    <div class="row2">
+      <button class="btn primary" id="againBtn">Rematch</button>
+      <button class="btn primary" id="newBtn">New setup</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/lib/admin-lock.js"></script>
+<script src="js/lib/leaderboard.js"></script>
+<script src="js/lib/roulette-view.js"></script>
+<script src="js/pages/blackjack.js"></script>
+</body>
+</html>

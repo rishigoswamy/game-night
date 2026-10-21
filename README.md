@@ -53,7 +53,7 @@ A Terminal window opens and the home page opens in your browser.
 ```sh
 cd path/to/game-night     # e.g.  cd ~/game-night   (or drag the folder onto the Terminal window after typing "cd ")
 npm install               # first time only
-npm start                 # on Mac/Linux you can also run  ./serve.sh
+npm start
 ```
 
 The Terminal then shows something like:
@@ -68,8 +68,8 @@ Game Night running on port 8080
 - Phones scan the **QR code** on the home page, or type the "Phones on Wi-Fi" address into their browser.
 - **Keep the Terminal window open** for as long as you play. It is the game's engine. Don't close the laptop lid either.
 
-Only if something else already uses 8080: start on another number with `./serve.sh 9000` (Mac/Linux) or
-`node server.js 9000` (any computer), and use `:9000` instead of `:8080` in the addresses.
+Only if something else already uses 8080: start on another number with `npm start -- 9000`
+and use `:9000` instead of `:8080` in the addresses.
 
 ## 3. Stop the game
 
@@ -151,42 +151,21 @@ The Admin page also has a **Master flush** that erases every leaderboard and all
 
 ## For developers
 
-**Stack:** plain HTML, CSS and JavaScript with no build step, plus a small Node server (`server.js`, no framework).
-The only package is [`qrcode`](https://www.npmjs.com/package/qrcode); without it the server falls back to Python's
-[`segno`](https://segno.readthedocs.io) (if installed) or simply shows no QR code.
+**Stack:** plain HTML, CSS and JavaScript with no build step, plus a small Node server (no framework).
+The only runtime package is [`qrcode`](https://www.npmjs.com/package/qrcode) (the join QR code); without it the server
+falls back to Python's [`segno`](https://segno.readthedocs.io) if installed, or simply shows no QR code.
 
-**How it works**
-- The master page runs the whole game in the browser. Phones send it actions; the master sends back each phone's view.
-- `server.js` serves the files and relays those messages: phones and master hold a Server-Sent Events stream
-  (`/api/stream`) and send small POSTs (`/api/send`). Every sender is checked (the master with a host key, each phone with a session token).
-- Only the computer running the server can be a master (requests from other devices are refused); there's one table at a time.
-- Other endpoints: `/api/tts` (the dealer's voice, rendered with macOS `say`), `/api/qr.svg` (join QR code),
-  `/api/info`, `/api/tables`, `/api/version` (pages notice new files and offer a reload).
+```
+server/server.js      the Node server: serves public/, relays messages between the master and the phones
+public/               everything browsers load (pages, css/, js/lib/, js/pages/, games/casino/, games/party/)
+test/e2e/             end-to-end tests: real games in a muted Chrome
+docs/                 ARCHITECTURE.md (how it all fits together) and change notes
+```
 
-**Files**
-
-| Where | What |
-|---|---|
-| `index.html`, `casino.html`, `party.html` | Home page and the two lobbies |
-| `roulette.html`, `blackjack.html` | Roulette and Blackjack master screens |
-| `table.html?g=…` + `games/*.js` + `table-games.css` | Baccarat, Dragon Tiger, Sic Bo, Craps (one engine; each game's rules in its own module) |
-| `remote.html`, `bj-remote.html`, `table-remote.html` | Phone pages for the casino tables |
-| `party-table.html?g=…`, `party-remote.html?g=…` + `party/*.js` + `party.css` | Party games: master screen, phone page, and one module per game |
-| `leaderboard.js`, `admin.html`, `admin-lock.js` | Leaderboards, the Admin page, PIN / passkey lock |
-| `casino-sounds.js`, `roulette-view.js` | Synthesized crowd sounds; the roulette wheel and charts shared with phones |
-| `storage-migrate.js` | Moves saved data from the project's older names (`rd-…`, `dc-…`) to `gn-…` |
-| `sw.js`, `manifest.webmanifest`, `icons/` | Installable app and offline cache. **Bump `VERSION` in `sw.js` when files change.** |
-
-**Adding a game:** copy one of the modules in `games/` (casino table) or `party/` (party game). A module defines the
-bets or rules, how a round plays and how each screen draws itself; the shared pages handle players, phones, voice and
-leaderboards. Then register the new id:
-- `GAME_IDS` in `table.html` and `table-remote.html` (casino), or `PARTY_IDS` in `party-table.html` and `party-remote.html` (party);
-- `PAGE_FOR` in the phone pages (`remote.html`, `bj-remote.html`, `table-remote.html`, `party-remote.html`) so phones are routed to it;
-- `CASINO` / `PARTY` names in `leaderboard.js`; for casino tables also `RECENT` in `admin.html`;
-- a card in `casino.html` or `party.html`, and the new files in `FILES` in `sw.js` (then bump `VERSION`).
-
-**Saved data** lives in each browser's `localStorage` under `gn-…` keys (leaderboard: `gn-leaderboard`).
-
-**Testing tips:** run a second server on another port (`node server.js 8091`) so tests never touch a real game night.
-Set `DC_LOOPBACK_ONLY=1` to let a browser on the same computer act as a phone. Mute automated browsers
-(e.g. Chrome's `--mute-audio`) so the dealer doesn't talk through your speakers.
+- **Run it:** `npm start` (or `scripts/serve.sh [port]`).
+- **Test it:** `npm install` once (adds the test tool), then `npm test`, about 15 minutes; or run single tests, e.g.
+  `npm test -- party-gofish blackjack-phone`. Needs Google Chrome (set `CHROME_PATH` if it's somewhere else) and a
+  Wi-Fi/LAN connection (tests act as phones through the computer's network address). Tests use port 8091, never 8080.
+- **Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the page/module map, how phones and the master talk,
+  the game-module interfaces, saved data and how to add a game.
+- When you change files under `public/`, bump `VERSION` in `public/sw.js` so installed copies refresh.

@@ -13,4 +13,4 @@ if [ ! -d node_modules ]; then
 fi
 (sleep 2; open "http://localhost:$PORT") &
 echo "Starting Game Night. Keep this window open while you play; close it to stop the game."
-exec ./serve.sh "$PORT"
+exec node server/server.js "$PORT"

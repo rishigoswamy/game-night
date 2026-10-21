@@ -1,0 +1,32 @@
+const H = require('./helpers');
+const { chromium } = require('playwright-core');
+const PORT = 8091;
+(async () => {
+  const b = await chromium.launch({ executablePath: H.CHROME, args: ['--mute-audio'] });
+  const errs = [];
+  const mc = await b.newContext({ viewport: { width: 1280, height: 900 } });
+  await mc.addInitScript(() => { speechSynthesis.speak = () => {}; localStorage.setItem('rd-voice', 'off'); });
+  const mac = await mc.newPage(); mac.on('pageerror', e => errs.push('mac: ' + e.message));
+  const pc = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  await pc.addInitScript(() => { speechSynthesis.speak = () => {}; });
+  const phone = await pc.newPage(); phone.on('pageerror', e => errs.push('phone: ' + e.message));
+  await mac.goto(`http://localhost:${PORT}/roulette.html`);
+  await mac.selectOption('#timeLimit', 'custom'); await mac.fill('#customTime', '6'); await mac.click('#openTableBtn');
+  await mac.waitForFunction(() => sharing());
+  await phone.goto(`http://${H.PHONE_HOST}:${PORT}/remote.html`); await phone.waitForSelector('#tableView:not([hidden])');
+  await phone.fill('#nameIn', 'Ana'); await phone.tap('#addForm button[type=submit]'); await phone.waitForSelector('.tab[data-i]');
+  await phone.tap('.chip[data-v="25"]'); await phone.tap('.cell[data-key="red"]');
+  await phone.evaluate(() => document.querySelector('#betPanel').scrollIntoView());      // user is looking at the board
+  const inView = () => phone.evaluate(() => { const r = document.querySelector('#wheel').getBoundingClientRect(); return r.top >= -5 && r.bottom <= innerHeight + 5; });
+  console.log('before spin, wheel on screen:', await inView());
+  await phone.waitForFunction(() => wheel.spinning, null, { timeout: 15000 });
+  await phone.waitForTimeout(1200);
+  console.log('spin starts → wheel scrolled into view:', await inView(), '| caption mid-spin:', JSON.stringify((await phone.textContent('#wheelCap')).trim()));
+  await phone.waitForFunction(() => !wheel.spinning, null, { timeout: 12000 });
+  const landed = Date.now();
+  console.log('landed → caption:', JSON.stringify((await phone.textContent('#wheelCap')).trim()), '| wheel glowing:', await phone.$eval('.wheel-panel', e => e.classList.contains('landed')), '| banner yet:', !!(await phone.$('.banner')));
+  await phone.waitForSelector('.banner', { timeout: 10000 });
+  console.log(`result banner appeared ${((Date.now() - landed) / 1000).toFixed(1)}s after the ball landed:`, (await phone.textContent('.banner')).replace(/\s+/g, ' ').trim());
+  console.log('errors:', errs.length ? errs : 'none');
+  await b.close();
+})().catch(e => { console.error('FAILED', e.message); process.exit(1); });

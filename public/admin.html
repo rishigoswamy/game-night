@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d4a2e">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>Table Admin</title>
+<script src="js/lib/storage-migrate.js"></script>
+<link rel="stylesheet" href="css/pages/admin.css">
+</head>
+<body>
+<header>
+  <h1>Table Admin<small>Game Night · settings for this device and address</small></h1>
+  <a class="btn" href="index.html">← Home</a>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Status</h2>
+    <dl class="status">
+      <dt>Admin PIN</dt><dd id="stPin"></dd>
+      <dt>Device unlock</dt><dd id="stBio"></dd>
+      <dt>Recent results</dt><dd id="stSpins"></dd>
+      <dt>Leaderboards</dt><dd id="stBoards"></dd>
+      <dt>This address</dt><dd id="stAddr"></dd>
+    </dl>
+    <p class="note">Each device and address keeps its own lock and history. For example, <code>localhost</code> on the Mac and the Wi-Fi address on a phone are set up separately.</p>
+  </section>
+
+  <!-- No lock yet -->
+  <section class="panel" id="setupPanel" hidden>
+    <h2>Create the admin lock</h2>
+    <p>The admin PIN protects admin actions such as flushing recent results and leaderboards. Players never see this page's setup.</p>
+    <form id="setupForm" autocomplete="off">
+      <div class="row">
+        <div class="field"><label for="newPin">Admin PIN (4–8 digits)</label><input id="newPin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
+        <div class="field"><label for="newPin2">Repeat PIN</label><input id="newPin2" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
+      </div>
+      <label class="check" id="setupBio" hidden><input type="checkbox" id="setupBioChk" checked> <span id="setupBioText"></span></label>
+      <p class="note" id="setupBioNote" hidden></p>
+      <div class="row" style="margin-top:12px"><button class="btn primary" type="submit">Create lock</button></div>
+      <p class="msg" id="setupMsg" role="alert"></p>
+    </form>
+  </section>
+
+  <!-- Lock exists: unlock first -->
+  <section class="panel" id="unlockPanel" hidden>
+    <h2>Unlock admin</h2>
+    <button class="btn primary" id="bioUnlock" type="button" hidden></button>
+    <form id="unlockForm" autocomplete="off" style="margin-top:12px">
+      <div class="row">
+        <div class="field"><label for="pin">Admin PIN</label><input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
+        <button class="btn" type="submit">Unlock</button>
+      </div>
+      <p class="msg" id="unlockMsg" role="alert"></p>
+    </form>
+    <p class="note">Forgot the PIN? Clear this site's data in the browser's settings. That removes the lock and also erases Recent Numbers on this device.</p>
+  </section>
+
+  <!-- Unlocked -->
+  <section class="panel" id="managePanel" hidden>
+    <h2>Manage</h2>
+    <div class="actions">
+      <div class="action">
+        <div><b>Change admin PIN</b><span>Set a new 4–8 digit PIN.</span></div>
+        <form id="changeForm" class="row" autocomplete="off">
+          <div class="field"><label for="chPin">New PIN</label><input id="chPin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
+          <div class="field"><label for="chPin2">Repeat</label><input id="chPin2" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
+          <button class="btn" type="submit">Save</button>
+        </form>
+      </div>
+      <div class="action">
+        <div><b>Device unlock</b><span id="bioDesc"></span></div>
+        <button class="btn" id="bioToggle" type="button"></button>
+      </div>
+      <div class="action">
+        <div><b>Flush a leaderboard</b><span id="lbDesc"></span></div>
+        <div class="row"><select id="lbGame" aria-label="Leaderboard to flush"></select><button class="btn danger" id="lbFlushBtn" type="button">Flush</button></div>
+      </div>
+      <div class="action">
+        <div><b>Flush recent results</b><span id="rrDesc"></span></div>
+        <div class="row"><select id="rrGame" aria-label="Recent results to flush"></select><button class="btn danger" id="rrFlushBtn" type="button">Flush</button></div>
+      </div>
+      <div class="action">
+        <div><b>Master flush</b><span id="masterDesc">Erases every leaderboard and every game's recent results on this computer. The admin lock stays.</span></div>
+        <button class="btn danger" id="masterFlushBtn" type="button">Master flush</button>
+      </div>
+      <div class="action">
+        <div><b>Remove admin lock</b><span>Deletes the PIN and device unlock. Flushing (recent results and leaderboards) is then unavailable until a new lock is created.</span></div>
+        <button class="btn danger" id="removeBtn" type="button">Remove lock</button>
+      </div>
+      <div class="action">
+        <div><b>Done?</b><span>Lock this page again.</span></div>
+        <button class="btn" id="relockBtn" type="button">Lock admin</button>
+      </div>
+    </div>
+    <p class="msg" id="manageMsg" role="status"></p>
+  </section>
+
+  <section class="panel how">
+    <h2>Removing a fingerprint / Touch ID entry</h2>
+    <p>Turning device unlock off (or removing the lock) stops this site from using it. Newer Chrome also deletes the saved entry automatically. If an entry named <b>Game Night</b> (or <b>Duel Casino</b> / <b>Casino</b>, from before the rename) / <b>table-admin</b> is still listed, delete it here:</p>
+    <ul>
+      <li><b>Mac, Chrome:</b> open <code>chrome://password-manager/passwords</code>, search <code>localhost</code>, open the passkey and choose <b>Delete</b>. If Chrome saved it to iCloud Keychain, use the Passwords app below instead.</li>
+      <li><b>Mac, Safari or iCloud Keychain:</b> open the <b>Passwords</b> app (or System Settings → Passwords), search <code>localhost</code>, select the passkey and delete it.</li>
+      <li><b>Android:</b> Settings → Passwords &amp; accounts → Google (Google Password Manager), find the site's passkey and delete it.</li>
+      <li><b>iPhone / iPad:</b> Settings → Passwords (or the Passwords app), find the site and delete the passkey.</li>
+    </ul>
+    <p class="note">A passkey can only be created on https or localhost, so phones using the plain Wi-Fi address never have one. A left-over entry is harmless; it just takes up a line in the list.</p>
+  </section>
+</main>
+
+<script src="js/lib/admin-lock.js"></script>
+<script src="js/lib/leaderboard.js"></script>
+<script src="js/pages/admin.js"></script>
+</body>
+</html>

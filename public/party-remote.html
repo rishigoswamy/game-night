@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>Party Games</title>
+<script src="js/lib/storage-migrate.js"></script>
+<script src="games/party/common.js"></script>
+<script>
+window.PARTY_IDS = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff' };
+window.PARTY_ID = new URLSearchParams(location.search).get('g');
+if (PARTY_IDS[PARTY_ID]) document.write(`<script src="games/party/${PARTY_ID}.js"><\/script>`);
+</script>
+<link rel="stylesheet" href="css/party.css">
+<link rel="stylesheet" href="css/base-phone.css">
+<link rel="stylesheet" href="css/pages/party-remote.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Party Games<small id="where">Join the game</small></h1>
+    <div class="head-btns">
+      <button class="btn" id="rulesBtn" type="button">Rules</button>
+      <a class="btn" href="party.html">← Games</a>
+    </div>
+  </header>
+
+  <section id="joinView">
+    <div class="panel waiting">
+      <div class="spinner" aria-hidden="true"></div>
+      <h2>Waiting for the game…</h2>
+      <p class="muted" id="waitText">The host computer isn't running a game right now. This page joins automatically as soon as it is.</p>
+    </div>
+  </section>
+
+  <section id="gameView" hidden>
+    <div class="panel" id="statusPanel">
+      <div class="status">
+        <div><div class="phase" id="phase"></div><div class="round-no" id="sub"></div></div>
+      </div>
+      <div class="bar" id="bar" hidden><i id="barFill"></i></div>
+    </div>
+    <div class="panel" id="namePanel" hidden>
+      <h2 id="nameTitle">Join the game</h2>
+      <form class="row" id="nameForm" autocomplete="off">
+        <div class="field"><label for="nameIn">Your name</label><input id="nameIn" maxlength="16" placeholder="Your name"></div>
+        <button class="btn primary" type="submit">Join</button>
+      </form>
+      <div class="seatlist" id="seatsA"></div>
+    </div>
+    <div class="panel" id="lobbyPanel" hidden>
+      <h2>You're in!</h2>
+      <p class="muted" id="lobbyText"></p>
+      <div class="seatlist" id="seatsB"></div>
+      <div class="actions" style="margin-top:12px"><button class="btn" id="renameBtn" type="button">Change name</button><button class="btn" id="leaveBtn" type="button">Leave</button></div>
+    </div>
+    <div class="panel" id="modPanel"><div class="mod"><span class="ico">🎩</span><div class="bubble" id="bubble">Welcome!</div></div></div>
+    <div class="panel" id="viewPanel" hidden><div id="view"></div></div>
+    <div class="panel leave-panel" id="leavePanel" hidden><span class="muted" id="leaveText"></span><button class="btn" id="leaveLaterBtn" type="button"></button></div>
+    <div class="panel" id="endPanel" hidden><h2 id="endTitle"></h2><div id="endBody"></div><p class="muted">The host starts the next game from the Mac.</p></div>
+  </section>
+</div>
+<div class="rules" id="rules" hidden>
+  <div class="rules-head"><h3 id="rulesTitle">Rules</h3><button class="rules-close" id="rulesClose" aria-label="Close rules">×</button></div>
+  <ul id="rulesList"></ul>
+</div>
+<div class="cover" id="offline" hidden><div class="panel"><h2>Host offline</h2><p class="muted">The Mac has disconnected. This reconnects automatically when it comes back.</p></div></div>
+<div id="toast" hidden></div>
+
+<script src="js/pages/party-remote.js"></script>
+</body>
+</html>
