@@ -142,3 +142,28 @@ test('storage migration: running it again changes nothing', () => {
   loadScripts(['js/lib/storage-migrate.js'], { localStorage: local });
   assert.deepEqual(plain(local), once);
 });
+
+test('leaderboard tables: party boards show a points column only where points mean something (Catan, Go Fish, Tambola)', () => {
+  const { L } = board();
+  for (const g of ['tambola', 'gofish', 'catan', 'werewolf', 'bluff']) L.recordParty(g, [{ name: 'Ana', won: true, points: 4 }, { name: 'Bob', won: false, points: 1 }]);
+  const full = g => L._test.table(g, 10, true);
+  assert.match(full('tambola'), /<th class="num">Prizes<\/th>/);
+  assert.match(full('gofish'), /<th class="num">Books<\/th>/);
+  assert.match(full('catan'), /<th class="num">Victory points<\/th>/);
+  for (const g of ['werewolf', 'bluff']) assert.doesNotMatch(full(g), /Prizes|Books|Victory points/, g);
+  assert.match(full('tambola'), /🏆<\/td><td class="nm">Ana<\/td>\s*<td class="num">1<\/td><td class="num">1<\/td><td class="num">100%<\/td><td class="num">4<\/td>/);
+  assert.doesNotMatch(L._test.table('tambola', 5, false), /Prizes|Win rate/, 'the short lobby board shows wins only');
+  assert.equal(L._test.table('craps', 10, true), '', 'nobody on the board: nothing to draw');
+});
+
+test('leaderboard tables: casino boards show winnings with a sign, and names escaped', () => {
+  const { L } = board();
+  L.record('roulette', player('<b>Eve</b>', 1250, [250]));
+  L.record('roulette', player('Bob', 900, [-100]));
+  const html = L._test.table('roulette', 10, true);
+  assert.match(html, /&lt;b&gt;Eve&lt;\/b&gt;/);
+  assert.doesNotMatch(html, /<b>Eve/);
+  assert.match(html, /class="num pos">\+\$250</);
+  assert.match(html, /class="num neg">-\$100</);
+  assert.ok(html.indexOf('Eve') < html.indexOf('Bob'), 'best first');
+});

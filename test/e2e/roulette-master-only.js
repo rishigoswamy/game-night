@@ -1,6 +1,6 @@
 const H = require('./helpers');
 const { chromium } = require('playwright-core');
-const PORT = 8091;   // test server (DC_LOOPBACK_ONLY=1): localhost = the Mac/master, the Wi-Fi address = a phone
+const PORT = H.PORT;   // test server (DC_LOOPBACK_ONLY=1): localhost = the Mac/master, the Wi-Fi address = a phone
 (async () => {
   const b = await chromium.launch({ executablePath: H.CHROME, args: ['--mute-audio'] });
   const errs = [];

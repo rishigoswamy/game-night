@@ -354,3 +354,27 @@ test('300 turns of random legal play never create or lose a resource', async () 
     assert.ok(G._test.count(st, p, 'road') <= 15); assert.ok(G._test.count(st, p, 'settlement') <= 5); assert.ok(G._test.count(st, p, 'city') <= 4);
   });
 });
+
+/* ---------------- What each screen shows (privacy) ---------------- */
+test('catan screens: a phone sees its own cards; of the others only counts; the Mac draws the board and every player', async () => {
+  const { G, ctx, st } = await game(3);
+  playSetup(G, ctx, st);
+  st.res = [{ wood: 3, brick: 0, sheep: 1, wheat: 0, ore: 0 }, { wood: 0, brick: 4, sheep: 0, wheat: 2, ore: 0 }, { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 5 }];
+  st.dev = [[{ type: 'knight' }], [{ type: 'vp' }, { type: 'monopoly' }], []];
+  for (let i = 0; i < 3; i++) {
+    const v = plain(G.view(ctx, i));
+    assert.deepEqual(v.res, plain(st.res[i]));
+    assert.deepEqual(v.dev.map(d => d.type), plain(st.dev[i].map(d => d.type)));
+    v.players.forEach((p, q) => {
+      assert.deepEqual(Object.keys(p).filter(k => ['res', 'dev'].includes(k)), [], 'no hidden cards of other players');
+      assert.equal(p.cards, Object.values(st.res[q]).reduce((a, b) => a + b, 0));
+      assert.equal(p.devs, st.dev[q].length);
+    });
+    if (i !== 1) assert.ok(!JSON.stringify(v).includes('monopoly'), 'Bob\'s development cards stay secret');
+    if (i !== 1) assert.equal(v.players[1].vp, G.view(ctx, 1).players[1].vp, 'others see public points only (a hidden VP card is not counted)');
+  }
+  const host = G.hostHTML(ctx, { esc: t => t, color: () => '#888' });
+  assert.match(host, /<svg/);
+  ctx.players.forEach(p => assert.ok(host.includes(p.name)));
+  assert.ok(G.phoneHTML(plain(G.view(ctx, st.turn)), {}, { esc: t => t, me: st.turn, seats: [] }).length > 200);
+});

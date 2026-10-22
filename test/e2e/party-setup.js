@@ -2,7 +2,7 @@ const H = require('./helpers');
 // Shared setup for party-game tests: a test server, a muted Mac and N phones joined to the game
 const { chromium } = require('playwright-core');
 const { spawn } = require('child_process');
-const PORT = 8091;
+const PORT = H.PORT;
 exports.setup = async (game, names, { macSize = { width: 1280, height: 900 } } = {}) => {
   const srv = spawn('node', [H.SERVER, String(PORT)], { env: { ...process.env, DC_LOOPBACK_ONLY: '1' }, stdio: 'ignore' });
   await new Promise(r => setTimeout(r, 800));

@@ -1,6 +1,6 @@
 const H = require('./helpers');
 const { chromium } = require('playwright-core');
-const PORT = 8091;   // separate test server
+const PORT = H.PORT;   // separate test server
 (async () => {
   const b = await chromium.launch({ executablePath: H.CHROME, args: ['--mute-audio'] });
   const errs = [];

@@ -227,3 +227,60 @@ test('craps: payouts (one-roll bets use the come-out roll only)', () => {
   assert.equal(G.settle('yo', 10, o(11)), 160);
   assert.equal(G.settle('yo', 10, o(6, { point: 6, rolls: [6, 11] })), 0, 'an 11 after the come-out does not pay Yo');
 });
+
+/* ---------------- What the dealer says and shows ---------------- */
+test('dealer announcements: each table says the result the way players expect', () => {
+  const B = load('baccarat'), C = load('craps'), S = load('sicbo'), D = load('dragontiger');
+  assert.equal(B.announce({ winner: 'banker', pt: 5, bt: 7 }), 'Banker wins, 7 to 5.');
+  assert.equal(B.announce({ winner: 'tie', pt: 6, bt: 6, natural: false }), 'Tie, 6 each.');
+  assert.match(B.announce({ winner: 'player', pt: 9, bt: 3, natural: true, ppair: true }), /^Player wins, 9 to 3\. A natural! Player pair!$/);
+  assert.equal(C.announce({ come: 7, pass: 'win' }), '7 on the come-out. Pass Line wins!');
+  assert.equal(C.announce({ come: 12, pass: 'lose' }), "Craps twelve. Don't Pass pushes.");
+  assert.match(C.announce({ come: 2, pass: 'lose' }), /^Craps 2\. Don't Pass wins/);
+  assert.equal(C.announce({ point: 6, pass: 'win' }), 'Point 6 made. Pass Line wins!');
+  assert.equal(C.announce({ point: 6, pass: 'lose' }), "Seven out. Don't Pass wins!");
+  assert.equal(S.announce({ dice: [4, 4, 4], total: 12, triple: true }), 'Triple fours! Total 12.');
+  assert.match(S.announce({ dice: [1, 2, 4], total: 7 }), /^1, 2, 4\. Total 7, small/);
+  assert.match(S.announce({ dice: [6, 5, 4], total: 15 }), /Total 15, big/);
+  assert.equal(D.announce({ winner: 'tie', d: card('K'), t: card('K', '♥') }), 'Tie! King and King.');
+});
+
+test('result beads (the recent-results strip): letter, colour and group for each outcome', () => {
+  const B = load('baccarat'), C = load('craps'), S = load('sicbo'), D = load('dragontiger');
+  assert.deepEqual(plain(B.token({ winner: 'player', pt: 8, bt: 2 })).text, 'P');
+  assert.deepEqual(plain(B.token({ winner: 'tie', pt: 4, bt: 4 })).text, 'T');
+  assert.deepEqual(plain(C.token({ come: 7, rolls: [7], pass: 'win', dont: 'lose' })), { text: '7', cls: 'tok-blue', tip: 'Come-out 7 · Pass won', group: 'Pass' });
+  assert.deepEqual(plain(C.token({ point: 8, come: 8, rolls: [8, 5, 7], pass: 'lose', dont: 'win' })), { text: '8', cls: 'tok-dark', tip: "Point 8 · 3 rolls · Don't Pass won", group: "Don't Pass" });
+  assert.equal(C.token({ come: 12, rolls: [12], pass: 'lose', dont: 'push' }).group, 'Push (12)');
+  assert.equal(S.token({ dice: [3, 3, 3], total: 9, triple: true }).cls, 'tok-gold');
+  assert.equal(S.token({ dice: [6, 6, 5], total: 17 }).cls, 'tok-red');
+  const t = plain(D.token({ winner: 'tiger', d: card('2'), t: card('9') }));
+  assert.equal(t.text, 'T'); assert.equal(t.group, 'Tiger'); assert.equal(t.tip, 'Dragon 2 · Tiger 9');
+});
+
+test('table stages: cards, dice and the craps puck are drawn from the round\'s state', () => {
+  const h = { card: c => `[${c.r}${c.s}]`, die: d => `<die ${d}>` };
+  const D = load('dragontiger'), B = load('baccarat'), S = load('sicbo'), C = load('craps');
+  const dt = D.stageHTML({ dragon: card('K'), tiger: card('3'), winner: 'dragon' }, h);
+  assert.match(dt, /dt-d win/); assert.match(dt, /\[K♠\]/); assert.match(dt, /\[3♠\]/);
+  assert.match(D.stageHTML({ dragon: null, tiger: null }, h), /card-slot/);
+  const bac = B.stageHTML({ player: [card('9')], banker: [card('2'), card('3')], pt: 9, bt: 5, winner: 'player' }, h);
+  assert.match(bac, /bac-p win/); assert.match(bac, /\[9♠\]/);
+  assert.match(S.stageHTML({ dice: [1, 2, 3], total: 6 }, h), /Total <b>6<\/b> · Small/);
+  assert.match(S.stageHTML({ dice: [5, 5, 5], total: 15, triple: true }, h), /TRIPLE!/);
+  assert.match(C.stageHTML({ point: 6, dice: [3, 3], total: 6, rolls: [8, 6] }, h), /ON<b>6<\/b>/);
+  assert.match(C.stageHTML({}, h), /OFF/);
+  assert.match(C.stageHTML({}, h), /Come-out roll next/);
+});
+
+test('dragon tiger: a fresh 8-deck shoe is shuffled when fewer than 30 cards are left', async () => {
+  const G = load('dragontiger');
+  G._test.setShoe([]);
+  const ctx = roundCtx(seededRand(3));
+  const o = await G.play(ctx);
+  assert.match(ctx.said[0], /Shuffling a fresh shoe/);
+  assert.ok(o.d && o.t && ['dragon', 'tiger', 'tie'].includes(o.winner));
+  // 8 decks: the next 40 rounds come from the same shoe (no more shuffling announced)
+  for (let k = 0; k < 40; k++) await G.play(ctx);
+  assert.equal(ctx.said.filter(t => /Shuffling/.test(t)).length, 1);
+});

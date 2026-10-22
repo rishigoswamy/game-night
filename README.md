@@ -8,8 +8,8 @@ No accounts, no app to install, no internet needed once it's set up. Chips are p
 
 | Casino | Party games |
 |---|---|
-| Roulette, Blackjack, Baccarat, Dragon Tiger, Sic Bo, Craps | One Night Werewolf, Catan, Go Fish, Bluff |
-| A talking dealer opens a betting window; everyone bets from their phone. | The master screen runs the game (and narrates Werewolf); everyone plays on their phone. |
+| Roulette, Blackjack, Baccarat, Dragon Tiger, Sic Bo, Craps | One Night Werewolf, Catan, Go Fish, Bluff, Tambola |
+| A talking dealer opens a betting window; everyone bets from their phone. | The master screen runs the game (narrates Werewolf, calls the Tambola numbers); everyone plays on their phone. |
 
 **Contents:** [Set up once](#1-set-up-once) · [Start the game](#2-start-the-game-become-the-master) ·
 [Stop the game](#3-stop-the-game) · [Hosting guide](#hosting-a-game-night) · [Players' guide](#for-players) ·
@@ -113,10 +113,11 @@ and use `:9000` instead of `:8080` in the addresses.
 
 **Party games** (home page → **Play party games** → pick a game)
 1. Players scan the QR code on the game's lobby screen and type their name. They appear on the master screen.
-   Werewolf needs 3–10 players, Catan 2–4, Go Fish 2–6, Bluff 3–8. Someone who arrives mid-game is seated for the next one.
+   Werewolf needs 3–10 players, Catan 2–4, Go Fish 2–6, Bluff 3–8, Tambola 2–10. Someone who arrives mid-game is seated for the next one.
 2. Pick the options (for example Werewolf's extra roles, grouped Beginner / Intermediate / Advanced, or Catan's points to win) and click **Start**.
    Werewolf has 22 roles from the base game and the *Daybreak* expansion, including the Doppelgänger: see [docs/2026-10-werewolf-roles.md](docs/2026-10-werewolf-roles.md).
-3. Nobody plays on the master screen. It shows the table, and in Werewolf it narrates the night out loud.
+3. Nobody plays on the master screen. It shows the table; in Werewolf it narrates the night out loud, and in Tambola it is the caller
+   (traditional calls, the board of numbers called, **Pause** and **Next number now**). See [docs/2026-10-tambola.md](docs/2026-10-tambola.md).
 4. At the end: **Play again** (same players) or **Change players**. **End game** stops a game early (nothing is recorded).
 
 **Leaderboards** are on every game's page (and on the lobbies). Each has a 🔒 **Flush** button that asks for the admin PIN.
@@ -166,10 +167,11 @@ docs/                 ARCHITECTURE.md (how it all fits together) and change note
 ```
 
 - **Run it:** `npm start` (or `scripts/serve.sh [port]`).
-- **Unit tests:** `npm test`, a few seconds. Game rules and payouts (all six casino tables and the four party games), leaderboards, the admin lock, the storage
+- **Unit tests:** `npm test`, a few seconds. Game rules and payouts (all six casino tables and the five party games), leaderboards, the admin lock, the storage
   migration and the server's security checks (`test/unit/`, Node's built-in test runner, no extra packages).
-- **End-to-end tests:** `npm install` once (adds the browser-automation tool), then `npm run test:e2e`, about 15 minutes:
-  real games in a muted Chrome (`test/e2e/`). Run single ones with e.g. `npm run test:e2e -- party-gofish blackjack-phone`.
+- **End-to-end tests:** `npm install` once (adds the browser-automation tool), then `npm run test:e2e`, about 5 minutes:
+  real games in a muted Chrome (`test/e2e/`), 3 at a time on test ports 8091–8093. Run single ones with e.g.
+  `npm run test:e2e -- party-gofish blackjack-phone`; `E2E_WORKERS=1 npm run test:e2e` runs them one at a time.
   Needs Google Chrome (set `CHROME_PATH` if it's elsewhere) and a Wi-Fi/LAN connection (tests act as phones through the
   computer's network address). They use ports 8091–8093, never the game's 8080.
 - **Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the page/module map, how phones and the master talk,

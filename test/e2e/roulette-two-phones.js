@@ -13,21 +13,21 @@ const { chromium } = require('playwright-core');
   const st = () => host.evaluate(() => S.players.map((p, i) => `${i}:${p.name}${p.owner ? '📱' : ''}$${p.bal}${p.cashedOut ? '(out)' : ''}`).join(' '));
 
   // Table: open table, 20 s betting window, share
-  await host.goto('http://localhost:8091/roulette.html');
+  await host.goto(`http://localhost:${H.PORT}/roulette.html`);
   await host.selectOption('#timeLimit', 'custom'); await host.fill('#customTime', '20');
   await host.click('#openTableBtn');
   await host.waitForFunction(() => sharing(), null, { timeout: 5000 });
   console.log('master shared automatically | phones open:', await host.evaluate(() => phoneAddress()));
 
   // Phone A: picks the table from the list, adds two players
-  await A.goto(`http://${H.PHONE_HOST}:8091/remote.html`);      // joins the one shared table by itself
+  await A.goto(`http://${H.PHONE_HOST}:${H.PORT}/remote.html`);      // joins the one shared table by itself
   await A.waitForSelector('#addForm:not([hidden])');
   await A.fill('#nameIn', 'Ana'); await A.tap('#addForm button[type=submit]');
   await A.waitForSelector('.tab[data-i]');
   await A.tap('#addTab'); await A.fill('#nameIn', 'Bob'); await A.tap('#addForm button[type=submit]');
   await A.waitForFunction(() => document.querySelectorAll('.tab[data-i]').length === 2);
   // Phone B: types the code, adds one player
-  await B.goto(`http://${H.PHONE_HOST}:8091/remote.html`);
+  await B.goto(`http://${H.PHONE_HOST}:${H.PORT}/remote.html`);
   await B.waitForSelector('#addForm:not([hidden])');
   await B.fill('#nameIn', 'Cy'); await B.tap('#addForm button[type=submit]');
   await B.waitForSelector('.tab[data-i]');
@@ -81,7 +81,7 @@ const { chromium } = require('playwright-core');
   await A.close(); await host.waitForTimeout(800);
   console.log('table strip with phone A away:', (await host.textContent('#order')).replace(/\s+/g, ' ').trim(), '| away pills:', await host.$$eval('#order .pill.away', e => e.length));
   const A2 = watch(await phoneA.newPage(), 'phone A again');
-  await A2.goto(`http://${H.PHONE_HOST}:8091/remote.html`);            // back to the one table
+  await A2.goto(`http://${H.PHONE_HOST}:${H.PORT}/remote.html`);            // back to the one table
   await A2.waitForFunction(() => document.querySelectorAll('.tab[data-i]').length === 2, null, { timeout: 8000 });
   console.log('phone A back → its players:', (await A2.textContent('#tabs')).replace(/\s+/g, ' ').trim());
 

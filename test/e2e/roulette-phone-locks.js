@@ -12,7 +12,7 @@ const { chromium } = require('playwright-core');
   const A = watch(await pa.newPage(), 'phone A'), B = watch(await pb.newPage(), 'phone B');
 
   // Table with NO time limit, then share → a timer must be switched on
-  await host.goto('http://localhost:8091/roulette.html');
+  await host.goto(`http://localhost:${H.PORT}/roulette.html`);
   await host.selectOption('#timeLimit', '0');
   await host.click('#openTableBtn');
   await host.waitForFunction(() => sharing(), null, { timeout: 5000 });
@@ -22,7 +22,7 @@ const { chromium } = require('playwright-core');
 
   // Phones join
   for (const [P, name] of [[A, 'Ana'], [B, 'Ben']]) {
-    await P.goto(`http://${H.PHONE_HOST}:8091/remote.html`);
+    await P.goto(`http://${H.PHONE_HOST}:${H.PORT}/remote.html`);
     await P.waitForSelector('#addForm:not([hidden])');
     await P.fill('#nameIn', name); await P.tap('#addForm button[type=submit]');
     await P.waitForSelector('.tab[data-i]');

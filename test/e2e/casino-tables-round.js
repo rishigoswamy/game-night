@@ -1,7 +1,7 @@
 const H = require('./helpers');
 const { chromium } = require('playwright-core');
 const { spawn } = require('child_process');
-const PORT = 8091;
+const PORT = H.PORT;
 (async () => {
   const srv = spawn('node', [H.SERVER, String(PORT)], { env: { ...process.env, DC_LOOPBACK_ONLY: '1' }, stdio: 'ignore' });
   await new Promise(r => setTimeout(r, 800));

@@ -61,7 +61,7 @@ game-night/
 | `roulette.html`, `blackjack.html` | master | Roulette / Blackjack tables |
 | `table.html?g=baccarat\|dragontiger\|sicbo\|craps` | master | One engine for the four simpler tables; the game module is chosen by `?g=` |
 | `remote.html`, `bj-remote.html`, `table-remote.html?g=…` | phones | Phone pages for the casino tables |
-| `party-table.html?g=werewolf\|catan\|gofish\|bluff` | master | Party game screen (moderator) |
+| `party-table.html?g=werewolf\|catan\|gofish\|bluff\|tambola` | master | Party game screen (moderator / caller) |
 | `party-remote.html?g=…` | phones | Party game phone page |
 
 Every page is a thin HTML file (markup), its own stylesheet(s) in `css/`, and its code in `js/pages/<page>.js`.
@@ -100,7 +100,11 @@ everything else: players, betting window, phones, voice, celebrations, leaderboa
 **Party game modules** (`games/party/*.js`) set `window.PARTY_GAME` with: `start(ctx)`, `act(ctx, player, msg)` (a
 phone's move; return an error string to refuse it), `view(ctx, player)` (that player's private view, the only thing
 sent to their phone), `hostHTML` (master screen), `phoneHTML` (+ optional `phoneLocal` / `phoneAct` for choices made
-on the phone before sending). `party-table.html` handles seats, timers (`ctx.countdown`), narration and leaderboards.
+on the phone before sending). Optional: `options` (shown in the lobby; a choice may carry a hover card with full rules), `canStart`,
+`lobbyHTML` (extra lobby info, e.g. Werewolf's night order), `hostAct` (buttons on the master screen, e.g. Tambola's Pause),
+`phoneNotify` (vibrate the phone). `party-table.html` handles seats, timers (`ctx.countdown`), narration and leaderboards.
+Adding a game: the module, its id in `PARTY_IDS` (`party-table.html`, `party-remote.html`), the phone routing (`PAGE_FOR` in
+`remote.js`, `table-remote.js`, `bj-remote.js`), `leaderboard.js` (`PARTY`, `POINTS`), `sw.js`, the card in `party.html`, tests.
 
 ## Server (`server/server.js`)
 
@@ -125,9 +129,9 @@ memory only.
 | | Unit tests (`npm test`) | End-to-end tests (`npm run test:e2e`) |
 |---|---|---|
 | Where | `test/unit/*.test.js` | `test/e2e/*.js` (runner: `run.js`) |
-| How | Node's built-in test runner; browser files run in a sandbox (`helpers.js`: fake `window` and storage, seeded random, a stand-in for the party page) | Real games in a muted Chrome (`playwright-core`); phones simulated through the computer's Wi-Fi address |
-| Covers | Every casino payout and drawing rule (all six tables, incl. Roulette and Blackjack); Werewolf, Catan, Go Fish and Bluff rules; leaderboard, admin lock, storage migration; server security and relay | Whole games end to end: pages, phones, timers, voice, leaderboards |
-| Time | a few seconds | about 15 minutes |
+| How | Node's built-in test runner; browser files run in a sandbox (`helpers.js`: fake `window` and storage, seeded random, a stand-in for the party page) | Real games in a muted Chrome (`playwright-core`); phones simulated through the computer's Wi-Fi address; 3 tests at a time, each with its own test server and port (`E2E_PORT`), longest first; `update-bar` (it touches a game file) runs alone |
+| Covers | Every casino payout and drawing rule (all six tables, incl. Roulette and Blackjack); Werewolf, Catan, Go Fish, Bluff and Tambola rules; leaderboard, admin lock, storage migration; server security and relay | Whole games end to end: pages, phones, timers, voice, leaderboards |
+| Time | a few seconds | about 5 minutes (about 15 one at a time) |
 
 Game modules expose a few internals for the unit tests as `_test` (e.g. Catan's `longest`, Baccarat's `bankerDraws`); pages
-never use them. Tests use ports 8091–8093; never point them at a real game night (port 8080).
+never use them. Tests use ports 8091–8093 (`helpers.js` refuses 8080); never point them at a real game night.

@@ -155,3 +155,58 @@ test('bluff: emptying your hand wins, unless you were caught lying on the last p
     assert.ok(st.hands[0].length >= 1, 'and takes the pile back');
   }
 });
+
+/* ---------------- What each screen shows (privacy) ---------------- */
+const H = { esc: t => String(t), color: () => '#888', me: 0, seats: [] };
+const cardsIn = (json, hand) => plain(hand.filter(c => json.includes(JSON.stringify({ r: c.r, s: c.s }))));
+
+test('go fish screens: a phone sees its own hand and only counts of the others; the Mac shows no faces', async () => {
+  const { G, ctx, st } = await goFish(3);
+  for (let i = 0; i < 3; i++) {
+    const v = plain(G.view(ctx, i)), json = JSON.stringify(v);
+    assert.deepEqual(ranks(v.hand), ranks(st.hands[i]));
+    for (let k = 0; k < 3; k++) if (k !== i) {
+      const others = st.hands[k].filter(c => !st.hands[i].some(x => x.r === c.r && x.s === c.s));
+      assert.deepEqual(cardsIn(json, others), [], `phone ${i} must not see player ${k}'s cards`);
+      assert.equal(v.others.find(o => o.i === k).count, st.hands[k].length);
+    }
+    const html = G.phoneHTML(v, {}, H);
+    assert.equal((html.match(/class="pcard /g) || []).length, st.hands[i].length);
+  }
+  const host = G.hostHTML(ctx, H);
+  assert.doesNotMatch(host, /class="face/, 'the Mac shows only card backs');
+  assert.match(G.status(ctx), /Pond: \d+ cards · \d+ of 13 books made/);
+});
+
+test('go fish phone: picking a rank and a player, then Ask', async () => {
+  const { G, ctx, st } = await goFish(2, s => { s.turn = 0; s.hands = [[card('7'), card('2')], [card('7', '♥')]]; s.books = [[], []]; });
+  const local = {};
+  let v = plain(G.view(ctx, 0));
+  assert.match(G.phoneHTML(v, local, H), /data-act="ask"[^>]*disabled>\s*Pick a rank and a player/);
+  G.phoneLocal({ local: 'rank', rank: '7' }, v, local); G.phoneLocal({ local: 'target', target: '1' }, v, local);
+  assert.match(G.phoneHTML(v, local, H), /data-act="ask" data-rank="7" data-target="1" >\s*Ask Bob for 7s/);
+  G.phoneLocal({ local: 'rank', rank: '7' }, v, local);
+  assert.equal(local.rank, null, 'tap again to unpick');
+  assert.ok(G.phoneNotify({ myTurn: false }, { myTurn: true }), 'buzz when it becomes your turn');
+  void st;
+});
+
+test('bluff screens: own hand only; the Mac shows backs until a challenge reveals the cards', async () => {
+  const { G, ctx, st } = await bluff(3);
+  for (let i = 0; i < 3; i++) {
+    const v = plain(G.view(ctx, i)), json = JSON.stringify(v);
+    for (let k = 0; k < 3; k++) if (k !== i) assert.deepEqual(cardsIn(json, st.hands[k]), [], `phone ${i} must not see player ${k}'s cards`);
+    assert.equal(v.others.length, 3);
+    assert.ok(G.phoneHTML(v, {}, H).length > 50);
+  }
+  assert.doesNotMatch(G.hostHTML(ctx, H), /class="face/);
+  assert.match(G.status(ctx), /Rank to play: Aces · pile 0 cards/);
+});
+
+test('cards: face cards show their letter, number cards their suit; red suits are red', () => {
+  const K = loadScripts(['games/party/common.js']).get('PartyKit');
+  assert.match(K.cardHTML({ r: 'K', s: '♥' }), /class="face red".*<span class="court">K<\/span>/s);
+  assert.match(K.cardHTML({ r: '7', s: '♣' }), /class="face".*<span class="pip">♣<\/span>/s);
+  assert.match(K.cardHTML({ r: 'A', s: '♠' }, { cls: 'sel', attrs: 'data-x="1"' }), /class="pcard sel" data-x="1"/);
+  assert.equal(K.rankName('6', 2), 'sixes'); assert.equal(K.rankName('Q', 2), 'Queens'); assert.equal(K.rankName('A'), 'Ace');
+});

@@ -528,3 +528,71 @@ test('the Mac shows the night order during the game, with the role now awake hig
   assert.match(html, /class="p on">🦝 Robber/);
   assert.doesNotMatch(html, /class="p on">🔮 Seer/);
 });
+
+/* ---------------- The remaining screens and messages ---------------- */
+test('wake-up information: the Minion sees the werewolves (or none), a Mason sees the other (or is alone)', async () => {
+  let g = await game(['minion', 'werewolf', 'dreamwolf', 'seer', 'robber', 'troublemaker', 'villager'], ['minion', 'dreamwolf']);
+  await g.until('minion');
+  assert.match(g.st().notes[0].join(' '), /The werewolves are: Bob, Cy\./);
+  g = await game(['minion', 'seer', 'robber', 'werewolf', 'troublemaker', 'werewolf'], ['minion']);
+  await g.until('minion');
+  assert.match(g.st().notes[0].join(' '), /no werewolves among the players/);
+  g = await game(['mason', 'mason', 'seer', 'werewolf', 'robber', 'troublemaker', 'werewolf'], ['mason']);
+  await g.until('mason');
+  assert.match(g.st().notes[0].join(' '), /The other mason: Bob\./);
+  g = await game(['mason', 'seer', 'robber', 'werewolf', 'troublemaker', 'mason', 'werewolf'], ['mason']);
+  await g.until('mason');
+  assert.match(g.st().notes[0].join(' '), /only mason/);
+});
+
+test('day: "ready to vote" toggles; when everyone is ready (or the Mac says so) the vote starts', () => {
+  const { G, ctx, st } = ww(['seer', 'werewolf', 'robber', 'troublemaker', 'villager', 'werewolf'], { phase: 'day' });
+  let skipped = 0; ctx.skip = () => { skipped++; };
+  G.act(ctx, 0, { act: 'ready' }); G.act(ctx, 0, { act: 'ready' });
+  assert.equal(st.ready.size, 0, 'tap again: not ready');
+  G.act(ctx, 0, { act: 'ready' }); G.act(ctx, 1, { act: 'ready' });
+  assert.equal(skipped, 0);
+  G.act(ctx, 2, { act: 'ready' });
+  assert.equal(skipped, 1, 'all three ready');
+  G.hostAct(ctx, { host: 'vote' });
+  assert.equal(skipped, 2, '"Start the vote now" on the Mac');
+  assert.match(G.status(ctx), /Day: discussion/);
+  st.phase = 'vote';
+  assert.match(G.act(ctx, 0, { act: 'vote', p: 0 }), /another player/);
+  assert.match(G.status(ctx), /Vote/);
+});
+
+test('phone screens: robber after a swap, witch giving the card, drunk, village idiot, day and vote', () => {
+  const view = (roles, step, i = 0, extra = {}) => { const g = ww(roles, { step }); Object.assign(g.st, extra); return { ...g, html: () => g.G.phoneHTML(plain(g.G.view(g.ctx, i)), {}, H) }; };
+  let g = view(['robber', 'werewolf', 'seer', 'villager', 'troublemaker', 'werewolf'], 'robber');
+  g.G.act(g.ctx, 0, { act: 'rob', p: 1 });
+  assert.match(g.html(), /You took Bob's card\. Do you want to look at it\?.*Look at my new card.*Don't look/s);
+  g = view(['witch', 'werewolf', 'seer', 'villager', 'troublemaker', 'tanner'], 'witch');
+  assert.match(g.html(), /data-act="witchlook"/);
+  g.G.act(g.ctx, 0, { act: 'witchlook', c: 0 });
+  assert.match(g.html(), /Give that center card to a player \(or yourself\).*data-act="witchswap" data-p="0"/s);
+  assert.match(view(['drunk', 'werewolf', 'seer', 'villager', 'troublemaker', 'werewolf'], 'drunk').html(), /won't see it.*data-act="drunk" data-c="2"/s);
+  assert.match(view(['idiot', 'werewolf', 'seer', 'villager', 'troublemaker', 'werewolf'], 'idiot').html(), /data-dir="left".*data-dir="right"/s);
+  g = ww(['seer', 'werewolf', 'robber', 'troublemaker', 'villager', 'werewolf'], { phase: 'day' });
+  assert.match(g.G.phoneHTML(plain(g.G.view(g.ctx, 0)), {}, H), /Ready to vote.*0 of 3 ready/s);
+  g.st.phase = 'vote'; g.st.votes = { 0: 1 };
+  assert.match(g.G.phoneHTML(plain(g.G.view(g.ctx, 0)), {}, H), /data-act="vote" data-p="1" class="on".*Vote saved/s);
+  assert.match(g.G.phoneHTML(plain(g.G.view(g.ctx, 1)), {}, H), /Tap a name to vote/);
+  assert.match(g.G.hostHTML(g.ctx, H), /1 of 3 votes in/);
+});
+
+test('phone choices: the Seer picks up to two center cards, the Troublemaker two players; buzz when the phase changes', () => {
+  const G = load(), local = {};
+  G.phoneLocal({ local: 'cc', c: '0' }, {}, local); G.phoneLocal({ local: 'cc', c: '2' }, {}, local); G.phoneLocal({ local: 'cc', c: '1' }, {}, local);
+  assert.deepEqual(plain(local.cc), [2, 1], 'at most two: the oldest drops');
+  G.phoneLocal({ local: 'cc', c: '2' }, {}, local);
+  assert.deepEqual(plain(local.cc), [1], 'tap again to unpick');
+  G.phoneLocal({ local: 'pp', p: '3' }, {}, local); G.phoneLocal({ local: 'pp', p: '4' }, {}, local);
+  assert.deepEqual(plain(local.pp), [3, 4]);
+  G.phoneLocal({ local: 'flip' }, {}, local);
+  assert.equal(local.shown, true);
+  G.phoneAct({}, {}, local);
+  assert.deepEqual(plain([local.cc, local.pp]), [[], []], 'choices clear once sent');
+  assert.ok(G.phoneNotify({ phase: 'night' }, { phase: 'day' }));
+  assert.ok(!G.phoneNotify({ phase: 'deal' }, { phase: 'night' }), 'no buzz at night (it would give roles away)');
+});

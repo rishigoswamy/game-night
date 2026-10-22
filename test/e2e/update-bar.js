@@ -1,7 +1,7 @@
 const H = require('./helpers');
 const { chromium } = require('playwright-core');
 const { spawn, execSync } = require('child_process');
-const PORT = 8091;
+const PORT = H.PORT;
 const startServer = () => spawn('node', [H.SERVER, String(PORT)], { env: { ...process.env, DC_LOOPBACK_ONLY: '1' }, stdio: 'ignore' });
 (async () => {
   const b = await chromium.launch({ executablePath: H.CHROME, args: ['--mute-audio'] });
