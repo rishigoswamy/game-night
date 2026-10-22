@@ -8,7 +8,7 @@
     "test:e2e": "node test/e2e/run.js",
     "check": "node scripts/check.js",
     "coverage": "node scripts/coverage.js",
-    "ci": "npm run check && npm run coverage && npm run test:e2e && npm run package",
+    "ci": "node scripts/ci.js",
     "setup-hooks": "git config core.hooksPath scripts/hooks",
     "package": "node scripts/package.js"
   },

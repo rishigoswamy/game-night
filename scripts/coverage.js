@@ -11,6 +11,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const B = require('./banner');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'coverage');
@@ -22,13 +23,25 @@ const tests = fs.readdirSync(path.join(ROOT, 'test/unit')).filter(f => f.endsWit
 
 // 1. The unit tests, with coverage
 if (gateOnly) {
-  if (!fs.existsSync(raw) || !fs.readdirSync(raw).length) { console.error(`✗ no coverage data in ${path.relative(ROOT, raw)}: run --tests-only first`); process.exit(1); }
+  if (!fs.existsSync(raw) || !fs.readdirSync(raw).length) { B.fail(`no coverage data in ${path.relative(ROOT, raw)}: run --tests-only first`); process.exit(1); }
 } else {
+  B.banner('UNIT TESTS', 'Unit tests', `${tests.length} test files: game rules, leaderboards, admin lock, server`);
+  const t0 = Date.now();
   fs.rmSync(raw, { recursive: true, force: true }); fs.mkdirSync(raw, { recursive: true });
-  const run = spawnSync(process.execPath, ['--test', ...tests], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, NODE_V8_COVERAGE: raw } });
-  if (run.status !== 0) { console.error('\n✗ unit tests failed'); process.exit(1); }
-  if (testsOnly) { console.log(`\n✓ unit tests passed (coverage data kept in ${path.relative(ROOT, raw)} for the coverage gate)`); process.exit(0); }
+  // the usual test output on screen, and a TAP copy to count the tests for the summary
+  const tap = path.join(os.tmpdir(), `gn-unit-${process.pid}.tap`);
+  const run = spawnSync(process.execPath, ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout', '--test-reporter=tap', `--test-reporter-destination=${tap}`, ...tests],
+    { cwd: ROOT, stdio: 'inherit', env: { ...process.env, NODE_V8_COVERAGE: raw } });
+  const count = k => { try { return +(fs.readFileSync(tap, 'utf8').match(new RegExp(`^# ${k} (\\d+)`, 'm')) || [])[1] || 0; } catch { return 0; } };
+  const pass = count('pass'), failed = count('fail');
+  fs.rmSync(tap, { force: true });
+  B.record('unit', run.status === 0, run.status === 0 ? `${pass} tests` : `${failed} of ${pass + failed} failed`, Date.now() - t0);
+  if (run.status !== 0) { B.fail(`Unit tests failed: ${failed} of ${pass + failed}  (${B.secs(Date.now() - t0)})`); process.exit(1); }
+  B.ok(`Unit tests passed: ${pass} of ${pass}  (${B.secs(Date.now() - t0)})`);
+  if (testsOnly) { console.log(B.dim(`coverage data kept in ${path.relative(ROOT, raw)} for the coverage stage`)); process.exit(0); }
 }
+B.banner('COVERAGE', 'Coverage', 'each file against its minimum in coverage-thresholds.json', gateOnly ? 0 : 1);
+const gateStarted = Date.now();
 
 // 2. Merge the coverage of every test process: a character counts as run if any process ran it
 const files = {};
@@ -83,7 +96,7 @@ const summary = `Unit test coverage (lines)\n${lines.join('\n')}\n${String(total
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'summary.txt'), summary);
 fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({ total: totalPct, files: report }, null, 1));
-console.log('\n' + summary);
+console.log(summary);
 
 if (process.argv.includes('--update')) {
   // whole percentages, rounded down: a little slack for a new line or two, but a real drop fails
@@ -92,5 +105,6 @@ if (process.argv.includes('--update')) {
   console.log(`minimums updated in ${path.relative(ROOT, LIMITS)}`);
   process.exit(0);
 }
-if (problems.length) { console.error(`✗ coverage gate: ${problems.length} problem${problems.length === 1 ? '' : 's'}\n- ${problems.join('\n- ')}`); process.exit(1); }
-console.log(gateOnly ? '✓ coverage gate passed' : '✓ unit tests and coverage gate passed');
+B.record('coverage', !problems.length, `${totalPct}%${problems.length ? ' (dropped)' : ''}`, Date.now() - gateStarted);
+if (problems.length) { B.fail(`Coverage dropped: ${problems.length} problem${problems.length === 1 ? '' : 's'}  (total ${totalPct}%)`); console.error(`- ${problems.join('\n- ')}`); process.exit(1); }
+B.ok(`Coverage passed: every file at or above its minimum  (total ${totalPct}%, minimum ${limits.total}%)`);

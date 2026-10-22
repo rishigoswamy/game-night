@@ -16,7 +16,7 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   exit 1
 fi
 echo "pre-push: build check, unit tests + coverage, end-to-end tests, package (about 6 minutes)…"
-if npm run --silent check -- ${base:+--base "$base"} && npm run --silent coverage && npm run --silent test:e2e && npm run --silent package; then
+if node scripts/ci.js --label "git push" ${base:+--base "$base"}; then
   echo "pre-push: ✓ all checks passed"
 else
   echo "pre-push: ✗ checks failed, so nothing was pushed. Fix them and push again (git push --no-verify skips the checks)."

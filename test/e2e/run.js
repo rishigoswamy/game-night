@@ -11,6 +11,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const H = require('./helpers');
+const B = require('../../scripts/banner');
 
 const TESTS = [
   'casino-tables-round', 'casino-phone-sicbo', 'blackjack-phone', 'roulette-two-phones', 'roulette-master-only', 'roulette-phone-locks',
@@ -68,7 +69,8 @@ async function runOne(t, port) {
   const secs = Math.round((Date.now() - t0) / 1000);
   fs.writeFileSync(path.join(work, t + '.log'), out);
   times[t] = secs;
-  console.log(`${ok ? 'PASS' : 'FAIL'}  ${t}  (${secs}s${PORTS.length > 1 ? `, port ${port}` : ''})`);
+  const line = `${t}  ${B.dim(`(${secs}s${PORTS.length > 1 ? `, port ${port}` : ''})`)}`;
+  console.log(ok ? B.green(`✓ ${line}`) : B.red(`✗ ${line}`));
   if (!ok) console.log(out.split('\n').map(l => '      ' + l).join('\n'));
   return ok;
 }
@@ -76,6 +78,7 @@ async function runOne(t, port) {
 (async () => {
   const t0 = Date.now();
   const chosen = only.length ? only : TESTS;
+  B.banner('E2E', 'End-to-end tests', `${chosen.length} test${chosen.length === 1 ? '' : 's'}: real games in Chrome with simulated phones, ${PORTS.length} at a time`);
   const queue = chosen.filter(t => !SOLO.has(t)).sort((a, b) => (times[b] ?? 60) - (times[a] ?? 60));
   const results = {};
   // each worker has its own port (its own test server and phones) and takes the next test from the queue
@@ -93,6 +96,11 @@ async function runOne(t, port) {
   try { fs.writeFileSync(timesFile, JSON.stringify(times)); } catch {}
   const failed = chosen.filter(t => !results[t]);
   const mins = (Date.now() - t0) / 60000;
-  console.log(`\n${chosen.length - failed.length} passed, ${failed.length} failed${failed.length ? ` (${failed.join(', ')})` : ''} in ${mins.toFixed(1)} min, ${PORTS.length} at a time. Logs and screenshots: ${work}`);
+  const took = `${mins.toFixed(1)} min, ${PORTS.length} at a time`;
+  B.record('e2e', !failed.length, `${chosen.length - failed.length} of ${chosen.length}`, Date.now() - t0);
+  console.log('');
+  if (failed.length) { B.fail(`End-to-end tests failed: ${chosen.length - failed.length} of ${chosen.length} passed  (${took})`); console.error(`   failed: ${failed.join(', ')}`); }
+  else B.ok(`End-to-end tests passed: ${chosen.length} of ${chosen.length}  (${took})`);
+  console.log(B.dim(`   logs and screenshots: ${work}`));
   process.exit(failed.length ? 1 : 0);
 })();

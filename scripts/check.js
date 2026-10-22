@@ -7,8 +7,11 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const B = require('./banner');
 
 const ROOT = path.resolve(__dirname, '..');
+const started = Date.now();
+B.banner('BUILD', 'Build check', 'files parse, links, offline cache, games registered, cache version');
 const PUBLIC = path.join(ROOT, 'public');
 const problems = [];
 const bad = msg => problems.push(msg);
@@ -74,5 +77,6 @@ if (base && !/^0+$/.test(base)) {
 }
 
 console.log(`build check: ${jsFiles.length} JS files, ${pages.length} pages, ${cached.size} cached files, ${games.length} party games (${games.join(', ')})`);
-if (problems.length) { console.error(`\n✗ ${problems.length} problem${problems.length === 1 ? '' : 's'}:\n- ${problems.join('\n- ')}`); process.exit(1); }
-console.log('✓ build check passed');
+B.record('build', !problems.length, problems.length ? `${problems.length} problem${problems.length === 1 ? '' : 's'}` : `${jsFiles.length} files`, Date.now() - started);
+if (problems.length) { B.fail(`Build check failed: ${problems.length} problem${problems.length === 1 ? '' : 's'}  (${B.secs(Date.now() - started)})`); console.error(`- ${problems.join('\n- ')}`); process.exit(1); }
+B.ok(`Build check passed  (${B.secs(Date.now() - started)})`);

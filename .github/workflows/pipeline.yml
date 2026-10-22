@@ -37,6 +37,7 @@ jobs:
       - name: Build check (files parse, links, offline cache, games registered, cache version)
         run: npm run check -- --base "$BASE"
         env:
+          CI_STAGE: 1/7
           BASE: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
 
   unit:
@@ -53,6 +54,8 @@ jobs:
       - run: npm ci
       - name: All unit tests (recording coverage for the next stage)
         run: node scripts/coverage.js --tests-only
+        env:
+          CI_STAGE: 2/7
       - uses: actions/upload-artifact@v4
         with:
           name: coverage-data
@@ -75,6 +78,8 @@ jobs:
           path: coverage/raw/
       - name: Coverage gate (each file against its minimum in coverage-thresholds.json)
         run: node scripts/coverage.js --gate-only
+        env:
+          CI_STAGE: 3/7
       - name: Coverage table on the run's summary page
         if: always()
         run: |
@@ -103,6 +108,7 @@ jobs:
       - name: Real games in Chrome with simulated phones
         run: npm run test:e2e
         env:
+          CI_STAGE: 4/7
           E2E_OUT: ${{ runner.temp }}/e2e
           E2E_WORKERS: '2'        # CI machines are smaller than a desktop Mac: 2 tests at a time
       - uses: actions/upload-artifact@v4
@@ -125,6 +131,7 @@ jobs:
       - name: Build the zip and smoke-test it (unpack, install, start, load the pages)
         run: npm run package -- "$VERSION"
         env:
+          CI_STAGE: 5/7
           VERSION: ${{ env.RELEASE == 'true' && github.ref_name || format('dev-{0}', github.sha) }}
       - uses: actions/upload-artifact@v4
         with:

@@ -10,7 +10,10 @@ GitHub after it.
 | 3. End-to-end tests | `npm run test:e2e` | Any of the browser tests (real games, simulated phones) | ~5 min |
 | 4. Package | `npm run package` | The release zip is missing something or holds what it shouldn't (tests, CI files), or, unpacked somewhere new, it doesn't install, start and serve the main pages | ~15 s |
 
-`npm run ci` runs all four in order and stops at the first failure. The zip goes to `dist/` (`npm run package -- v1.2.0`
+`npm run ci` (`scripts/ci.js`) runs them in order (unit tests and coverage as two stages) and stops at the first failure.
+Each stage starts with a big banner and ends with a green ✓ or red ✗ line (each end-to-end test gets its own); at the end a
+summary lists every stage with its result and time, green "safe to push" or red "not safe to push". The pre-push hook
+runs the same thing. The zip goes to `dist/` (`npm run package -- v1.2.0`
 names it after a version; it packs the last commit, so commit first).
 
 ## Coverage minimums
