@@ -216,6 +216,10 @@ first and refuses the push if a stage fails (`git push --no-verify` skips it), a
 version it leads to and how to ask for more (`[minor]` / `[major]`, below). On GitHub the [pipeline](https://github.com/rishigoswamy/game-night/actions)
 runs the same stages on every push and pull request; protecting `main` makes it a hard gate.
 
+**Protected files:** the files that decide what's accepted, released or run on a host (the pipeline, the checks and
+coverage rules, dependencies, the server) are listed in `.github/CODEOWNERS`: only the owner may change them
+([docs/CI.md](docs/CI.md), "Protected files").
+
 **Releases** (versions `MAJOR.MINOR.PATCH`; every release waits for your **Approve** on GitHub, then is published with
 its zip):
 - **Automatically:** after every green push to `main` a release candidate waits under **Actions → Release**. It's the

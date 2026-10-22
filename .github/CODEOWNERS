@@ -1,0 +1,27 @@
+# Files only the owner may change (docs/CI.md, "Protected files"):
+#   - a pull request touching them needs @rishigoswamy's review (branch protection: "Require review from Code Owners");
+#   - the pipeline's stage 1 fails if anyone else brings them onto main or a release tag (scripts/protected.js).
+# GitHub reads this file from main, so a pull request can't change who reviews itself; and owners need write access.
+# Games, pages, styles, other docs and individual tests are open: ordinary development.
+
+# This list, the pipeline and releases
+/.github/                    @rishigoswamy
+
+# The quality gate: its rules, the checks, the test runner and the shared test helpers
+/coverage-thresholds.json    @rishigoswamy
+/scripts/                    @rishigoswamy
+/test/e2e/run.js             @rishigoswamy
+/test/e2e/helpers.js         @rishigoswamy
+/test/e2e/party-setup.js     @rishigoswamy
+/test/unit/helpers.js        @rishigoswamy
+/docs/CI.md                  @rishigoswamy
+
+# Dependencies: a package runs its code on every host's computer and in the pipeline
+/package.json                @rishigoswamy
+/package-lock.json           @rishigoswamy
+
+# Code that runs on the host's computer, and the security-sensitive parts of the game
+/server/                     @rishigoswamy
+/Start*.command              @rishigoswamy
+/public/js/lib/admin-lock.js @rishigoswamy
+/public/sw.js                @rishigoswamy

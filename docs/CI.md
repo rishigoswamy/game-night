@@ -150,18 +150,52 @@ soon as a commit containing `.github/workflows/pipeline.yml` is pushed: see each
 **branch** `main`: every release runs from `main`, so a rule allowing only tags would block them all. Without this
 environment, releases publish without waiting for you.
 
-Then protect `main` so that only changes that passed the pipeline can reach it. In the repository on GitHub:
-**Settings → Branches → Add branch protection rule** (or **Rules → Rulesets**), branch `main`:
+**`main` is protected by two rulesets** (Settings → Rules → Rulesets; created with `gh api`, October 2026):
 
-- **Require a pull request before merging** (no approvals needed if you work alone).
-- **Require status checks to pass**, and pick **1 · Build**, **2 · Unit tests**, **3 · Coverage**, **4 · End-to-end
-  tests (macOS)** and **5 · Package** (they appear in the list after the pipeline has run once). Tick **Require branches to be
-  up to date**.
-- **Do not allow bypassing the above settings**, so it applies to you as the owner too.
+| Ruleset | Rules | Who may bypass |
+|---|---|---|
+| **Protect main's history** | Block force pushes; restrict deletions | Nobody, not even the owner: `main`'s history can't be rewritten or deleted |
+| **Changes go through checks** | Require a pull request (approvals: 0), Require review from Code Owners, Require status checks: **1 · Build**, **2 · Unit tests**, **3 · Coverage**, **4 · End-to-end tests (macOS)**, **5 · Package** | **Repository admin** (the owner) |
 
-The checks only show up in that list once they have run, so do the first push before adding the rule.
+As the only collaborator you keep both ways of working: push straight to `main` (GitHub notes "bypassed rule
+violations"), or a branch and a pull request, merged with **Merge without waiting for requirements to be met (bypass
+rules)** when it touches protected files (GitHub never lets you approve your own pull request). The pipeline still runs
+on every push, and releases still wait for your Approve.
 
-With this rule, `git push` straight to `main` is refused: changes go in through a branch and a pull request (below).
+**When you add a collaborator:**
+1. In **Changes go through checks**, set **Required approvals** to **1**: every change of theirs then reaches `main`
+   only once you approve it (and protected files need you as code owner anyway). They can't push to `main` directly,
+   rewrite it, or release.
+2. Keep the `release` environment's required reviewer as you only.
+3. Optional: remove **Repository admin** from the bypass list if you want your own changes to go through pull requests
+   and checks too (you'd lose direct pushes to `main`).
+
+## Protected files
+
+Some files decide whether code is accepted, released or run on someone's computer, so only the owner may change them.
+They are listed in [`.github/CODEOWNERS`](../.github/CODEOWNERS):
+
+| Group | Files |
+|---|---|
+| The protection list, the pipeline and releases | `.github/` (`CODEOWNERS`, `workflows/`) |
+| The quality gate | `coverage-thresholds.json`, `scripts/`, `test/e2e/run.js`, the shared test helpers (`test/unit/helpers.js`, `test/e2e/helpers.js`, `test/e2e/party-setup.js`), this file (`docs/CI.md`) |
+| Dependencies | `package.json`, `package-lock.json` |
+| Runs on the host's computer / security | `server/`, `Start Game Night.command`, `public/js/lib/admin-lock.js`, `public/sw.js` |
+
+Games, pages, styles, other docs and individual tests stay open: that's ordinary development, and the coverage rules
+(protected) catch a weakened test.
+
+**Two locks:**
+
+1. **Review:** with branch protection's **Require review from Code Owners**, a pull request that touches a protected file
+   can't be merged until the owner approves it. Other pull requests merge as usual.
+2. **The pipeline** (`scripts/protected.js`, in stage 1, reading the same `CODEOWNERS`): if a protected file reaches
+   `main` or a release tag through anyone but its owner, stage 1 fails, so it can't be released. On a pull request or
+   another branch it lists the protected files touched, as needing the owner's review.
+
+**Adding yourself as an owner doesn't work:** `CODEOWNERS` is on its own list (so changing it needs the owner's review),
+GitHub reads it from `main` rather than from the pull request (an edit can't decide its own reviewers), and GitHub ignores
+owners without write access to the repository.
 
 ## Day to day
 
