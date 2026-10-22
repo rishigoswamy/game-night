@@ -1,5 +1,5 @@
 // Offline cache for Game Night. Bump VERSION whenever the app files change.
-const VERSION = 'gamenight-v66';
+const VERSION = 'gamenight-v67';
 const FILES = ['./',
   './admin.html',
   './bj-remote.html',

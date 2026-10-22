@@ -80,6 +80,7 @@ function renderLobby() {
     if (s) send({ type: 'kicked' }, s.device);
     renderLobby(); push();
   }));
+  if (G.lobbyHTML) $('#lobbyInfo').innerHTML = G.lobbyHTML(n, P.opts);   // e.g. Werewolf's night order for the roles picked
   const why = G.canStart ? G.canStart(n, P.opts) : null;
   const ok = n >= G.min && n <= G.max && !why;
   $('#startBtn').disabled = !ok || !sharing();

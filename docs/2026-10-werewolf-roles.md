@@ -41,10 +41,19 @@ Revealer.
 ## Full rules on hover
 
 In the role picker every role, including the five Beginner roles that are always in, shows a card with its full rules
-when you hover over it (or tab to it with the keyboard). The card lists the role's level and team, when it wakes,
+when you hover over it (or tab to it with the keyboard). The card lists the role's level and team, when it wakes
+(relative to the Beginner roles, which are called in every game, e.g. "after the Robber, before the Troublemaker"),
 what it does, how it wins, and how it interacts with other roles (shields, timeouts, the Doppelgänger). The rules
-live in `DETAIL` in `games/party/werewolf.js`. A unit test checks that the wake position each card states matches
-the real night order. The hover card is generic: any party game option can give its choices full rules the same way.
+live in `DETAIL` in `games/party/werewolf.js`. A unit test checks that every "after X" / "before Y" a card states
+is true in the real night order.
+
+## Night order for the roles picked
+
+The real order depends on which roles are in the game (not on who is dealt what: a role whose card is in the center is
+still called, so the pauses give nothing away). The lobby shows the exact order for the roles ticked and the players
+present, which roles don't wake, and which ticked roles don't fit (too many for the number of players). During the
+game the Mac shows the same order with the role now awake highlighted. Both come from the same function as the night
+itself (`nightSteps`), so they can't disagree. The hover card is generic: any party game option can give its choices full rules the same way.
 
 ## Left out, and why
 
@@ -83,8 +92,8 @@ Tanner dies) and **Thing** (taps a neighbour on the shoulder; needs a phone vibr
 - **New browser tests:** `party-werewolf-roles` (the grouped role picker, and on real phones the Troublemaker not swapping,
   the Sentinel's shield, the Doppelgänger copying the Seer, the Revealer's face-up card on the Mac and the phones) and
   `party-icons` (each icon animates only when hovered, and not at all with reduced motion).
-- **Hover cards:** a unit test checks every role has full rules and that the wake position each states matches the
-  night order; `party-werewolf-roles` checks the card appears on hover and keyboard focus, stays on screen, and hides.
+- **Hover cards and night order:** a unit test checks every role has full rules and that each "after/before" it states
+  is true (a planted mistake was caught); others check the order for given roles, the lobby text and the Mac's highlight; `party-werewolf-roles` checks the card appears on hover and keyboard focus, stays on screen, and hides.
 - **Full browser suite:** 26 of 26 pass.
 
 ### Bugs the tests found (fixed)

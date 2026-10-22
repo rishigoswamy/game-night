@@ -471,14 +471,26 @@ test('options: roles grouped Intermediate / Advanced with descriptions; values u
 test('full rules for every role: shown on hover in the picker, and the wake order they state matches the night', () => {
   const G = load(), { ROLES, DETAIL, NIGHT } = G._test;
   const order = plain(NIGHT.map(x => x[0]));
-  const nth = k => k === 17 ? 'last (17th)' : `${k}${k === 1 ? 'st' : k === 2 ? 'nd' : k === 3 ? 'rd' : 'th'}`;
+  // role names as written in the rules ("Werewolves", "Masons" too), longest first so "Apprentice Seer" isn't read as "Seer"
+  const names = Object.keys(ROLES).flatMap(r => [[ROLES[r].name, r]]).concat([['Werewolves', 'werewolf'], ['Masons', 'mason']])
+    .sort((a, b) => b[0].length - a[0].length);
+  const mentioned = text => { const found = []; let t = text;
+    for (const [nm, r] of names) if (t.includes(nm)) { found.push(r); t = t.split(nm).join('#'); } return found; };
   for (const r of Object.keys(ROLES)) {
     const d = DETAIL[r];
     assert.ok(d && d.night && d.does && (d.does + (d.win || '') + (d.notes || '')).length > 80, `${r} has full rules`);
-    const k = order.indexOf(r) + 1;
-    if (r === 'dreamwolf') assert.match(d.night, /Doesn't wake/);
-    else if (!k) assert.match(d.night, /Doesn't wake/, `${r} doesn't wake`);
-    else assert.ok(d.night.includes(`Wakes ${nth(k)}`) || d.night.includes(`again ${nth(k)}`), `${r}: "${d.night}" should say it wakes ${nth(k)}`);
+    assert.doesNotMatch(d.night, /\d/, `${r}: no absolute position numbers (the real order depends on the roles picked)`);
+    const k = order.indexOf(r);
+    if (k < 0) { assert.match(d.night, /Doesn't wake/, `${r} doesn't wake`); continue; }
+    // "after the X" / "before the Y" must be true in the real order (X earlier, Y later)
+    const [, afterPart = '', beforePart = ''] = d.night.match(/^(?:.*?(?:after|After)(.*?))?(?:(?:before)(.*))?$/s) || [];
+    const after = mentioned(afterPart), before = mentioned(beforePart);
+    for (const x of after) assert.ok(order.indexOf(x) < k, `${r}: "${d.night}" says after the ${x}`);
+    for (const x of before) assert.ok(order.indexOf(x) > k, `${r}: "${d.night}" says before the ${x}`);
+    if (/^First/.test(d.night)) assert.equal(k, 0, `${r} says first`);
+    if (/^Last/.test(d.night)) assert.equal(k, order.length - 1, `${r} says last`);
+    // every waking role is placed against something (first, last, or another role)
+    assert.ok(after.length + before.length > 0 || /^(First|Last)/.test(d.night), `${r}: "${d.night}" places the role in the night`);
   }
   // every role in the picker (the Beginner ones too) carries its hover card
   const o = G.options.find(x => x.key === 'extras');
@@ -489,4 +501,30 @@ test('full rules for every role: shown on hover in the picker, and the wake orde
     assert.match(c[3], /Night:.*What you do:/s, c[0]);
     assert.match(c[3], /(Beginner|Intermediate|Advanced)<\/span><span>(Village team|Werewolf team|On their own)/, c[0]);
   }
+});
+
+test('night order: only the roles picked are called, in order; the lobby shows it and what was left out', () => {
+  const G = load(), { nightSteps, buildDeck } = G._test;
+  const steps = deck => plain(nightSteps(deck).map(x => x[0]));
+  assert.deepEqual(steps(buildDeck(5, [])), ['werewolf', 'seer', 'robber', 'troublemaker']);
+  assert.deepEqual(steps(buildDeck(8, ['insomniac', 'witch', 'sentinel', 'hunter'])), ['sentinel', 'werewolf', 'seer', 'robber', 'witch', 'troublemaker', 'insomniac']);
+  assert.deepEqual(steps(['mystic', 'dreamwolf', 'seer', 'robber', 'troublemaker', 'villager']), ['werewolf', 'mystic', 'seer', 'robber', 'troublemaker'],
+    'special wolves still get the werewolves\' turn');
+  let html = G.lobbyHTML(6, { extras: ['minion', 'hunter', 'witch'] });
+  assert.match(html, /Night order for 6 players/);
+  assert.match(html, /🐺 Werewolves.*🦹 Minion.*🔮 Seer.*🦝 Robber.*🧹 Witch.*😈 Troublemaker/s);
+  assert.match(html, /Don't wake: .*Hunter/);
+  assert.doesNotMatch(html, /left out/);
+  html = G.lobbyHTML(3, { extras: ['minion', 'witch', 'idiot'] });
+  assert.match(html, /left out: .*Witch.*Village Idiot/s, 'with 3 players only one extra fits; the hardest are left out');
+  assert.doesNotMatch(html.split('Too many')[0], /Witch/, 'and they are not in the order');
+  assert.match(G.lobbyHTML(1, { extras: [] }), /Night order \(for 3 players\)/);
+});
+
+test('the Mac shows the night order during the game, with the role now awake highlighted', () => {
+  const { G, ctx } = ww(['seer', 'werewolf', 'robber', 'troublemaker', 'villager', 'werewolf'], { step: 'robber' });
+  const html = G.hostHTML(ctx, H);
+  assert.match(html, /Night order/);
+  assert.match(html, /class="p on">🦝 Robber/);
+  assert.doesNotMatch(html, /class="p on">🔮 Seer/);
 });

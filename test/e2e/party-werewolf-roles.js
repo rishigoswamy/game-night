@@ -20,7 +20,7 @@ const { setup } = require('./party-setup');
     return mac.evaluate(() => { const t = document.getElementById('optTip'), r = t.getBoundingClientRect();
       return { shown: !t.hidden, text: t.textContent.replace(/\s+/g, ' ').trim(), inView: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight }; });
   };
-  for (const [sel, expect] of [['#opts label:has(input[value="doppelganger"])', /Doppelgänger.*Advanced.*Night: Wakes 2nd.*copied/],
+  for (const [sel, expect] of [['#opts label:has(input[value="doppelganger"])', /Doppelgänger.*Advanced.*Night: At the very start.*exact order.*copied/],
     ['#opts label:has(input[value="pi"])', /Paranormal Investigator.*up to two/], ['#opts label:has(input[value="dreamwolf"])', /Dream Wolf.*Doesn't wake/],
     ['#opts .opt-fixed[data-tip-v="troublemaker"]', /Troublemaker.*Beginner.*Don't swap/]]) {
     const t = await tipFor(sel);
@@ -35,6 +35,17 @@ const { setup } = require('./party-setup');
   await mac.screenshot({ path: 'shots/ww-role-tip.png' });
   await mac.evaluate(() => document.activeElement.blur());
   await mac.check('#opts input[value="doppelganger"]'); await mac.check('#opts input[value="drunk"]');
+  // the lobby's night order follows the roles ticked
+  const order = await mac.$$eval('#lobbyInfo .ww-order .p', e => e.map(x => x.textContent.trim()));
+  console.log('night order in the lobby:', order.join(' → '));
+  // 4 players = 7 cards: room for 2 extras, so the two hardest ticked (Doppelgänger, Insomniac) are left out, and it says so
+  bad(order.join() === '🐺 Werewolves,🦹 Minion,🔮 Seer,🦝 Robber,😈 Troublemaker,🍺 Drunk', 'lobby night order');
+  const leftOut = await mac.textContent('#lobbyInfo .ww-left');
+  console.log('lobby note:', leftOut.trim());
+  bad(/4 players, left out: .*Insomniac.*Doppelgänger/.test(leftOut), 'roles that don\'t fit are named');
+  await mac.uncheck('#opts input[value="drunk"]'); await mac.waitForTimeout(100);
+  bad(!(await mac.textContent('#lobbyInfo')).includes('Drunk'), 'unticking a role removes it from the order');
+  await mac.check('#opts input[value="drunk"]');
   const extras = await mac.evaluate(() => P.opts.extras.join(','));
   console.log('extras after ticking:', extras);
   bad(/doppelganger/.test(extras) && /drunk/.test(extras), 'ticked roles reach the options');

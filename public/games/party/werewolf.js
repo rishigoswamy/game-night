@@ -36,35 +36,35 @@ window.PARTY_GAME = (() => {
   const CENTER = ['left', 'middle', 'right'];
 
   // The full rules of each role, shown when you hover over it in the role picker.
-  // night: when it wakes; does: what it does; win: how it wins (if not just its team's); notes: interactions and tips.
+  // night: when it wakes, relative to the Beginner roles (always called) since the real order depends on the roles chosen; does: what it does; win: how it wins (if not just its team's); notes: interactions and tips.
   const DETAIL = {
-    werewolf: { night: 'Wakes 3rd, with all the other werewolves.',
+    werewolf: { night: 'Early: after the Sentinel and the Doppelgänger, before the Seer. All the werewolves wake together.',
       does: 'Open your eyes and see who the other werewolves are: the Mystic Wolf, the Alpha Wolf, the Dream Wolf (who keeps sleeping) and a Doppelgänger who copied a werewolf all count. If you are the only werewolf among the players, you may look at one of the three center cards.',
       notes: 'There are at least 2 werewolf cards (special wolves replace plain ones), and any of them may be in the center. In the day, claim to be something safe and steer the vote away from your team.' },
     villager: { night: 'Doesn\'t wake.',
       does: 'No night action. Use the day to work out who the werewolves are.',
       notes: 'Your card can still be swapped in the night, so you may not end the game as a Villager. Villagers fill every place not taken by another role.' },
-    seer: { night: 'Wakes 8th, after the Masons.',
+    seer: { night: 'In the middle of the night: after the Werewolves (and the Minion and Masons), before the Robber.',
       does: 'Either look at one other player\'s card, or look at two of the three center cards. You may also do nothing.',
       notes: 'A card with the Sentinel\'s shield can\'t be looked at. What you saw is true at the moment you looked: the Robber, Troublemaker and others act later and may move that card.' },
-    robber: { night: 'Wakes 11th, after the Paranormal Investigator.',
+    robber: { night: 'After the Seer, before the Troublemaker.',
       does: 'You may swap your card with another player\'s card. If you do, you may then look at your new card. Or don\'t swap at all.',
       win: 'You become the role you took and play for its team: rob a werewolf and you are a werewolf. The player you robbed is now the Robber (they don\'t wake again).',
       notes: 'You can\'t take a shielded card, and you can\'t swap at all if your own card is shielded.' },
-    troublemaker: { night: 'Wakes 13th, after the Witch.',
+    troublemaker: { night: 'After the Robber (and the Witch), before the Drunk and the Insomniac.',
       does: 'You may swap the cards of two other players, without looking at either. Or tap "Don\'t swap" to leave everything as it is.',
       notes: 'Neither player is told. You stay the Troublemaker. A shielded card can\'t be swapped.' },
-    minion: { night: 'Wakes 6th, after the werewolves (the werewolves keep their eyes closed).',
+    minion: { night: 'After the Werewolves (who keep their eyes closed), before the Seer.',
       does: 'Your phone shows who the werewolves are (the Dream Wolf too). They don\'t know who you are.',
       win: 'You are on the werewolf team and win if no werewolf dies (and the Tanner doesn\'t), even if you die. If there are no werewolves among the players, you win if someone other than you dies (but not the Tanner).',
       notes: 'Being voted out is fine for you: take the hit to protect the werewolves.' },
-    mason: { night: 'Wakes 7th.',
+    mason: { night: 'After the Werewolves and the Minion, before the Seer.',
       does: 'Both Mason cards are always added together. Open your eyes and see the other Mason; if you see nobody, the other Mason is in the center.',
       notes: 'Masons can vouch for each other in the day, unless a card was moved after they woke.' },
-    drunk: { night: 'Wakes 15th, near the end.',
+    drunk: { night: 'Near the end: after the Troublemaker, before the Insomniac.',
       does: 'You must swap your card with one of the three center cards, without looking at it. You are now that role, but you don\'t know what it is.',
       notes: 'If time runs out, the game picks a center card for you. If your card is shielded, it can\'t move.' },
-    insomniac: { night: 'Wakes 16th, after the Drunk.',
+    insomniac: { night: 'Near the end: after the Troublemaker and the Drunk, before the Revealer.',
       does: 'Your phone shows your own card as it is at the end of the night, so you know if someone swapped it.',
       notes: 'Only the Revealer acts after you. If your card changed, you are now that role.' },
     hunter: { night: 'Doesn\'t wake.',
@@ -75,39 +75,39 @@ window.PARTY_GAME = (() => {
       does: 'No night action. You hate your job.',
       win: 'You win only if you die. If you die, the werewolves can\'t win (the village still wins if a werewolf dies too).',
       notes: 'Act suspicious, but not so suspicious that everyone sees through it.' },
-    mystic: { night: 'Wakes 3rd with the werewolves, then again 5th on its own.',
+    mystic: { night: 'With the Werewolves, then again on its own after the Alpha Wolf, before the Seer.',
       does: 'A werewolf. You see the other werewolves (and may look at a center card if you are alone). Then, in your own turn, you may look at one other player\'s card.',
       notes: 'Takes the place of a plain Werewolf card. A shielded card can\'t be looked at.' },
     dreamwolf: { night: 'Doesn\'t wake.',
       does: 'A werewolf who sleeps through the night. The other werewolves (and the Minion) see that you are a werewolf; you don\'t see them, and you get no information.',
       notes: 'A werewolf whose only partner is the Dream Wolf isn\'t alone, so can\'t look at the center. Takes the place of a plain Werewolf card. In the day, be careful not to accuse your own partner.' },
-    apprentice: { night: 'Wakes 9th, after the Seer.',
+    apprentice: { night: 'Right after the Seer, before the Robber.',
       does: 'You may look at one of the three center cards.',
       notes: 'Knowing a role is in the center helps you catch anyone who claims to be it.' },
-    revealer: { night: 'Wakes last (17th).',
+    revealer: { night: 'Last of all, after the Insomniac.',
       does: 'You may turn another player\'s card face up. It stays face up for the day, on the Mac and every phone. If it is any werewolf or the Tanner, you turn it back face down instead and only you know what it was.',
       notes: 'A shielded card can\'t be turned over. Since you act last, a card you turn up is that player\'s final role.' },
     bodyguard: { night: 'Doesn\'t wake.',
       does: 'No night action. Your power is in your vote.',
       win: 'The player you vote for can\'t die. The most votes among everyone else decide who dies (still 2 or more votes). You play for the village.',
       notes: 'You can\'t vote for yourself, so you can\'t protect yourself. A Hunter can\'t take the protected player with them either.' },
-    doppelganger: { night: 'Wakes 2nd. Its turn is twice as long.',
+    doppelganger: { night: 'At the very start: after the Sentinel, before the Werewolves. Its turn is twice as long.',
       does: 'You must look at another player\'s card and become that role, joining its team. If time runs out, the game picks a player for you.',
       win: 'You play for the team of the role you copied. If your card is moved later, whoever ends up with it is the copied role.',
       notes: '• Act at once: Seer, Apprentice Seer, Paranormal Investigator, Robber, Witch, Troublemaker, Village Idiot, Drunk, Sentinel (a second shield), Alpha Wolf and Mystic Wolf (both also wake with the werewolves).<br>• Wake again later with: Werewolf, Minion, Mason, Insomniac, Revealer.<br>• Nothing at night: Villager, Hunter, Tanner, Bodyguard, Dream Wolf (the werewolves see you as one).' },
-    sentinel: { night: 'Wakes 1st.',
+    sentinel: { night: 'First of all, before the Doppelgänger and the Werewolves.',
       does: 'You may put a shield on another player\'s card. For the rest of the night nobody can look at, swap or move that card.',
       notes: 'Phones show a shielded player with 🗿. The shield also stops the Doppelgänger from copying that card and the Village Idiot from moving it.' },
-    alpha: { night: 'Wakes 3rd with the werewolves, then again 4th on its own.',
+    alpha: { night: 'With the Werewolves, then again on its own right after them, before the Mystic Wolf and the Seer.',
       does: 'A werewolf. When it is in the game there is a 4th center card: an extra Werewolf. In your own turn you must give it to a player who isn\'t a werewolf, swapping it for their card (which goes to the center).',
       notes: 'That player becomes a werewolf without knowing it. If time runs out, the game picks the player. Takes the place of a plain Werewolf card. A shielded card can\'t be chosen.' },
-    pi: { night: 'Wakes 10th, after the Apprentice Seer.',
+    pi: { night: 'After the Seer and the Apprentice Seer, before the Robber.',
       does: 'You may look at up to two other players\' cards, one at a time. If you see any werewolf or the Tanner, you stop and become one: a werewolf (on their team) or a Tanner (you win only by dying).',
       notes: 'The change goes with the Paranormal Investigator card: if it is moved later, whoever holds it has that side. You may stop after one look. Shielded cards can\'t be looked at.' },
-    witch: { night: 'Wakes 12th, after the Robber.',
+    witch: { night: 'After the Robber, before the Troublemaker.',
       does: 'You may look at one of the three center cards. If you do, you must swap it with any player\'s card, even your own.',
       notes: 'If time runs out after you looked, you take the card yourself. You can\'t give it to a shielded player. You don\'t see the card you take away.' },
-    idiot: { night: 'Wakes 14th, after the Troublemaker.',
+    idiot: { night: 'After the Troublemaker, before the Drunk.',
       does: 'You may move every other player\'s card one seat to the left or right, without looking. Your own card stays put.',
       notes: 'Shielded cards stay where they are; the others move around them. Nobody is told their card moved.' },
   };
@@ -117,7 +117,7 @@ window.PARTY_GAME = (() => {
     const d = DETAIL[r], x = R(r);
     return `<div class="tip-head"><span class="tip-ic">${x.icon}</span><b>${x.name}</b></div>
       <div class="tip-tags"><span>${TIERS[x.tier]}</span><span>${TEAM[x.team]}</span></div>
-      <p><b>Night:</b> ${d.night}</p><p><b>What you do:</b> ${d.does}</p>${d.win ? `<p><b>Winning:</b> ${d.win}</p>` : ''}${d.notes ? `<p class="tip-note">${d.notes}</p>` : ''}`;
+      <p><b>Night:</b> ${d.night}</p>${NIGHT.some(x => x[0] === r) ? '<p class="tip-note">The lobby shows the exact order for the roles you pick.</p>' : ''}<p><b>What you do:</b> ${d.does}</p>${d.win ? `<p><b>Winning:</b> ${d.win}</p>` : ''}${d.notes ? `<p class="tip-note">${d.notes}</p>` : ''}`;
   };
 
   // Night order (as in the official games); each step lasts the same time whether or not anyone holds the role
@@ -192,14 +192,16 @@ window.PARTY_GAME = (() => {
   function note(ctx, i, text) { ctx.state.notes[i].push(text); }
   const nm = (ctx, k) => ctx.players[k].name;
 
+  // The night's steps for a deck: every role in the game is called, even if its card is in the center
+  const nightSteps = deck => NIGHT.filter(([role]) => deck.includes(role) || (role === 'werewolf' && deck.some(isWolf)));
+  const orderHTML = (deck, now) => `<div class="ww-order">${nightSteps(deck).map(([r]) => `<span class="p${r === now ? ' on' : ''}">${r === 'werewolf' ? '🐺 Werewolves' : label(r)}</span>`).join('<span class="arr">→</span>')}</div>`;
   async function night(ctx) {
-    const st = ctx.state, inDeck = new Set(st.deck);
+    const st = ctx.state;
     st.phase = 'night';
     ctx.update();
     await ctx.say('Everyone, close your eyes.', 'sweep');
     await ctx.wait(1500);
-    for (const [role, wake, sleep] of NIGHT) {
-      if (!inDeck.has(role) && !(role === 'werewolf' && [...inDeck].some(isWolf))) continue;
+    for (const [role, wake, sleep] of nightSteps(st.deck)) {
       st.step = role; st.done = new Set();
       ctx.log(`🌙 ${plural(role)} wake${role === 'werewolf' || role === 'mason' ? '' : 's'} up.`);
       players(ctx).forEach(i => { if (wakesAt(st, i, role)) wakeInfo(ctx, i, role); });
@@ -337,7 +339,7 @@ window.PARTY_GAME = (() => {
   const roleGuide = t => Object.keys(ROLES).filter(r => R(r).tier === t).map(r => `${R(r).icon} <b>${R(r).name}</b>: ${R(r).text}`).join('<br>');
 
   return {
-    _test: { buildDeck, reveal, ROLES, OPTIONAL, NIGHT, timeUp, DETAIL },   // internals, for the unit tests only (test/unit)
+    _test: { buildDeck, reveal, ROLES, OPTIONAL, NIGHT, timeUp, DETAIL, nightSteps },   // internals, for the unit tests only (test/unit)
     id: 'werewolf', name: 'One Night Werewolf', min: 3, max: 10, macRole: 'moderator',
     blurb: 'One night, one vote. Everyone gets a secret role on their phone; the Mac narrates the night. Find a werewolf in the vote and the village wins. 3–10 players.',
     options: [
@@ -362,6 +364,15 @@ window.PARTY_GAME = (() => {
       '<b>Winning:</b> the village wins if at least one werewolf dies (or if there are no werewolves among the players and nobody dies). The werewolves (and minion) win if no werewolf dies. The Tanner wins by dying, and then the werewolves can\'t win.',
       '<b>About the levels:</b> the official games don\'t grade roles; Beginner is their recommended first game, and Advanced follows their advice to add the Doppelgänger (and the trickier Daybreak roles) once everyone knows the rest.',
     ],
+    // Shown in the lobby under the options: the night order for the roles picked (and roles that don't fit)
+    lobbyHTML(n, o) {
+      const players = Math.max(n, 3), extras = o.extras || [], deck = buildDeck(players, extras);
+      const sleepers = [...new Set(deck)].filter(r => !nightSteps(deck).some(([x]) => x === r) && !(isWolf(r) && r !== 'dreamwolf'));
+      const left = OPTIONAL.filter(r => extras.includes(r) && !deck.includes(r));
+      return `<div class="sec-title">Night order${n < 3 ? ' (for 3 players)' : ` for ${n} players`}</div>${orderHTML(deck)}
+        ${sleepers.length ? `<div class="note">Don't wake: ${sleepers.map(label).join(', ')}</div>` : ''}
+        ${left.length ? `<div class="note ww-left">Too many roles for ${players} players, left out: ${left.map(label).join(', ')}. Add players or untick some.</div>` : ''}`;
+    },
     _reveal: reveal,                                    // (for tests: settle the vote straight away)
     async start(ctx) {
       const n = ctx.players.length, o = ctx.opts;
@@ -559,7 +570,8 @@ window.PARTY_GAME = (() => {
     },
     hostHTML(ctx, H) {
       const st = ctx.state;
-      const roles = `<div class="sec-title">Roles in this game (${st.deck.length} cards: one each + 3 in the center${st.deck.includes('alpha') ? ', + the Alpha Wolf\'s center Werewolf' : ''})</div><div class="pills">${st.deck.map(r => `<span class="p">${label(r)}</span>`).join('')}</div>`;
+      const order = `<div class="sec-title">Night order</div>${orderHTML(st.deck, st.phase === 'night' ? st.step : null)}`;
+      const roles = order + `<div class="sec-title">Roles in this game (${st.deck.length} cards: one each + 3 in the center${st.deck.includes('alpha') ? ', + the Alpha Wolf\'s center Werewolf' : ''})</div><div class="pills">${st.deck.map(r => `<span class="p">${label(r)}</span>`).join('')}</div>`;
       const faceUp = Object.entries(st.revealed || {}).map(([k, r]) => `<span class="p">🔦 ${H.esc(ctx.players[k].name)}: ${label(r)}</span>`).join('');
       const up = faceUp && st.phase !== 'night' ? `<div class="sec-title">Face-up cards</div><div class="pills">${faceUp}</div>` : '';
       if (st.phase === 'deal') return `<div class="ww-sky day"><div class="ww-big">🃏</div><div class="big-line">Look at your secret role on your phone. Don't show anyone!</div></div>${roles}`;
@@ -642,6 +654,11 @@ window.PARTY_GAME = (() => {
       .ww-sky.day { background: radial-gradient(circle at 50% 20%, rgba(255,213,79,.35), rgba(0,0,0,.2) 70%); }
       .ww-big { font-size: 5rem; line-height: 1.1; }
       .ww-head { font-family: Georgia, serif; font-size: 1.6rem; color: var(--gold, #d4af37); text-align: center; margin-bottom: 10px; }
+      .ww-order { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 2px; }
+      .ww-order .p { padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: .85rem; }
+      .ww-order .p.on { background: var(--gold, #d4af37); color: #1b1b1b; font-weight: 800; }
+      .ww-order .arr { color: var(--muted, #b9c4bc); padding: 0 2px; }
+      .ww-left { color: #ffb4a8; }
       .ww-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: .9rem; }
       .ww-table th, .ww-table td { text-align: left; padding: 6px; border-bottom: 1px solid rgba(255,255,255,.12); }
       .ww-table th { color: var(--gold, #d4af37); font-size: .72rem; text-transform: uppercase; }`,

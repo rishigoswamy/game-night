@@ -31,16 +31,26 @@ const startServer = () => spawn('node', [H.SERVER, String(PORT)], { env: { ...pr
   await mac.waitForSelector('#updateBar:not([hidden])', { timeout: 20000 });
   console.log('Mac shows:', (await mac.textContent('#updateBar')).trim(), '| Mac game kept (no auto reload):', await mac.evaluate(() => S.players.length));
 
-  // server restarts mid-game → Mac re-shares, phone follows with its player
+  // server restarts mid-game → Mac re-shares (as a new table: the old one died with the server), phone follows with its player
+  const oldCode = await mac.evaluate(() => NET.code);
   execSync(`kill $(lsof -nP -t -iTCP:${PORT} -sTCP:LISTEN)`);
   await mac.waitForTimeout(1500);
   const srv = startServer();
-  await mac.waitForFunction(() => sharing() && NET.code, null, { timeout: 20000 });
+  // if a wait times out, say what the Mac and the phone were doing
+  const stateNow = async () => `Mac: sharing=${await mac.evaluate(() => sharing()).catch(e => e.message)} code=${await mac.evaluate(() => NET.code).catch(() => '?')}`
+    + ` es=${await mac.evaluate(() => NET.es && NET.es.readyState).catch(() => '?')} | phone: "${(await phone.textContent('#where').catch(() => '?')).trim()}"`
+    + ` | server tables: ${await mac.evaluate(() => fetch('/api/tables').then(r => r.json()).then(j => j.tables.map(t => t.code).join(',')).catch(e => 'down')).catch(() => '?')}`;
+  const t0 = Date.now();
+  await mac.waitForFunction(old => sharing() && NET.code && NET.code !== old, oldCode, { timeout: 20000 })
+    .catch(async e => { throw new Error(`Mac didn't re-share (old table ${oldCode}): ${await stateNow()}`); });
+  console.log(`   (Mac re-shared after ${((Date.now() - t0) / 1000).toFixed(1)}s)`);
   await mac.waitForTimeout(500);
   const newCode = await mac.evaluate(() => NET.code);
-  await phone.waitForFunction(c => document.querySelector('#where').textContent.includes(c), newCode, { timeout: 20000 });
+  // connected to the new table (not "reconnecting…" to the old one)
+  await phone.waitForFunction(c => { const w = document.querySelector('#where').textContent; return w.includes(c) && !/reconnecting/.test(w); }, newCode, { timeout: 20000 })
+    .catch(async e => { throw new Error(`phone didn't follow to ${newCode}: ${await stateNow()}`); });
   await phone.waitForSelector('.tab[data-i]', { timeout: 10000 });
-  console.log(`server restarted → Mac re-shared as ${newCode}, phone followed with:`, (await phone.textContent('#tabs')).replace(/\s+/g, ' ').trim());
+  console.log(`server restarted → Mac re-shared as ${newCode} (was ${oldCode}), phone followed with:`, (await phone.textContent('#tabs')).replace(/\s+/g, ' ').trim());
   console.log('errors:', errs.length ? errs : 'none');
   await b.close();
   srv.kill();
