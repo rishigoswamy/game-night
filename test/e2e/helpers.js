@@ -12,8 +12,13 @@ function lanAddress() {
   return a.address;
 }
 
+// A browser console error as text, with the address it came from: "Failed to load resource: … 404" alone doesn't say
+// which file or request failed
+const consoleText = m => m.text() + (m.location()?.url ? ` (${m.location().url.replace(/^https?:\/\/[^/]+/, '')})` : '');
+
 module.exports = {
   ROOT,
+  consoleText,
   SERVER: path.join(ROOT, 'server', 'server.js'),
   CHROME: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   PHONE_HOST: process.env.PHONE_HOST || lanAddress(),

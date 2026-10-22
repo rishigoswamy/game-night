@@ -204,6 +204,23 @@ test('a phone that connects later gets the latest table state straight away', no
   late.close(); t.host.close();
 });
 
+test('a state sent to one phone is never replayed to a phone that connects later (it may hold a secret role)', noLan, async () => {
+  const t = await openTable('party-test');
+  const a = stream(PHONE, `t=${t.code}&role=remote&device=dphoneA3`);
+  await a.next('session');
+  await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, to: 'dphoneA3', msg: { type: 'state', me: 0, view: { role: 'werewolf' } } });
+  assert.equal((await a.next('state')).view.role, 'werewolf');
+  const late = stream(PHONE, `t=${t.code}&role=remote&device=dphoneL3`);
+  await late.next('session'); await sleep(200);
+  assert.ok(!late.events.some(e => e.type === 'state'), 'the new phone waits for its own state');
+  // a state for every phone still is
+  await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, msg: { type: 'state', round: 2 } });
+  const later = stream(PHONE, `t=${t.code}&role=remote&device=dphoneM3`);
+  await later.next('session');
+  assert.equal((await later.next('state')).round, 2);
+  a.close(); late.close(); later.close(); t.host.close();
+});
+
 test('unknown API calls get a JSON 404', async () => {
   const r = await fetch(MAC + '/api/nope');
   assert.equal(r.status, 404);

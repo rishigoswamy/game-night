@@ -167,8 +167,11 @@ async function api(req, res, url) {
     const msg = body.msg || {};
     if (body.from === 'host') {
       if (body.hostKey !== t.hostKey) return json(res, 403, { error: 'Not this table' });
-      if (msg.type === 'state') t.state = msg;             // remembered for phones that connect later
-      if (body.to && body.to !== 'all') { const r = t.remotes.get(body.to); if (r) sse(r.res, msg); }
+      // remembered for phones that connect later, but only what every phone may see: a state sent to one phone (a party
+      // game's seat and private view: cards, a secret role) must never be replayed to another one
+      const toAll = !body.to || body.to === 'all';
+      if (msg.type === 'state' && toAll) t.state = msg;
+      if (!toAll) { const r = t.remotes.get(body.to); if (r) sse(r.res, msg); }
       else t.remotes.forEach(r => sse(r.res, msg));
     } else {
       const me = t.remotes.get(body.from);

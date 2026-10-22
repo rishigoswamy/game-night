@@ -10,7 +10,7 @@ exports.setup = async (game, names, { macSize = { width: 1280, height: 900 } } =
   const errs = [];
   const mc = await b.newContext({ viewport: macSize });
   await mc.addInitScript(() => { speechSynthesis.speak = () => {}; localStorage.setItem('gn-party-voice', 'off'); });
-  const mac = await mc.newPage(); mac.on('pageerror', e => errs.push('mac: ' + e.message)); mac.on('console', m => { if (m.type() === 'error') errs.push('mac console: ' + m.text()); });
+  const mac = await mc.newPage(); mac.on('pageerror', e => errs.push('mac: ' + e.message)); mac.on('console', m => { if (m.type() === 'error') errs.push('mac console: ' + H.consoleText(m)); });
   await mac.goto(`http://localhost:${PORT}/party-table.html?g=${game}`);
   await mac.waitForFunction(() => sharing(), null, { timeout: 5000 });
   const phones = [];

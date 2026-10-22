@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
   for (const motion of ['no-preference', 'reduce']) {
     const c = await b.newContext({ viewport: { width: 1200, height: 900 }, reducedMotion: motion });
     await c.addInitScript(() => { speechSynthesis.speak = () => {}; });
-    const p = await c.newPage(); p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
+    const p = await c.newPage(); p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(H.consoleText(m)));
     await p.goto(`http://localhost:${H.PORT}/party.html`);
     const icons = await p.$$eval('.game .party-icon', s => s.length);
     console.log(`${motion}: icons`, icons); if (icons !== 5) console.log('BAD expected 5 icons');

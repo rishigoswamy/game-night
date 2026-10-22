@@ -10,7 +10,7 @@ const PORT = H.PORT;
   for (const g of ['baccarat', 'dragontiger', 'sicbo', 'craps']) {
     const c = await b.newContext({ viewport: { width: 1280, height: 900 } });
     await c.addInitScript(() => { speechSynthesis.speak = () => {}; localStorage.setItem('gn-voice', 'off'); });
-    const p = await c.newPage(); p.on('pageerror', e => errs.push(g + ': ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(g + ' console: ' + m.text()); });
+    const p = await c.newPage(); p.on('pageerror', e => errs.push(g + ': ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(g + ' console: ' + H.consoleText(m)); });
     await p.goto(`http://localhost:${PORT}/table.html?g=${g}`);
     await p.selectOption('#timeLimit', 'custom'); await p.fill('#customTime', '6');
     await p.click('#setupForm button[type=submit]');

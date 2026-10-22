@@ -9,7 +9,7 @@ const PORT = H.PORT;
   const errs = [];
   const mc = await b.newContext({ viewport: { width: 1280, height: 900 } });
   await mc.addInitScript(() => { speechSynthesis.speak = () => {}; localStorage.setItem('gn-party-voice', 'off'); });
-  const mac = await mc.newPage(); mac.on('pageerror', e => errs.push('mac: ' + e.message)); mac.on('console', m => { if (m.type() === 'error') errs.push('mac console: ' + m.text()); });
+  const mac = await mc.newPage(); mac.on('pageerror', e => errs.push('mac: ' + e.message)); mac.on('console', m => { if (m.type() === 'error') errs.push('mac console: ' + H.consoleText(m)); });
   await mac.goto(`http://localhost:${PORT}/party.html`);
   console.log('party lobby cards:', (await mac.$$eval('a.game h2', h => h.map(x => x.textContent))).join(', '), '| QR shown:', await mac.isVisible('#qrJoin img'), '| leaderboard:', await mac.isVisible('#leaderboard'));
   await mac.click('a.game[href="party-table.html?g=gofish"]');
