@@ -36,8 +36,8 @@ jobs:
       - name: A version tag must look like v1.0.1 and be on main (tag runs only, so a mistake fails in seconds)
         if: env.TAG_RUN == 'true'
         run: |
-          echo "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "Release tags look like v1.0.1 (got $GITHUB_REF_NAME). Delete it: git push origin :$GITHUB_REF_NAME && git tag -d $GITHUB_REF_NAME"; exit 1; }
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "$GITHUB_REF_NAME is not on main: releases are made from main only. Delete it: git push origin :$GITHUB_REF_NAME && git tag -d $GITHUB_REF_NAME"; exit 1; }
+          echo "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "Release tags look like v1.0.1 (got $GITHUB_REF_NAME). It won't be released; v* tags are permanent, so it stays (git tag -d $GITHUB_REF_NAME removes your local copy). Tag the next version instead."; exit 1; }
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "$GITHUB_REF_NAME is not on main: releases are made from main only. It won't be released; v* tags are permanent, so it stays (git tag -d $GITHUB_REF_NAME removes your local copy). Tag a commit on main with the next version instead."; exit 1; }
       - name: Protected files (.github/CODEOWNERS) only reach main or a release through their owner
         run: node scripts/protected.js --base "$BASE"
         env:

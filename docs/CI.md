@@ -150,12 +150,20 @@ soon as a commit containing `.github/workflows/pipeline.yml` is pushed: see each
 **branch** `main`: every release runs from `main`, so a rule allowing only tags would block them all. Without this
 environment, releases publish without waiting for you.
 
-**`main` is protected by two rulesets** (Settings → Rules → Rulesets; created with `gh api`, October 2026):
+**`main` and the release tags are protected by rulesets** (Settings → Rules → Rulesets; created with `gh api`, October 2026):
 
 | Ruleset | Rules | Who may bypass |
 |---|---|---|
 | **Protect main's history** | Block force pushes; restrict deletions | Nobody, not even the owner: `main`'s history can't be rewritten or deleted |
 | **Changes go through checks** | Require a pull request (approvals: 0), Require review from Code Owners, Require status checks: **1 · Build**, **2 · Unit tests**, **3 · Coverage**, **4 · End-to-end tests (macOS)**, **5 · Package** | **Repository admin** (the owner) |
+| **Release tags are permanent** (tags `v*`) | Restrict deletions; restrict updates; block force pushes | Nobody: a published version can never be deleted or moved to another commit |
+
+Tags can still be *created* by anyone with write access (today only the owner): GitHub only lets an organisation's
+repositories trust the Release workflow with a creation rule. That's safe: a tag isn't a release until the Release
+workflow publishes it after your Approve, and version numbers count only **published GitHub Releases**, so a stray tag
+changes nothing. Because tags are permanent, a mistaken one stays: it isn't released, and you use the next version
+(the Release workflow never publishes onto an existing tag that points at another commit, or reuses a stray tag's
+version).
 
 As the only collaborator you keep both ways of working: push straight to `main` (GitHub notes "bypassed rule
 violations"), or a branch and a pull request, merged with **Merge without waiting for requirements to be met (bypass

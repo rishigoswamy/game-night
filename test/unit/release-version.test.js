@@ -49,3 +49,15 @@ test('bump keywords: only [minor] / [major] in brackets count', () => {
   assert.equal(bumpFrom(['minor fix', 'a major cleanup']), 'patch', 'the plain words don\'t count');
   assert.equal(bumpFrom(['Add a game\n\nDetails… [minor]']), 'minor', 'anywhere in the message');
 });
+
+test('only published releases count: a stray tag can\'t change the numbers, and a release can\'t land on it', () => {
+  const released = ['v1.0.2', 'v2.0.0'];
+  // someone pushed a tag v9.9.9 that was never released: the next candidate still follows v2.0.0
+  assert.equal(decide({ tags: released, taken: [...released, 'v9.9.9'], messages: ['x'] }).tag, 'v2.0.1');
+  // a stray tag sits exactly where the next version would go: stop, rather than publish onto it
+  assert.match(decide({ tags: released, taken: [...released, 'v2.0.1'], messages: ['x'] }).error, /v2\.0\.1 is already taken by a tag that was never released/);
+  assert.match(decide({ tags: released, taken: [...released, 'v2.1.0'], bump: 'minor' }).error, /already taken/);
+  assert.match(decide({ tags: released, taken: [...released, 'v3.0.0'], exact: '3.0.0' }).error, /already exists/);
+  assert.equal(decide({ tags: released, taken: [...released, 'v3.0.0'], exact: '3.1.0' }).tag, 'v3.1.0', 'an exact version steps past it');
+  assert.equal(decide({ tags: released, taken: [...released, 'v2.0.1'], pushedTag: 'v2.0.1' }).tag, 'v2.0.1', 'a tag pushed to be released is fine');
+});

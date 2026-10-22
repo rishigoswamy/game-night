@@ -65,8 +65,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
       - id: v
         name: Work out the version
-        run: node scripts/next-version.js
+        run: |
+          # only versions published as GitHub Releases count (a stray tag can't change the numbers)
+          export RELEASED_TAGS="$(gh release list --limit 1000 --json tagName --jq '.[].tagName')"
+          node scripts/next-version.js
         env:
+          GH_TOKEN: ${{ github.token }}
           BUMP: ${{ inputs.bump }}
           EXACT: ${{ inputs.version }}
           PUSHED_TAG: ${{ startsWith(github.event.workflow_run.head_branch, 'v') && github.event.workflow_run.head_branch || '' }}
@@ -102,7 +106,11 @@ jobs:
         run: npm run package -- "$TAG"
       - name: Tag it (a tag pushed from a Mac is already there)
         run: |
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then echo "$TAG already exists."; exit 0; fi
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            # a tag pushed from a Mac for this release; release tags are permanent, so never publish onto one elsewhere
+            [ "$(git rev-list -n 1 "$TAG")" = "$SHA" ] || { echo "$TAG already exists on another commit; release tags can't be moved. Use a new version."; exit 1; }
+            echo "$TAG already exists on this commit."; exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" "$SHA" -m "Game Night $TAG"

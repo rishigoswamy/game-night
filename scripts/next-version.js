@@ -5,6 +5,8 @@
 //   - the Release button: the bump chosen in its dropdown (patch / minor / major), or an exact version typed in;
 //   - a tag pushed from a Mac: that tag.
 // The first release is v1.0.0. A version must be new and higher than the latest release.
+// "Releases" are versions published as GitHub Releases (RELEASED_TAGS), not just any tag: a stray tag can't change the
+// numbers, and a version can't land on a tag that already exists (release tags are permanent: they can't be deleted).
 const { spawnSync } = require('child_process');
 
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)$/;
@@ -23,8 +25,12 @@ function bump(v, part) {
 
 // The decision, from plain inputs (unit-tested in test/unit/release-version.test.js).
 // Returns { tag, why } for a release, { skip: why } when there's nothing to release, or { error } for a mistake.
-function decide({ tags = [], messages = [], bump: chosen = '', exact = '', pushedTag = '', alreadyTagged = false }) {
+// tags: the published releases; taken: every tag that exists (a version can't reuse one)
+function decide({ tags = [], taken = tags, messages = [], bump: chosen = '', exact = '', pushedTag = '', alreadyTagged = false }) {
   const last = latest(tags);
+  const free = d => (d.tag && !pushedTag && taken.includes(d.tag)
+    ? { error: `${d.tag} is already taken by a tag that was never released (release tags are permanent). Release with an exact, higher version on the Release button.` }
+    : d);
   if (pushedTag) {                                                 // a tag pushed from a Mac: release exactly that
     const v = parse(pushedTag);
     if (!v || !pushedTag.startsWith('v')) return { error: `Release tags look like v1.0.1 (got ${pushedTag}).` };
@@ -33,19 +39,19 @@ function decide({ tags = [], messages = [], bump: chosen = '', exact = '', pushe
   if (exact) {                                                     // an exact version typed on the Release button
     const v = parse(exact);
     if (!v) return { error: `Type an exact version as 1.0.1 (three numbers). Got: ${exact}` };
-    if (tags.includes(fmt(v))) return { error: `${fmt(v)} already exists: pick a new version.` };
+    if (tags.includes(fmt(v)) || taken.includes(fmt(v))) return { error: `${fmt(v)} already exists: pick a new version.` };
     if (last && cmp(v, last) <= 0) return { error: `${fmt(v)} isn't higher than the latest release ${fmt(last)}.` };
     return { tag: fmt(v), why: `the exact version typed on the Release button` };
   }
   if (chosen) {                                                    // the Release button's dropdown
     if (!['patch', 'minor', 'major'].includes(chosen)) return { error: `Unknown bump "${chosen}" (patch, minor or major).` };
-    return { tag: fmt(bump(last, chosen)), why: `${chosen} chosen on the Release button${last ? ` (latest release ${fmt(last)})` : ' (first release)'}` };
+    return free({ tag: fmt(bump(last, chosen)), why: `${chosen} chosen on the Release button${last ? ` (latest release ${fmt(last)})` : ' (first release)'}` });
   }
   // an automatic release candidate after a green push to main
   if (alreadyTagged) return { skip: 'this commit is already released' };
   if (last && !messages.length) return { skip: `nothing new since ${fmt(last)}` };
   const part = bumpFrom(messages);
-  return { tag: fmt(bump(last, part)), why: last ? `${part}${part === 'patch' ? ' (the default)' : ` ([${part}] in a commit message)`} after ${fmt(last)}` : 'the first release' };
+  return free({ tag: fmt(bump(last, part)), why: last ? `${part}${part === 'patch' ? ' (the default)' : ` ([${part}] in a commit message)`} after ${fmt(last)}` : 'the first release' });
 }
 
 module.exports = { decide, parse, bumpFrom, latest: tags => (latest(tags) ? fmt(latest(tags)) : null) };
@@ -55,12 +61,14 @@ module.exports = { decide, parse, bumpFrom, latest: tags => (latest(tags) ? fmt(
 if (require.main === module) {
   const git = (...a) => spawnSync('git', a, { encoding: 'utf8' }).stdout.trim();
   const env = process.env, sha = env.SHA || git('rev-parse', 'HEAD');
-  const tags = git('tag', '--list', 'v*').split('\n').filter(Boolean);
+  const taken = git('tag', '--list', 'v*').split('\n').filter(Boolean);
+  // the published releases (the workflow passes them from GitHub); without that list, every tag counts
+  const tags = env.RELEASED_TAGS != null ? env.RELEASED_TAGS.split(/\s+/).filter(Boolean) : taken;
   const last = module.exports.latest(tags);
   const range = last ? `${last}..${sha}` : sha;
   const messages = git('log', '--format=%B%x00', range).split('\0').map(m => m.trim()).filter(Boolean);
-  const alreadyTagged = git('tag', '--points-at', sha).split('\n').some(t => parse(t));
-  const d = decide({ tags, messages, bump: env.BUMP, exact: env.EXACT, pushedTag: env.PUSHED_TAG, alreadyTagged });
+  const alreadyTagged = git('tag', '--points-at', sha).split('\n').some(t => parse(t) && tags.includes(t));   // already released
+  const d = decide({ tags, taken, messages, bump: env.BUMP, exact: env.EXACT, pushedTag: env.PUSHED_TAG, alreadyTagged });
   const out = (k, v) => env.GITHUB_OUTPUT && require('fs').appendFileSync(env.GITHUB_OUTPUT, `${k}=${v}\n`);
   const summary = t => env.GITHUB_STEP_SUMMARY && require('fs').appendFileSync(env.GITHUB_STEP_SUMMARY, t + '\n');
   if (d.error) { console.error(`✗ ${d.error}`); summary(`### ✗ No release\n${d.error}`); process.exit(1); }

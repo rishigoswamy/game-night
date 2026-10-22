@@ -8,7 +8,15 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
-const PORT = 8093;
+const { spawnSync } = require('node:child_process');
+// A free port, asked of the computer each run (never the game's 8080 or the end-to-end tests' 8091–8093), so these tests
+// can run while the end-to-end tests do (e.g. during a git push's checks)
+const PORT = (() => {
+  for (;;) {
+    const p = +spawnSync(process.execPath, ['-e', "const s = require('net').createServer().listen(0, () => { console.log(s.address().port); s.close(); })"], { encoding: 'utf8' }).stdout;
+    if (p && p !== 8080 && (p < 8091 || p > 8093)) return p;
+  }
+})();
 const SERVER = path.resolve(__dirname, '..', '..', 'server', 'server.js');
 const LAN = Object.values(os.networkInterfaces()).flat().find(a => a && a.family === 'IPv4' && !a.internal)?.address;
 const MAC = `http://localhost:${PORT}`, PHONE = LAN && `http://${LAN}:${PORT}`;
