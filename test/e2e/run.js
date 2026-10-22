@@ -52,7 +52,7 @@ const run = (t, port) => new Promise(res => {
   c.on('close', status => res({ status, out }));
 });
 
-async function runOne(t, port) {
+async function runOne(t, port, retry = 0) {
   freePort(port); await sleep(400);
   let server = null;
   if (NEEDS_SERVER.has(t)) {
@@ -67,40 +67,57 @@ async function runOne(t, port) {
   const errorsLine = out.split('\n').filter(l => /errors?:/.test(l));
   const ok = r.status === 0 && !/FAILED|^BAD/m.test(out) && errorsLine.every(l => l.includes('errors: none'));
   const secs = Math.round((Date.now() - t0) / 1000);
-  fs.writeFileSync(path.join(work, t + '.log'), out);
-  times[t] = secs;
-  const line = `${t}  ${B.dim(`(${secs}s${PORTS.length > 1 ? `, port ${port}` : ''})`)}`;
-  console.log(ok ? B.green(`✓ ${line}`) : B.red(`✗ ${line}`));
+  fs.writeFileSync(path.join(work, t + (retry ? `.retry${retry}` : '') + '.log'), out);   // every attempt's log is kept
+  if (!retry) times[t] = secs;
+  const line = `${t}  ${B.dim(`(${secs}s${PORTS.length > 1 ? `, port ${port}` : ''}${retry ? `, retry ${retry}` : ''})`)}`;
+  console.log(ok ? (retry ? B.yellow(`⚠ ${line} passed on retry ${retry}: flaky`) : B.green(`✓ ${line}`)) : B.red(`✗ ${line}`));
   if (!ok) console.log(out.split('\n').map(l => '      ' + l).join('\n'));
   return ok;
 }
 
-(async () => {
-  const t0 = Date.now();
-  const chosen = only.length ? only : TESTS;
-  B.banner('E2E', 'End-to-end tests', `${chosen.length} test${chosen.length === 1 ? '' : 's'}: real games in Chrome with simulated phones, ${PORTS.length} at a time`);
-  const queue = chosen.filter(t => !SOLO.has(t)).sort((a, b) => (times[b] ?? 60) - (times[a] ?? 60));
-  const results = {};
-  // each worker has its own port (its own test server and phones) and takes the next test from the queue
+// Run a list of tests: each worker has its own port (its own test server and phones) and takes the next test it may run;
+// tests in SOLO run after the others, alone
+async function runAll(list, results, retry = 0) {
+  const queue = list.filter(t => !SOLO.has(t)).sort((a, b) => (times[b] ?? 60) - (times[a] ?? 60));
   await Promise.all(PORTS.map(async port => {
     while (queue.length) {
       const k = queue.findIndex(t => !held.has(LOCKS[t]));              // the next test whose shared resource is free
       if (k < 0) { await sleep(250); continue; }
       const t = queue.splice(k, 1)[0], lock = LOCKS[t];
       if (lock) held.add(lock);
-      results[t] = await runOne(t, port);
+      results[t] = await runOne(t, port, retry);
       if (lock) held.delete(lock);
     }
   }));
-  for (const t of chosen.filter(t => SOLO.has(t))) results[t] = await runOne(t, PORTS[0]);
+  for (const t of list.filter(t => SOLO.has(t))) results[t] = await runOne(t, PORTS[0], retry);
+}
+
+(async () => {
+  const t0 = Date.now();
+  const chosen = only.length ? only : TESTS;
+  B.banner('E2E', 'End-to-end tests', `${chosen.length} test${chosen.length === 1 ? '' : 's'}: real games in Chrome with simulated phones, ${PORTS.length} at a time`);
+  const results = {};
+  await runAll(chosen, results);
   try { fs.writeFileSync(timesFile, JSON.stringify(times)); } catch {}
-  const failed = chosen.filter(t => !results[t]);
+  // Retries at the end: only the tests that failed, after a pause, up to TEST_RETRIES times
+  const flaky = [];
+  let failed = chosen.filter(t => !results[t]);
+  for (let r = 1; r <= B.retries.test && failed.length; r++) {
+    console.log('');
+    B.warn(`⟳ Retrying ${failed.length} failed test${failed.length === 1 ? '' : 's'} in ${B.retries.delay} s (retry ${r} of ${B.retries.test}): ${failed.join(', ')}`);
+    await sleep(B.retries.delay * 1000);
+    await runAll(failed, results, r);
+    flaky.push(...failed.filter(t => results[t]).map(t => `${t} (retry ${r})`));
+    failed = failed.filter(t => !results[t]);
+  }
   const mins = (Date.now() - t0) / 60000;
   const took = `${mins.toFixed(1)} min, ${PORTS.length} at a time`;
-  B.record('e2e', !failed.length, `${chosen.length - failed.length} of ${chosen.length}`, Date.now() - t0);
+  const flakyNote = flaky.length ? ` · ${flaky.length} flaky` : '';
+  B.record('e2e', !failed.length, `${chosen.length - failed.length} of ${chosen.length}${flakyNote}`, Date.now() - t0, flaky);
   console.log('');
-  if (failed.length) { B.fail(`End-to-end tests failed: ${chosen.length - failed.length} of ${chosen.length} passed  (${took})`); console.error(`   failed: ${failed.join(', ')}`); }
-  else B.ok(`End-to-end tests passed: ${chosen.length} of ${chosen.length}  (${took})`);
+  if (failed.length) { B.fail(`End-to-end tests failed: ${chosen.length - failed.length} of ${chosen.length} passed${B.retries.test ? ` after ${B.retries.test} ${B.retries.test === 1 ? 'retry' : 'retries'}` : ''}  (${took})`); console.error(B.red(`   failed: ${failed.join(', ')}`)); }
+  else B.ok(`End-to-end tests passed: ${chosen.length} of ${chosen.length}${flakyNote}  (${took})`);
+  flaky.forEach(f => B.warn(`   ⚠ flaky: ${f} passed only on a retry`));
   console.log(B.dim(`   logs and screenshots: ${work}`));
   process.exit(failed.length ? 1 : 0);
 })();

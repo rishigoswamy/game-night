@@ -25,8 +25,10 @@ const { setup } = require('./party-setup');
       if (!v || v.phase !== 'night' || !v.awake || v.done) continue;
       if (!nightShot && v.role !== 'minion') { await p.screenshot({ path: 'shots/ww-phone-night.png', fullPage: true }); await mac.screenshot({ path: 'shots/ww-mac-night.png' }); nightShot = true; }
       const has = s => p.$(s);
-      if (v.role === 'troublemaker') { await p.locator('#view [data-local="pp"]').nth(0).click(); await p.locator('#view [data-local="pp"]').nth(1).click(); await p.click('#view [data-act="swap"]'); }
-      else if (await has('#view [data-act]:not([disabled])')) await p.click('#view [data-act]:not([disabled])');
+      // a role's turn can end between reading the screen and clicking: short timeouts, and only count actions that went through
+      const tap = sel => p.locator(sel).first().click({ timeout: 3000 }).then(() => true, () => false);
+      if (v.role === 'troublemaker') { if (!(await tap('#view [data-local="pp"] >> nth=0') && await tap('#view [data-local="pp"] >> nth=1') && await tap('#view [data-act="swap"]:not([data-ps="none"])'))) continue; }
+      else if (await has('#view [data-act]:not([disabled])')) { if (!(await tap('#view [data-act]:not([disabled])'))) continue; }
       else continue;
       acted.push(`${name}(${v.role})`);
       await p.waitForTimeout(300);

@@ -47,6 +47,9 @@ const { setup } = require('./party-setup');
       : key === 'bottom' ? row(2).every(has) : key === 'corners' ? c.every(has) : nums.every(has);
   };
   let marks = 0, claims = 0;
+  // the screen can be a moment behind (a prize just won elsewhere removes its Claim button): short click timeouts, and a
+  // tap only counts if it went through
+  const tap = b => b.click({ timeout: 3000 }).then(() => true, () => false);
   for (let round = 0; round < 120 && !(await mac.isVisible('#endModal')); round++) {
     for (const { p, name } of phones) {
       const v = await p.evaluate(() => ST?.view).catch(() => null);
@@ -54,13 +57,13 @@ const { setup } = require('./party-setup');
       const has = n => v.called.includes(n);
       for (const n of v.tickets.flat(2).filter(x => x && has(x) && !v.marks.includes(x)).slice(0, 3)) {
         const b = p.locator(`#view [data-act="mark"][data-n="${n}"]`);
-        if (await b.count()) { await b.first().click(); marks++; }
+        if (await b.count() && await tap(b.first())) marks++;
       }
       for (const key of PRIZES) {
         const pz = v.prizes.find(x => x.key === key);
         if (!pz || pz.winners.length || pz.barred || !v.tickets.some(t => done(key, t, has))) continue;
         const b = p.locator(`#view [data-act="claim"][data-prize="${key}"]`);
-        if (await b.count()) { await b.click(); claims++; console.log(`   ${name} claims ${key} on number ${v.count}`); }
+        if (await b.count() && await tap(b)) { claims++; console.log(`   ${name} claims ${key} on number ${v.count}`); }
       }
     }
     if (!(await mac.isVisible('#endModal'))) await mac.click('#stage [data-host="next"]').catch(() => {});

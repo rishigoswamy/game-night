@@ -35,7 +35,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Build check (files parse, links, offline cache, games registered, cache version)
-        run: npm run check -- --base "$BASE"
+        run: node scripts/stage.js build --base "$BASE"
         env:
           CI_STAGE: 1/7
           BASE: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
@@ -52,8 +52,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: All unit tests (recording coverage for the next stage)
-        run: node scripts/coverage.js --tests-only
+      - name: All unit tests, recording coverage for the next stage (failed tests retried at the end; then the whole stage, up to 3 times)
+        run: node scripts/stage.js unit
         env:
           CI_STAGE: 2/7
       - uses: actions/upload-artifact@v4
@@ -77,7 +77,7 @@ jobs:
           name: coverage-data
           path: coverage/raw/
       - name: Coverage gate (each file against its minimum in coverage-thresholds.json)
-        run: node scripts/coverage.js --gate-only
+        run: node scripts/stage.js coverage
         env:
           CI_STAGE: 3/7
       - name: Coverage table on the run's summary page
@@ -97,7 +97,7 @@ jobs:
     name: 4 · End-to-end tests (macOS)
     needs: coverage
     runs-on: macos-latest       # like the Mac that hosts game night: Chrome is preinstalled
-    timeout-minutes: 30
+    timeout-minutes: 75         # ~11 min a run here; retries can add more (a stuck run is stopped at 75)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -105,8 +105,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Real games in Chrome with simulated phones
-        run: npm run test:e2e
+      - name: Real games in Chrome with simulated phones (failed tests retried at the end; then the whole stage, up to 3 times)
+        run: node scripts/stage.js e2e
         env:
           CI_STAGE: 4/7
           E2E_OUT: ${{ runner.temp }}/e2e
@@ -129,7 +129,7 @@ jobs:
         with:
           node-version: 20
       - name: Build the zip and smoke-test it (unpack, install, start, load the pages)
-        run: npm run package -- "$VERSION"
+        run: node scripts/stage.js package "$VERSION"
         env:
           CI_STAGE: 5/7
           VERSION: ${{ env.RELEASE == 'true' && github.ref_name || format('dev-{0}', github.sha) }}

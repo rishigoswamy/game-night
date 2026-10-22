@@ -16,6 +16,30 @@ summary lists every stage with its result and time, green "safe to push" or red 
 runs the same thing. The zip goes to `dist/` (`npm run package -- v1.2.0`
 names it after a version; it packs the last commit, so commit first).
 
+## Retries
+
+Two kinds, the same locally (`npm run ci`, the pre-push hook) and on GitHub (every stage runs through `scripts/stage.js`):
+
+1. **Failed tests, retried at the end.** A test stage runs every test first; then only the tests that failed run again,
+   after a pause, up to 3 more times. Unit tests are retried one by one by name; end-to-end tests by test, keeping the
+   usual rules (3 at a time, the voice tests apart, `update-bar` alone). Each attempt's log is kept (`<test>.retry1.log`).
+2. **The whole stage, run again.** If the unit tests or the end-to-end tests still fail after that, the whole stage
+   runs again (with its own test retries), after a pause, up to 3 more times. Build check, coverage and package give
+   the same answer every time for the same code, so they fail straight away.
+
+Anything that passes only on a retry counts as passed (safe to push) but is shown in **yellow as flaky**: on its own
+line (`⚠ party-gofish … passed on retry 1: flaky`), in the stage's result, and listed at the end of the summary. A flaky
+test is a real timing problem to fix, not noise.
+
+| Setting | Default | |
+|---|---|---|
+| `TEST_RETRIES` | 3 | retries of each failed test (4 runs at most); `0` turns them off |
+| `STAGE_RETRIES` | 3 | reruns of a failed test stage (unit, e2e); `0` turns them off |
+| `RETRY_DELAY` | 10 | seconds before each retry |
+
+For example `TEST_RETRIES=0 STAGE_RETRIES=0 npm run ci` shows every failure at once, with no retries. On GitHub the
+end-to-end stage may take up to 75 minutes when it has to retry (about 11 normally).
+
 ## Coverage minimums
 
 In the pipeline the tests and the gate are separate stages (2 and 3) on the same test run: `coverage.js --tests-only`

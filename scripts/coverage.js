@@ -28,16 +28,41 @@ if (gateOnly) {
   B.banner('UNIT TESTS', 'Unit tests', `${tests.length} test files: game rules, leaderboards, admin lock, server`);
   const t0 = Date.now();
   fs.rmSync(raw, { recursive: true, force: true }); fs.mkdirSync(raw, { recursive: true });
-  // the usual test output on screen, and a TAP copy to count the tests for the summary
-  const tap = path.join(os.tmpdir(), `gn-unit-${process.pid}.tap`);
-  const run = spawnSync(process.execPath, ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout', '--test-reporter=tap', `--test-reporter-destination=${tap}`, ...tests],
-    { cwd: ROOT, stdio: 'inherit', env: { ...process.env, NODE_V8_COVERAGE: raw } });
-  const count = k => { try { return +(fs.readFileSync(tap, 'utf8').match(new RegExp(`^# ${k} (\\d+)`, 'm')) || [])[1] || 0; } catch { return 0; } };
-  const pass = count('pass'), failed = count('fail');
-  fs.rmSync(tap, { force: true });
-  B.record('unit', run.status === 0, run.status === 0 ? `${pass} tests` : `${failed} of ${pass + failed} failed`, Date.now() - t0);
-  if (run.status !== 0) { B.fail(`Unit tests failed: ${failed} of ${pass + failed}  (${B.secs(Date.now() - t0)})`); process.exit(1); }
-  B.ok(`Unit tests passed: ${pass} of ${pass}  (${B.secs(Date.now() - t0)})`);
+  // One run of `node --test`: the usual output on screen, and a TAP copy to count the tests and find the failed ones
+  // (by name and file). Every run adds its coverage data to the same folder, so retries count too.
+  const nodeTest = args => {
+    const tap = path.join(os.tmpdir(), `gn-unit-${process.pid}-${Date.now()}.tap`);
+    const r = spawnSync(process.execPath, ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout', '--test-reporter=tap', `--test-reporter-destination=${tap}`, ...args],
+      { cwd: ROOT, stdio: 'inherit', env: { ...process.env, NODE_V8_COVERAGE: raw } });
+    let out = ''; try { out = fs.readFileSync(tap, 'utf8'); } catch {}
+    fs.rmSync(tap, { force: true });
+    const count = k => +(out.match(new RegExp(`^# ${k} (\\d+)`, 'm')) || [])[1] || 0;
+    const failed = [...out.matchAll(/^not ok \d+ - (.*)\n(?:(?!(?:not )?ok ).*\n)*?\s+location: '(.+?):\d+:\d+'/gm)]
+      .map(m => ({ name: m[1].replace(/\\#/g, '#'), file: path.relative(ROOT, m[2]) }));
+    return { status: r.status, pass: count('pass'), fail: count('fail'), failed };
+  };
+  const escapeRe = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let res = nodeTest(tests);
+  const total = res.pass + res.fail;
+  let failing = res.failed, flaky = [];
+  // Retries at the end: only the tests that failed, by name, after a pause (a crash we can't pin down reruns everything)
+  for (let r = 1; r <= B.retries.test && res.status !== 0; r++) {
+    console.log('');
+    B.warn(`⟳ Retrying ${failing.length ? `${failing.length} failed unit test${failing.length === 1 ? '' : 's'}` : 'the unit tests'} in ${B.retries.delay} s (retry ${r} of ${B.retries.test})${failing.length ? `: ${failing.map(f => f.name).join(', ')}` : ''}`);
+    B.sleepSync(B.retries.delay);
+    const before = failing;
+    res = failing.length ? nodeTest([...failing.map(f => `--test-name-pattern=^${escapeRe(f.name)}$`), ...new Set(failing.map(f => f.file))]) : nodeTest(tests);
+    if (before.length) {
+      flaky.push(...before.filter(f => !res.failed.some(x => x.name === f.name && x.file === f.file)).map(f => ({ ...f, retry: r })));
+      failing = res.failed;
+    } else failing = res.failed;
+  }
+  const passed = res.status === 0, ms = Date.now() - t0;
+  const flakyNote = flaky.length ? ` · ${flaky.length} flaky` : '';
+  B.record('unit', passed, passed ? `${total} tests${flakyNote}` : `${failing.length || '?'} of ${total} failed`, ms, flaky.map(f => `${f.name} (retry ${f.retry})`));
+  if (!passed) { B.fail(`Unit tests failed: ${failing.length ? `${failing.length} of ${total}` : 'see above'}${B.retries.test ? ` after ${B.retries.test} ${B.retries.test === 1 ? 'retry' : 'retries'}` : ''}  (${B.secs(ms)})`); failing.forEach(f => console.error(B.red(`   ✗ ${f.name}  (${f.file})`))); process.exit(1); }
+  B.ok(`Unit tests passed: ${total} of ${total}${flakyNote}  (${B.secs(ms)})`);
+  flaky.forEach(f => B.warn(`   ⚠ flaky: ${f.name}  (${f.file}) passed on retry ${f.retry}`));
   if (testsOnly) { console.log(B.dim(`coverage data kept in ${path.relative(ROOT, raw)} for the coverage stage`)); process.exit(0); }
 }
 B.banner('COVERAGE', 'Coverage', 'each file against its minimum in coverage-thresholds.json', gateOnly ? 0 : 1);

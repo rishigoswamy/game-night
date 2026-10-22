@@ -42,12 +42,17 @@ const PORT = H.PORT;
     let acted = false;
     for (const { p } of phones) {
       if (!(await p.isVisible('#view [data-act="ask"]').catch(() => false))) continue;
-      const pick = async sel => { const l = p.locator(sel); await l.nth(Math.floor(Math.random() * await l.count())).click(); };   // looked up at click time
-      await pick('#view [data-local="rank"]');
-      await pick('#view [data-local="target"]:not([disabled])');
-      await p.click('#view [data-act="ask"]');
+      // The screen may be a moment behind (the last move is still on its way): pick from what is shown when clicking,
+      // give up quickly if the turn has moved on, and wait for each move to be processed before looking again
+      const before = await p.evaluate(() => JSON.stringify(ST?.view));
+      const pick = async sel => {
+        const l = p.locator(sel), n = await l.count();
+        return n > 0 && l.nth(Math.floor(Math.random() * n)).click({ timeout: 3000 }).then(() => true, () => false);
+      };
+      if (!(await pick('#view [data-local="rank"]')) || !(await pick('#view [data-local="target"]:not([disabled])'))) break;
+      if (!(await p.click('#view [data-act="ask"]', { timeout: 3000 }).then(() => true, () => false))) break;
       moves++; acted = true;
-      await p.waitForTimeout(120);
+      await p.waitForFunction(b => JSON.stringify(ST?.view) !== b, before, { timeout: 5000 }).catch(() => {});
       break;
     }
     if (!acted) await mac.waitForTimeout(150);
