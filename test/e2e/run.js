@@ -27,6 +27,10 @@ if (unknown.length) { console.error(`Unknown test(s): ${unknown.join(', ')}\nAva
 // Tests that change something every test server shares run alone, after the others:
 // update-bar touches a game file, so every running server would report an update
 const SOLO = new Set(['update-bar']);
+// Tests that lean on something the whole machine shares never run at the same time as each other (the others still run
+// alongside): the voice tests make the dealer's lines with macOS speech (`say`), which slows down a lot when busy
+const LOCKS = { 'dealer-voice': 'speech', 'phone-voice': 'speech' };
+const held = new Set();
 const PORTS = [8091, 8092, 8093].slice(0, Math.max(1, Math.min(3, +process.env.E2E_WORKERS || 3)));
 const work = process.env.E2E_OUT || path.join(os.tmpdir(), 'game-night-e2e');   // logs and screenshots (CI sets E2E_OUT to keep them)
 fs.mkdirSync(path.join(work, 'shots'), { recursive: true });
@@ -75,7 +79,16 @@ async function runOne(t, port) {
   const queue = chosen.filter(t => !SOLO.has(t)).sort((a, b) => (times[b] ?? 60) - (times[a] ?? 60));
   const results = {};
   // each worker has its own port (its own test server and phones) and takes the next test from the queue
-  await Promise.all(PORTS.map(async port => { for (let t; (t = queue.shift());) results[t] = await runOne(t, port); }));
+  await Promise.all(PORTS.map(async port => {
+    while (queue.length) {
+      const k = queue.findIndex(t => !held.has(LOCKS[t]));              // the next test whose shared resource is free
+      if (k < 0) { await sleep(250); continue; }
+      const t = queue.splice(k, 1)[0], lock = LOCKS[t];
+      if (lock) held.add(lock);
+      results[t] = await runOne(t, port);
+      if (lock) held.delete(lock);
+    }
+  }));
   for (const t of chosen.filter(t => SOLO.has(t))) results[t] = await runOne(t, PORTS[0]);
   try { fs.writeFileSync(timesFile, JSON.stringify(times)); } catch {}
   const failed = chosen.filter(t => !results[t]);

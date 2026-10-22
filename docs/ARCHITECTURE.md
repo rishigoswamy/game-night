@@ -129,7 +129,7 @@ memory only.
 | | Unit tests (`npm test`) | End-to-end tests (`npm run test:e2e`) |
 |---|---|---|
 | Where | `test/unit/*.test.js` | `test/e2e/*.js` (runner: `run.js`) |
-| How | Node's built-in test runner; browser files run in a sandbox (`helpers.js`: fake `window` and storage, seeded random, a stand-in for the party page) | Real games in a muted Chrome (`playwright-core`); phones simulated through the computer's Wi-Fi address; 3 tests at a time, each with its own test server and port (`E2E_PORT`), longest first; `update-bar` (it touches a game file) runs alone |
+| How | Node's built-in test runner; browser files run in a sandbox (`helpers.js`: fake `window` and storage, seeded random, a stand-in for the party page) | Real games in a muted Chrome (`playwright-core`); phones simulated through the computer's Wi-Fi address; 3 tests at a time, each with its own test server and port (`E2E_PORT`), longest first; `update-bar` (it touches a game file) runs alone; the two voice tests (`dealer-voice`, `phone-voice`) never run at the same time, since they share the Mac's speech engine |
 | Covers | Every casino payout and drawing rule (all six tables, incl. Roulette and Blackjack); Werewolf, Catan, Go Fish, Bluff and Tambola rules; leaderboard, admin lock, storage migration; server security and relay | Whole games end to end: pages, phones, timers, voice, leaderboards |
 | Time | a few seconds | about 5 minutes (about 15 one at a time) |
 

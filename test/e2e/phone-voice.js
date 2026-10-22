@@ -18,7 +18,11 @@ const PORT = H.PORT;
   await phone.goto(`http://${H.PHONE_HOST}:${PORT}/remote.html`); await phone.waitForSelector('#tableView:not([hidden])');
   console.log('phone voice default:', await phone.getAttribute('#voiceBtn', 'aria-label'));
   await phone.fill('#nameIn', 'Ana'); await phone.tap('#addForm button[type=submit]');
-  await phone.waitForFunction(() => voiceSrc !== null, null, { timeout: 8000 });
+  // the server makes the line with macOS speech, allowed up to 15 s when the machine is busy (server.js), so wait a bit longer
+  await phone.waitForFunction(() => voiceSrc !== null, null, { timeout: 20000 }).catch(async () => {
+    const st = await phone.evaluate(() => ({ voiceOn: typeof voiceOn !== 'undefined' ? voiceOn : '?', tts: typeof NET !== 'undefined' ? NET.tts : '?' })).catch(() => ({}));
+    throw new Error(`the phone did not play the dealer's line within 20 s | voice line requests: ${tts.length} | phone state: ${JSON.stringify(st)}`);
+  });
   console.log('phone played the dealer line with the server voice:', JSON.stringify(tts.slice(-1)[0]), '| clip', (await phone.evaluate(() => voiceSrc.buffer.duration)).toFixed(1) + 's', '| browser speech used:', await phone.evaluate(() => window.__browserSpoke));
   console.log('errors:', errs.length ? errs : 'none');
   await b.close(); srv.kill();
