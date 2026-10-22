@@ -90,8 +90,8 @@ One workflow, in stages; each starts only if the one before it passed. GitHub dr
 | 3 · Coverage | Linux | ″ | the coverage gate on stage 2's data (`coverage.js --gate-only`; the tests aren't run again). A drop fails this stage on its own, with the file and the numbers; the table is shown on the run's summary page |
 | 4 · End-to-end (macOS) | macOS (Chrome preinstalled) | ″ | `npm run test:e2e`, 2 at a time; logs and screenshots kept as a download |
 | 5 · Package | Linux | ″ | `npm run package`: the zip and its smoke test; the zip is kept as a download for 2 weeks |
-| 6 · Approve | — | version tags only | waits until you click **Approve** on the run (the `release` environment) |
-| 7 · Release | Linux | version tags only, after approval | checks the tag is on `main`, then publishes the GitHub release with the zip and generated notes. The only stage allowed to publish |
+| 6 · Approve | — | releases only (Release button or version tag) | waits until you click **Approve** on the run (the `release` environment) |
+| 7 · Release | Linux | releases only, after approval | checks the commit is on `main`, creates the tag (Release button), then publishes the GitHub release with the zip and generated notes. The only stage allowed to publish |
 
 Free for a public repository, macOS included. A newer push to the same branch cancels a run still in progress (a
 release run always finishes).
@@ -128,12 +128,23 @@ gh pr create --fill                   # a pull request into main
 gh pr merge --auto --merge            # merges by itself as soon as the pipeline is green
 ```
 
-A release, from an up-to-date `main`:
+A release (only when you want one; everyday pushes need nothing extra). Either way it releases a commit on `main`,
+runs all seven stages on it, and waits at stage 6 for you to click **Review deployments → Approve and deploy**.
+
+**Option 1: the Release button** (no terminal). On GitHub, **Actions → Pipeline → Run workflow**, leave **Use workflow
+from** on `main`, type the version (`1.0.1`, no "v") and click **Run workflow**. Stage 1 first checks the version (three
+numbers, not used before) and the branch, so a typo fails in seconds; stage 7 creates the `v1.0.1` tag and publishes the
+release.
+
+**Or option 2: a tag from your Mac.** From an up-to-date `main`:
 
 ```sh
 git switch main && git pull
-git tag v1.0.0 && git push origin v1.0.0     # all seven stages: when stage 6 asks, open the run and click Approve
+git tag v1.0.1 && git push origin v1.0.1     # all seven stages: when stage 6 asks, open the run and click Approve
 ```
+
+Both release the same way; use whichever is handier. Version numbers: `v1.0.1` for fixes, `v1.1.0` for new features,
+`v2.0.0` for big changes.
 
 ## If the end-to-end tests fail only on GitHub
 
