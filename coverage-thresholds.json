@@ -2,7 +2,6 @@
   "total": 85,
   "perFile": 80,
   "exceptions": {
-    "public/js/lib/leaderboard.js": 63,
     "server/server.js": 70
   },
   "files": [

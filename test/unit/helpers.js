@@ -74,4 +74,62 @@ const flush = () => new Promise(r => setImmediate(r));   // let pending promise 
 
 const card = (r, s = '♠') => ({ r, s });
 
-module.exports = { PUBLIC, fakeStorage, loadScripts, plain, seededRand, seededShuffle, partyCtx, flush, card, NAMES };
+// A small stand-in for a web page, enough for code that builds HTML and reacts to clicks (e.g. the leaderboard
+// sections and their dialogs): elements parsed from innerHTML, querySelector('#id' / '.class' / 'tag' / 'tag.class'),
+// listeners, click() (ignored when disabled, like a real button), submit(), focus(), remove(), textContent.
+// Not a full DOM: no CSS, layout or innerHTML read-back of children added later (innerHTML returns what was set).
+const VOID = new Set(['input', 'br', 'img', 'meta', 'link', 'hr']);
+class FakeEl {
+  constructor(tag, attrs = {}, doc) {
+    this.tagName = tag.toUpperCase(); this.attrs = attrs; this.doc = doc;
+    this.id = attrs.id || ''; this.className = attrs.class || '';
+    this.value = attrs.value || ''; this.disabled = 'disabled' in attrs; this.hidden = 'hidden' in attrs;
+    this.children = []; this.parentNode = null; this.listeners = {}; this._text = ''; this._html = '';
+  }
+  get classList() { const el = this; return { contains: c => el.className.split(/\s+/).includes(c), add: c => { el.className = `${el.className} ${c}`.trim(); } }; }
+  set innerHTML(html) { this._html = html; this._text = ''; this.children = []; parseInto(this, String(html)); }
+  get innerHTML() { return this._html; }
+  set textContent(t) { this._text = String(t); this.children = []; this._html = this._text; }
+  get textContent() { return this._text + this.children.map(c => (typeof c === 'string' ? c : c.textContent)).join(''); }
+  appendChild(el) { el.parentNode = this; this.children.push(el); return el; }
+  insertBefore(el, ref) { el.parentNode = this; const k = this.children.indexOf(ref); this.children.splice(k < 0 ? this.children.length : k, 0, el); return el; }
+  insertAdjacentHTML(_, html) { this._html += html; parseInto(this, String(html)); }
+  remove() { if (this.parentNode) this.parentNode.children = this.parentNode.children.filter(c => c !== this); this.parentNode = null; }
+  addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
+  dispatch(type, ev = {}) { const e = { preventDefault() { e.defaultPrevented = true; }, target: this, ...ev }; (this.listeners[type] || []).forEach(fn => fn(e)); return e; }
+  click() { if (!this.disabled) this.dispatch('click'); }
+  submit() { this.dispatch('submit'); }
+  focus() { if (this.doc) this.doc.activeElement = this; }
+  matches(sel) {
+    if (sel.startsWith('#')) return this.id === sel.slice(1);
+    const [tag, cls] = sel.split('.');
+    return (!tag || this.tagName === tag.toUpperCase()) && (!cls || this.classList.contains(cls));
+  }
+  querySelectorAll(sel) { const out = []; const walk = el => el.children.forEach(c => { if (typeof c !== 'string') { if (c.matches(sel)) out.push(c); walk(c); } }); walk(this); return out; }
+  querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
+}
+function parseInto(root, html) {
+  const stack = [root];
+  const attrsOf = s => Object.fromEntries([...s.matchAll(/([\w:-]+)(?:="([^"]*)")?/g)].map(m => [m[1], m[2] ?? '']));
+  for (const m of html.matchAll(/<(\/?)([a-zA-Z][\w-]*)([^>]*?)(\/?)>|([^<]+)/g)) {
+    const top = stack[stack.length - 1];
+    if (m[5] != null) { if (m[5].trim()) top.children.push(m[5].replace(/\s+/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&')); continue; }
+    const tag = m[2].toLowerCase();
+    if (m[1]) { for (let k = stack.length - 1; k > 0; k--) if (stack[k].tagName === tag.toUpperCase()) { stack.length = k; break; } continue; }
+    const el = new FakeEl(tag, attrsOf(m[3]), root.doc);
+    top.appendChild(el);
+    if (!VOID.has(tag) && !m[4]) stack.push(el);
+  }
+}
+function fakeDom() {
+  const doc = { activeElement: null };
+  Object.assign(doc, {
+    head: new FakeEl('head', {}, doc), body: new FakeEl('body', {}, doc),
+    createElement: tag => new FakeEl(tag, {}, doc),
+    getElementById: id => [doc.head, doc.body].map(r => (r.id === id ? r : r.querySelector('#' + id))).find(Boolean) || null,
+  });
+  const winListeners = {};
+  return { document: doc, addEventListener: (t, fn) => (winListeners[t] ||= []).push(fn), fire: (t, ev) => (winListeners[t] || []).forEach(fn => fn(ev)) };
+}
+
+module.exports = { PUBLIC, fakeStorage, loadScripts, plain, seededRand, seededShuffle, partyCtx, flush, card, NAMES, fakeDom, FakeEl };
