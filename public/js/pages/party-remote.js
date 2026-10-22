@@ -13,6 +13,9 @@ let token = null, code = null, es = null, ST = null, deadlineAt = null, renaming
 const SEATED = 'gn-party-seated';
 const wasSeated = () => { try { return sessionStorage.getItem(SEATED) === '1'; } catch { return false; } };
 const setSeated = on => { try { on ? sessionStorage.setItem(SEATED, '1') : sessionStorage.removeItem(SEATED); } catch {} };
+// Just left (or was removed): an update the table sent a moment before it knew still lists this phone as seated.
+// Until an update without us arrives (or the player joins again), such updates must not seat the phone again.
+let leaving = false;
 const local = {};        // this phone's own selections (cards picked, targets…), kept between updates
 
 function toast(msg) {
@@ -57,16 +60,19 @@ function onMessage(m) {
       const was = ST;
       ST = m;
       deadlineAt = m.deadline != null ? Date.now() + m.deadline : null;
-      if (m.me != null) setSeated(true);
-      // Seated again automatically after the host reloads (same name, same phone, same tab)
-      else if (!m.waiting && myName && wasSeated() && (m.phase === 'lobby' || m.phase === 'end') && !was?.autoJoined) { ST.autoJoined = true; post({ type: 'join', name: myName }); }
+      if (m.me != null) { if (!leaving) setSeated(true); }
+      else {
+        leaving = false;                                      // the table knows we've gone
+        // Seated again automatically after the host reloads (same name, same phone, same tab)
+        if (!m.waiting && myName && wasSeated() && (m.phase === 'lobby' || m.phase === 'end') && !was?.autoJoined) { ST.autoJoined = true; post({ type: 'join', name: myName }); }
+      }
       if (G.phoneNotify) { const buzz = G.phoneNotify(was?.view, m.view); if (buzz) navigator.vibrate?.(buzz === true ? [80, 50, 80] : buzz); }
       render();
       break;
     }
     case 'host': $('#offline').hidden = m.online; break;
     case 'closed': if (m.replacedBy) connect(m.replacedBy); else findTable(); break;
-    case 'kicked': setSeated(false); toast('The host removed you from the game.'); break;
+    case 'kicked': leaving = true; setSeated(false); toast('The host removed you from the game.'); break;
     case 'left': setSeated(false); toast('You have left the table. Join again any time.'); break;
     case 'error': toast(m.text); break;
     case 'say': $('#bubble').textContent = m.text; break;
@@ -130,12 +136,12 @@ $('#nameForm').addEventListener('submit', e => {
   e.preventDefault();
   const name = $('#nameIn').value.trim();
   if (!name) return toast('Type your name first.');
-  myName = name; renaming = false;
+  myName = name; renaming = false; leaving = false;
   try { localStorage.setItem('gn-party-name', name); } catch {}
   post({ type: 'join', name });                     // when already seated, this renames you
   render();
 });
-$('#leaveBtn').addEventListener('click', () => { setSeated(false); renaming = false; post({ type: 'leave' }); });
+$('#leaveBtn').addEventListener('click', () => { leaving = true; setSeated(false); renaming = false; post({ type: 'leave' }); });
 $('#renameBtn').addEventListener('click', () => { renaming = true; render(); $('#nameIn').value = myName; $('#nameIn').select(); });
 $('#leaveLaterBtn').addEventListener('click', () => {
   const stay = !!ST?.leaving;

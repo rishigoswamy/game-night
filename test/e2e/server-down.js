@@ -5,6 +5,17 @@ const { spawn } = require('child_process');
 const PORT = H.PORT;
 const start = () => spawn('node', [H.SERVER, String(PORT)], { env: { ...process.env, DC_LOOPBACK_ONLY: '1' }, stdio: 'ignore' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Stop the server and wait until it really has (its port refuses connections): on a slow machine it can still answer for
+// a while after being told to stop, and a page opened then would load from it, not from the offline copy
+async function stop(proc) {
+  proc.kill();
+  for (let k = 0; k < 100; k++) {
+    const open = await new Promise(res => { const c = require('net').connect(PORT, '127.0.0.1', () => { c.destroy(); res(true); }).on('error', () => res(false)); });
+    if (!open) return;
+    await sleep(100);
+  }
+  throw new Error(`the test server on ${PORT} didn't stop`);
+}
 (async () => {
   let srv = start();
   await sleep(800);
@@ -22,7 +33,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   console.log('server running → bar hidden:', await page.isHidden('#serverDown'));
   await page.click('#openTableBtn');                         // a game in progress
   // the server stops mid-game
-  srv.kill(); await sleep(300);
+  await stop(srv);
   await page.waitForSelector('#serverDown:not([hidden])', { timeout: 9000 });
   console.log('server stopped → bar:', (await page.textContent('#serverDown')).replace(/\s+/g, ' ').trim());
   await page.screenshot({ path: 'shots/server-down.png' });
@@ -31,7 +42,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await page.waitForSelector('#serverDown', { state: 'hidden', timeout: 9000 });
   console.log('server back → bar hidden again:', await page.isHidden('#serverDown'), '| game still running:', await page.evaluate(() => !!S));
   // opened from the offline copy while the server is off
-  srv.kill(); await sleep(300);
+  await stop(srv);
   const lobby = await ctx.newPage(); lobby.on('pageerror', e => errs.push(e.message));
   await lobby.goto(`http://localhost:${PORT}/casino.html`);
   console.log('server off, lobby opened from the offline copy → title:', await lobby.title(), '| bar shown:', await lobby.waitForSelector('#serverDown:not([hidden])', { timeout: 9000 }).then(() => true));
