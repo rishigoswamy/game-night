@@ -78,8 +78,9 @@ Once per clone: `npm run setup-hooks` (sets `git config core.hooksPath scripts/h
 The same command installs `scripts/hooks/prepare-commit-msg`: every commit shows which release version it leads to
 (`scripts/release-hint.js`). When git opens the editor, a short guide sits under your message as `#` comment lines, which
 git removes; with `git commit -m`, one line in the terminal says the version and how to amend for `[minor]` / `[major]`.
-It never blocks a commit. A successful `npm run test:e2e` on your Mac ends with the same reminder: the next version and
-the commands to release it. (They read the tags your copy knows; `git fetch --tags` brings in releases made on GitHub.)
+It never blocks a commit. When every stage passes, the summary at the end of `npm run ci` (and of the pre-push
+hook) adds the same reminder: the next version and the commands to release it; a successful `npm run test:e2e` run on
+its own ends with it too. (They read the tags your copy knows; `git fetch --tags` brings in releases made on GitHub.)
 
 ## On GitHub: the pipeline (`.github/workflows/pipeline.yml`)
 

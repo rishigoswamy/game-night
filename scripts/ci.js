@@ -52,4 +52,6 @@ console.log(`\n${rule}\n${paint(` GAME NIGHT · ${label}`.padEnd(W - total.lengt
 console.log(paint(safe ? ' ✓ ALL STAGES PASSED: safe to push' : ` ✗ STAGE ${failedAt + 1} (${STAGES[failedAt][1].toUpperCase()}) FAILED: not safe to push`));
 if (flaky.length) console.log(B.yellow(` ⚠ ${flaky.length} flaky (passed only on a retry; worth fixing):\n${flaky.map(f => `   - ${f}`).join('\n')}`));
 console.log(rule);
+// Safe to push: how to release it (the next version from the tags this copy knows; scripts/release-hint.js)
+if (safe) { try { console.log(require('./release-hint').lines().map(l => B.dim(` ${l}`)).join('\n') + '\n' + B.dim('─'.repeat(W))); } catch {} }
 process.exit(safe ? 0 : 1);

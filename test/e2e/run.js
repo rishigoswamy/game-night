@@ -121,8 +121,9 @@ async function runAll(list, results, retry = 0) {
   else B.ok(`End-to-end tests passed: ${chosen.length} of ${chosen.length}${flakyNote}  (${took})`);
   flaky.forEach(f => B.warn(`   ⚠ flaky: ${f} passed only on a retry`));
   console.log(B.dim(`   logs and screenshots: ${work}`));
-  // a reminder of how releases work, for whoever runs the tests on their own machine (not in GitHub's logs)
-  if (!failed.length && !process.env.GITHUB_ACTIONS) {
+  // a reminder of how releases work, for whoever runs the tests on their own machine (not in GitHub's logs; inside
+  // `npm run ci` the summary at the end shows it instead)
+  if (!failed.length && !process.env.GITHUB_ACTIONS && !process.env.CI_RESULTS) {
     try { console.log('\n' + require('../../scripts/release-hint').lines().map(l => B.dim(`   ${l}`)).join('\n')); } catch {}
   }
   process.exit(failed.length ? 1 : 0);
