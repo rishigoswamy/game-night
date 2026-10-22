@@ -10,6 +10,13 @@ const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
   for (const x of phones) await x.p.evaluate(() => { window.__c = {}; const o = es.onmessage; es.onmessage = e => { const m = JSON.parse(e.data); window.__c[m.type] = (window.__c[m.type] || 0) + 1; o(e); }; });
   const actP = (p, msg) => p.evaluate(m => post({ type: 'act', ...m }), msg);
   const view = p => p.evaluate(() => ST?.view);
+  // Clicks on the phone's board pick from what is on screen at that moment (the state read a moment earlier may already be
+  // out of date: the previous move can land in between), and give up quickly if the board has moved on
+  const clickOne = async (p, sel, random) => {
+    const els = p.locator(sel), n = await els.count();
+    if (!n) return false;
+    return els.nth(random ? Math.floor(Math.random() * n) : 0).dispatchEvent('click', {}, { timeout: 3000 }).then(() => true, () => false);
+  };
   const check = async () => {
     const r = await mac.evaluate(() => { const st = P.ctx?.state; if (!st) return null; return ['wood', 'brick', 'sheep', 'wheat', 'ore'].map(k => st.bank[k] + st.res.reduce((a, h) => a + h[k], 0)); });
     if (r && r.some(x => x !== 19)) throw new Error('resource count broken: ' + r);
@@ -21,6 +28,7 @@ const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
     for (const { name, p } of phones) {
       const v = await view(p);
       if (!v) continue;
+      const before = await p.evaluate(() => JSON.stringify(ST?.view));     // to wait until a move has been processed
       if (v.discard) {
         const cards = RES.flatMap(r => Array(v.res[r]).fill(r)).slice(0, v.discard);
         await actP(p, { act: 'discard', res: cards.join(',') }); did = true; continue;
@@ -29,8 +37,8 @@ const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
       if (!v.mine) continue;
       const L = v.legal;
       const pick = a => a[Math.floor(Math.random() * a.length)];
-      if (v.step === 'setup-settle') { await p.locator('#view .pick-vert').nth(Math.floor(Math.random() * L.settlement.length)).dispatchEvent('click'); did = true; }
-      else if (v.step === 'setup-road') { await p.locator('#view .pick-edge').first().dispatchEvent('click'); did = true; }
+      if (v.step === 'setup-settle') did = await clickOne(p, '#view .pick-vert', true);
+      else if (v.step === 'setup-road') did = await clickOne(p, '#view .pick-edge', false);
       else if (v.step === 'roll') {
         if (shots === 0) { await p.screenshot({ path: 'shots/catan-phone.png', fullPage: true }); await mac.screenshot({ path: 'shots/catan-mac.png' }); shots++; }
         await p.evaluate(() => { window.__mut = 0; window.__mo?.disconnect(); window.__mo = new MutationObserver(m => { window.__mut += m.length; }); window.__mo.observe(document.querySelector('#view'), { childList: true, subtree: true }); });
@@ -51,8 +59,8 @@ const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
         if (!uiBuild && can('road') && L.road.length) {
           await p.locator('#view [data-local="tab"][data-tab="build"]').dispatchEvent('click').catch(() => {});
           await p.locator('#view [data-local="mode"][data-mode="road"]').dispatchEvent('click');
-          await p.locator('#view .pick-edge').first().dispatchEvent('click');
-          uiBuild = true; stats.roads++; console.log(`${name} built a road using the phone's board`); did = true; continue;
+          if (await clickOne(p, '#view .pick-edge', false)) { uiBuild = true; stats.roads++; console.log(`${name} built a road using the phone's board`); }
+          did = true; continue;
         }
         const playable = v.dev.find(d => !d.fresh && d.type !== 'vp' && !v.devPlayed);
         if (playable && Math.random() < .5) {
@@ -73,7 +81,7 @@ const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
         }
         await actP(p, { act: 'end' }); did = true;
       }
-      if (did) { await p.waitForTimeout(60); await check(); break; }
+      if (did) { await p.waitForFunction(b => JSON.stringify(ST?.view) !== b, before, { timeout: 3000 }).catch(() => {}); await check(); break; }
     }
     if (!did) await mac.waitForTimeout(120);
   }
