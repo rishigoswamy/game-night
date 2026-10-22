@@ -14,12 +14,25 @@ const LAN = Object.values(os.networkInterfaces()).flat().find(a => a && a.family
 const MAC = `http://localhost:${PORT}`, PHONE = LAN && `http://${LAN}:${PORT}`;
 const noLan = { skip: LAN ? false : 'no Wi-Fi/LAN address to act as a phone' };
 
+// A stand-in for macOS's "say" (server.js runs GN_SAY_COMMAND instead), so the dealer's voice can be tested on any
+// computer: it takes say's arguments, writes a small WAV file to the -o path, logs each call, and fails on "FAIL"
+const fs = require('node:fs');
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gn-say-'));
+const SAY = path.join(TMP, 'say'), SAY_LOG = path.join(TMP, 'calls.log');
+fs.writeFileSync(SAY, `#!${process.execPath}
+const a = process.argv.slice(2), arg = f => a[a.indexOf(f) + 1], text = a[a.indexOf('--') + 1];
+require('fs').appendFileSync(${JSON.stringify(SAY_LOG)}, JSON.stringify(a) + '\\n');
+if (text.includes('FAIL')) process.exit(1);
+require('fs').writeFileSync(arg('-o'), 'RIFF' + JSON.stringify({ voice: arg('-v'), text }));
+`, { mode: 0o755 });
+const sayCalls = () => (fs.existsSync(SAY_LOG) ? fs.readFileSync(SAY_LOG, 'utf8').trim().split('\n').filter(Boolean).map(l => JSON.parse(l)) : []);
+
 let server;
 test.before(async () => {
-  server = spawn(process.execPath, [SERVER, String(PORT)], { env: { ...process.env, DC_LOOPBACK_ONLY: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  server = spawn(process.execPath, [SERVER, String(PORT)], { env: { ...process.env, DC_LOOPBACK_ONLY: '1', GN_SAY_COMMAND: SAY }, stdio: ['ignore', 'pipe', 'inherit'] });
   await new Promise((res, rej) => { server.stdout.once('data', res); server.once('exit', code => rej(new Error('server exited ' + code))); });
 });
-test.after(() => server.kill());
+test.after(() => { server.kill(); fs.rmSync(TMP, { recursive: true, force: true }); });
 
 // A raw GET that sends the path exactly as written (fetch would clean up "//" and "../")
 const raw = p => new Promise((res, rej) => {
@@ -183,4 +196,97 @@ test('unknown API calls get a JSON 404', async () => {
   const r = await fetch(MAC + '/api/nope');
   assert.equal(r.status, 404);
   assert.ok((await r.json()).error);
+});
+
+/* ---------------- The dealer's voice (/api/tts) ---------------- */
+test('the dealer\'s voice: the line is spoken by the computer and sent as a WAV clip; a repeated line comes from memory', async () => {
+  const before = sayCalls().length;
+  const get = (text, voice) => fetch(`${MAC}/api/tts?text=${encodeURIComponent(text)}${voice ? `&voice=${voice}` : ''}`);
+  let r = await get('Place your bets, please.', 'Samantha');
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('content-type'), 'audio/wav');
+  assert.match(r.headers.get('cache-control'), /max-age=86400/, 'the phone keeps it for a day');
+  assert.deepEqual(JSON.parse((await r.text()).slice(4)), { voice: 'Samantha', text: 'Place your bets, please.' });
+  const call = sayCalls().at(-1);
+  assert.deepEqual([call[0], call[1], call[2], call[3], call[4], call[6]], ['-v', 'Samantha', '-r', '185', '-o', '--data-format=LEI16@22050']);
+  assert.match(call[5], /gn-tts-.*\.wav$/, 'written to a temporary WAV file…');
+  assert.equal(fs.existsSync(call[5]), false, '…which is deleted once sent');
+  r = await get('Place your bets, please.', 'Samantha');
+  assert.equal(r.status, 200);
+  assert.equal(sayCalls().length, before + 1, 'the second request didn\'t speak again');
+  await get('Place your bets, please.', 'Daniel');
+  assert.equal(sayCalls().length, before + 2, 'another voice is another clip');
+});
+
+test('the dealer\'s voice: only the known voices; text is passed as text (never run) and capped; empty text or a failure is an error', async () => {
+  const get = (q) => fetch(`${MAC}/api/tts?${q}`);
+  await (await get('text=Hello&voice=Evil')).arrayBuffer();
+  assert.equal(sayCalls().at(-1)[1], 'Daniel', 'an unknown voice falls back to the dealer\'s default');
+  const trick = '"; rm -rf ~; echo "$(whoami)` --help';
+  const r = await get('text=' + encodeURIComponent(trick));
+  assert.equal(r.status, 200);
+  const call = sayCalls().at(-1);
+  assert.equal(call.at(-1), trick, 'handed over word for word as one argument, after "--": nothing in it is run');
+  assert.equal(call.at(-2), '--');
+  await (await get('text=' + 'x'.repeat(500) + '&voice=Alex')).arrayBuffer();
+  assert.equal(sayCalls().at(-1).at(-1).length, 220, 'long text is cut to 220 characters');
+  for (const q of ['text=', 'text=%20%20', '']) assert.equal((await get(q)).status, 404, `"${q}": nothing to say`);
+  const before = sayCalls().length;
+  const failed = await get('text=FAIL%20once');
+  assert.equal(failed.status, 500);
+  assert.equal((await failed.json()).error, 'Speech failed');
+  await get('text=FAIL%20once');
+  assert.equal(sayCalls().length, before + 2, 'a failure isn\'t remembered: the next request tries again');
+});
+
+/* ---------------- The join QR code, closing a table, the files' version ---------------- */
+test('/api/qr.svg: a QR code of the address phones open (this computer\'s Wi-Fi address and port)', noLan, async () => {
+  const r = await fetch(MAC + '/api/qr.svg');
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('content-type'), 'image/svg+xml');
+  const svg = await r.text();
+  assert.match(svg, /^<svg[^>]+viewBox/);
+  const again = await (await fetch(MAC + '/api/qr.svg')).text();
+  assert.equal(again, svg, 'the same code each time');
+  // it encodes http://<the Wi-Fi address>:<port>/remote.html: the same as the qrcode package makes for that address
+  const expected = await require('qrcode').toString(`http://${LAN}:${PORT}/remote.html`, { type: 'svg', margin: 2, errorCorrectionLevel: 'M', color: { dark: '#0b1d14', light: '#ffffff' } });
+  assert.equal(svg, expected);
+});
+
+test('the table\'s screen can close the table: its phones are told, and it\'s gone; nobody else can close it', noLan, async () => {
+  const t = await openTable('craps');
+  const phone = stream(PHONE, `t=${t.code}&role=remote&device=dphoneC1`);
+  await phone.next('session');
+  assert.equal((await post(MAC, '/api/close', { code: t.code, hostKey: 'wrong' })).status, 403);
+  assert.equal((await post(PHONE, '/api/close', { code: t.code })).status, 403, 'a phone can\'t close it');
+  assert.equal((await post(MAC, '/api/close', { code: 'NOPE', hostKey: t.hostKey })).status, 403);
+  const r = await post(MAC, '/api/close', { code: t.code, hostKey: t.hostKey });
+  assert.deepEqual(await r.json(), { ok: true });
+  const closed = await phone.next('closed');
+  assert.equal(closed.replacedBy, undefined, 'closed, not moved to another table');
+  assert.equal((await fetch(`${MAC}/api/stream?t=${t.code}&role=remote&device=dphoneC2`)).status, 404, 'the table is gone');
+  phone.close(); t.host.close();
+});
+
+test('/api/version: the time of the newest game file, so open pages can tell when they are out of date', async () => {
+  const v = (await (await fetch(MAC + '/api/version')).json()).version;
+  // computed independently: the newest .html / .js / .css / .webmanifest under public/
+  let newest = 0;
+  const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).forEach(e => {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) walk(p); else if (/\.(html|js|css|webmanifest)$/.test(e.name)) newest = Math.max(newest, fs.statSync(p).mtimeMs);
+  });
+  walk(path.resolve(__dirname, '..', '..', 'public'));
+  assert.equal(v, String(Math.round(newest)));
+  assert.equal((await (await fetch(MAC + '/api/version')).json()).version, v, 'the same until a file changes');
+});
+
+test('an API request that breaks gets a JSON 500, and the server keeps running', async () => {
+  // a body of "null" parses to nothing usable, so the handler fails part-way: the request is answered, not left hanging
+  for (const p of ['/api/host', '/api/close']) {
+    const r = await fetch(MAC + p, { method: 'POST', body: 'null' });
+    assert.equal(r.status, 500, p);
+    assert.deepEqual(await r.json(), { error: 'Server error' });
+  }
+  assert.equal((await fetch(MAC + '/')).status, 200, 'still serving');
 });

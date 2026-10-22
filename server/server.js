@@ -182,7 +182,10 @@ async function api(req, res, url) {
 }
 
 // ---- Speech: macOS "say" → WAV, cached ----
-const TTS_OK = process.platform === 'darwin';
+// GN_SAY_COMMAND names another command that takes say's arguments: the unit tests use a stand-in, so speech can be
+// tested on any computer (the GitHub pipeline runs them on Linux). Normally unset: macOS's own "say".
+const SAY = process.env.GN_SAY_COMMAND || 'say';
+const TTS_OK = process.platform === 'darwin' || !!process.env.GN_SAY_COMMAND;
 const TTS_VOICES = ['Daniel', 'Samantha', 'Alex'];
 const ttsCache = new Map();                       // "voice|text" → Promise<Buffer>, most recent last
 function speak(text, voice) {
@@ -191,7 +194,7 @@ function speak(text, voice) {
   const file = path.join(os.tmpdir(), `gn-tts-${process.pid}-${crypto.randomBytes(6).toString('hex')}.wav`);
   const job = new Promise((resolve, reject) => {
     // arguments are passed straight to "say" (no shell), so the text can't run anything
-    execFile('say', ['-v', voice, '-r', '185', '-o', file, '--data-format=LEI16@22050', '--', text], { timeout: 15000 }, err => {
+    execFile(SAY, ['-v', voice, '-r', '185', '-o', file, '--data-format=LEI16@22050', '--', text], { timeout: 15000 }, err => {
       if (err) return reject(err);
       fs.readFile(file, (e, data) => { fs.unlink(file, () => {}); e ? reject(e) : resolve(data); });
     });

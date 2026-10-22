@@ -1,9 +1,7 @@
 {
   "total": 85,
   "perFile": 80,
-  "exceptions": {
-    "server/server.js": 70
-  },
+  "exceptions": {},
   "files": [
     "public/games/casino/baccarat.js",
     "public/games/casino/blackjack-rules.js",

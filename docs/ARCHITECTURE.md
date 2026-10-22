@@ -113,7 +113,8 @@ Adding a game: the module, its id in `PARTY_IDS` (`party-table.html`, `party-rem
 - `/api/stream`: Server-Sent Events for the master (`role=host` + host key) and phones (`role=remote` + device id; the
   first event is a session token).
 - `/api/send`: messages; the master proves itself with its host key, each phone with its session token.
-- `/api/tts`: the dealer's voice via macOS `say` (cached in memory); `/api/qr.svg`: join QR code (npm `qrcode`,
+- `/api/tts`: the dealer's voice via macOS `say` (cached in memory; `GN_SAY_COMMAND` names a stand-in, which the unit
+  tests use so speech is tested on any computer); `/api/qr.svg`: join QR code (npm `qrcode`,
   or Python `segno` as a fallback); `/api/info`, `/api/tables`, `/api/version` (newest file time under `public/`,
   so open pages can offer a reload).
 
