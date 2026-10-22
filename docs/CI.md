@@ -16,6 +16,17 @@ summary lists every stage with its result and time, green "safe to push" or red 
 runs the same thing. The zip goes to `dist/` (`npm run package -- v1.2.0`
 names it after a version; it packs the last commit, so commit first).
 
+## Progress counters
+
+Each test is numbered as it finishes, against the total for that run: `[ 37/167] ✓ …` for unit tests, `[ 3/28] ✓ …` for
+end-to-end tests (and `[1/2]` in a retry round, counting the tests being retried). The totals are never written down:
+
+- **Unit tests:** just before the run, Node lists every test without running any (about 0.2 s) and the count is passed
+  to the progress reporter (`scripts/unit-reporter.js`).
+- **End-to-end tests:** the runner finds them fresh each run: every script in `test/e2e/` except the runner itself and
+  the shared modules (the files that export something: `helpers.js`, `party-setup.js`). A new test file runs, and
+  counts, without being listed anywhere.
+
 ## Retries
 
 Two kinds, the same locally (`npm run ci`, the pre-push hook) and on GitHub (every stage runs through `scripts/stage.js`):

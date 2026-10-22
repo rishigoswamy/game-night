@@ -13,12 +13,11 @@ const path = require('path');
 const H = require('./helpers');
 const B = require('../../scripts/banner');
 
-const TESTS = [
-  'casino-tables-round', 'casino-phone-sicbo', 'blackjack-phone', 'roulette-two-phones', 'roulette-master-only', 'roulette-phone-locks',
-  'roulette-phone-view', 'roulette-phone-landing', 'update-bar', 'dealer-voice', 'phone-voice', 'storage-migration', 'flushes',
-  'party-gofish', 'party-bluff-ending', 'party-werewolf-rules', 'party-werewolf-robber', 'party-werewolf-roles', 'party-icons', 'party-catan-rules', 'party-leave-rejoin',
-  'join-qr', 'server-down', 'starter', 'party-werewolf-game', 'party-catan-game', 'party-tambola-game', 'party-tambola-modes',
-];
+// The tests: every script in this folder, found fresh each run (so a new test runs, and counts, without being listed
+// anywhere). Not tests: this runner, and shared modules, which are the files that export something (helpers.js, party-setup.js).
+const TESTS = fs.readdirSync(__dirname)
+  .filter(f => f.endsWith('.js') && f !== 'run.js' && !/\b(module\.)?exports\b/.test(fs.readFileSync(path.join(__dirname, f), 'utf8')))
+  .map(f => f.slice(0, -3)).sort();
 // These expect a test server already running (the others start their own)
 const NEEDS_SERVER = new Set(['roulette-two-phones', 'roulette-master-only', 'roulette-phone-locks', 'roulette-phone-view', 'roulette-phone-landing', 'update-bar']);
 
@@ -52,7 +51,7 @@ const run = (t, port) => new Promise(res => {
   c.on('close', status => res({ status, out }));
 });
 
-async function runOne(t, port, retry = 0) {
+async function runOne(t, port, retry = 0, progress = () => '') {
   freePort(port); await sleep(400);
   let server = null;
   if (NEEDS_SERVER.has(t)) {
@@ -70,7 +69,8 @@ async function runOne(t, port, retry = 0) {
   fs.writeFileSync(path.join(work, t + (retry ? `.retry${retry}` : '') + '.log'), out);   // every attempt's log is kept
   if (!retry) times[t] = secs;
   const line = `${t}  ${B.dim(`(${secs}s${PORTS.length > 1 ? `, port ${port}` : ''}${retry ? `, retry ${retry}` : ''})`)}`;
-  console.log(ok ? (retry ? B.yellow(`⚠ ${line} passed on retry ${retry}: flaky`) : B.green(`✓ ${line}`)) : B.red(`✗ ${line}`));
+  const n = B.dim(progress());                                   // [ 3/28]: how far through this round
+  console.log(`${n} ${ok ? (retry ? B.yellow(`⚠ ${line} passed on retry ${retry}: flaky`) : B.green(`✓ ${line}`)) : B.red(`✗ ${line}`)}`);
   if (!ok) console.log(out.split('\n').map(l => '      ' + l).join('\n'));
   return ok;
 }
@@ -78,6 +78,8 @@ async function runOne(t, port, retry = 0) {
 // Run a list of tests: each worker has its own port (its own test server and phones) and takes the next test it may run;
 // tests in SOLO run after the others, alone
 async function runAll(list, results, retry = 0) {
+  let done = 0;
+  const width = String(list.length).length, progress = () => `[${String(++done).padStart(width)}/${list.length}]`;
   const queue = list.filter(t => !SOLO.has(t)).sort((a, b) => (times[b] ?? 60) - (times[a] ?? 60));
   await Promise.all(PORTS.map(async port => {
     while (queue.length) {
@@ -85,11 +87,11 @@ async function runAll(list, results, retry = 0) {
       if (k < 0) { await sleep(250); continue; }
       const t = queue.splice(k, 1)[0], lock = LOCKS[t];
       if (lock) held.add(lock);
-      results[t] = await runOne(t, port, retry);
+      results[t] = await runOne(t, port, retry, progress);
       if (lock) held.delete(lock);
     }
   }));
-  for (const t of list.filter(t => SOLO.has(t))) results[t] = await runOne(t, PORTS[0], retry);
+  for (const t of list.filter(t => SOLO.has(t))) results[t] = await runOne(t, PORTS[0], retry, progress);
 }
 
 (async () => {

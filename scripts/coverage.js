@@ -25,15 +25,22 @@ const tests = fs.readdirSync(path.join(ROOT, 'test/unit')).filter(f => f.endsWit
 if (gateOnly) {
   if (!fs.existsSync(raw) || !fs.readdirSync(raw).length) { B.fail(`no coverage data in ${path.relative(ROOT, raw)}: run --tests-only first`); process.exit(1); }
 } else {
-  B.banner('UNIT TESTS', 'Unit tests', `${tests.length} test files: game rules, leaderboards, admin lock, server`);
+  // How many tests there are, counted fresh every run: Node lists them all as skipped, without running any (~0.2 s)
+  const countTests = args => {
+    const r = spawnSync(process.execPath, ['--test', '--test-reporter=tap', '--test-name-pattern=(?!)', ...args], { cwd: ROOT, encoding: 'utf8' });
+    return +(String(r.stdout).match(/^# tests (\d+)/m) || [])[1] || 0;
+  };
+  const counted = countTests(tests);
+  B.banner('UNIT TESTS', 'Unit tests', `${counted} tests in ${tests.length} files: game rules, leaderboards, admin lock, server`);
   const t0 = Date.now();
   fs.rmSync(raw, { recursive: true, force: true }); fs.mkdirSync(raw, { recursive: true });
   // One run of `node --test`: the usual output on screen, and a TAP copy to count the tests and find the failed ones
   // (by name and file). Every run adds its coverage data to the same folder, so retries count too.
-  const nodeTest = args => {
+  // On screen, each test numbered as it finishes ([ 37/167] ✓ …, scripts/unit-reporter.js) against `total`
+  const nodeTest = (args, total) => {
     const tap = path.join(os.tmpdir(), `gn-unit-${process.pid}-${Date.now()}.tap`);
-    const r = spawnSync(process.execPath, ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout', '--test-reporter=tap', `--test-reporter-destination=${tap}`, ...args],
-      { cwd: ROOT, stdio: 'inherit', env: { ...process.env, NODE_V8_COVERAGE: raw } });
+    const r = spawnSync(process.execPath, ['--test', `--test-reporter=${path.join(__dirname, 'unit-reporter.js')}`, '--test-reporter-destination=stdout', '--test-reporter=tap', `--test-reporter-destination=${tap}`, ...args],
+      { cwd: ROOT, stdio: 'inherit', env: { ...process.env, NODE_V8_COVERAGE: raw, UNIT_TOTAL: String(total) } });
     let out = ''; try { out = fs.readFileSync(tap, 'utf8'); } catch {}
     fs.rmSync(tap, { force: true });
     const count = k => +(out.match(new RegExp(`^# ${k} (\\d+)`, 'm')) || [])[1] || 0;
@@ -42,7 +49,7 @@ if (gateOnly) {
     return { status: r.status, pass: count('pass'), fail: count('fail'), failed };
   };
   const escapeRe = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  let res = nodeTest(tests);
+  let res = nodeTest(tests, counted);
   const total = res.pass + res.fail;
   let failing = res.failed, flaky = [];
   // Retries at the end: only the tests that failed, by name, after a pause (a crash we can't pin down reruns everything)
@@ -51,7 +58,7 @@ if (gateOnly) {
     B.warn(`⟳ Retrying ${failing.length ? `${failing.length} failed unit test${failing.length === 1 ? '' : 's'}` : 'the unit tests'} in ${B.retries.delay} s (retry ${r} of ${B.retries.test})${failing.length ? `: ${failing.map(f => f.name).join(', ')}` : ''}`);
     B.sleepSync(B.retries.delay);
     const before = failing;
-    res = failing.length ? nodeTest([...failing.map(f => `--test-name-pattern=^${escapeRe(f.name)}$`), ...new Set(failing.map(f => f.file))]) : nodeTest(tests);
+    res = failing.length ? nodeTest([...failing.map(f => `--test-name-pattern=^${escapeRe(f.name)}$`), ...new Set(failing.map(f => f.file))], failing.length) : nodeTest(tests, counted);
     if (before.length) {
       flaky.push(...before.filter(f => !res.failed.some(x => x.name === f.name && x.file === f.file)).map(f => ({ ...f, retry: r })));
       failing = res.failed;
