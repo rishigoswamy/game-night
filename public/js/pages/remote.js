@@ -30,7 +30,7 @@ function post(msg) {
 /* ---------- Find the table ---------- */
 // There is only ever one shared table: join it as soon as it exists, and follow it if another screen takes over.
 // Where each game is played on a phone
-const PAGE_FOR = g => g === 'roulette' ? 'remote.html' : g === 'blackjack' ? 'bj-remote.html' : ['werewolf', 'catan', 'gofish', 'bluff', 'tambola'].includes(g) ? `party-remote.html?g=${g}` : `table-remote.html?g=${g}`;
+const PAGE_FOR = g => g === 'roulette' ? 'remote.html' : g === 'blackjack' ? 'bj-remote.html' : ['werewolf', 'catan', 'gofish', 'bluff', 'tambola', 'mafia'].includes(g) ? `party-remote.html?g=${g}` : `table-remote.html?g=${g}`;
 let findTimer = null;
 async function findTable() {
   clearTimeout(findTimer);

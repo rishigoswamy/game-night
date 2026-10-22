@@ -1,7 +1,8 @@
 const $ = s => document.querySelector(s);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const G = PARTY_GAME;
-const COLORS = ['#3b82f6', '#ea580c', '#0e9fbd', '#e0408a', '#b98004', '#a855f7', '#16a34a', '#dc2626', '#64748b', '#f59e0b'];
+const COLORS = ['#3b82f6', '#ea580c', '#0e9fbd', '#e0408a', '#b98004', '#a855f7', '#16a34a', '#dc2626', '#64748b', '#f59e0b',
+  '#84cc16', '#92400e', '#14b8a6', '#fb7185', '#6366f1', '#facc15'];   // 16: enough for the biggest game (Mafia)
 document.title = `${G.name} · Game Night`;
 if (G.wide) $('#gameView').classList.add('wide');
 $('#title').textContent = G.name;
@@ -24,18 +25,24 @@ function addSeat(name, device) {
 
 /* ---------- Options from the game module ---------- */
 function renderOpts() {
-  $('#opts').innerHTML = (G.options || []).map(o => {
-    // a choice is [value, label, short description?, full rules (HTML)?]: hovering shows the full rules, or the description
-    const tipAt = ([v, , d, more]) => d || more ? ` data-tip-key="${o.key}" data-tip-v="${esc(v)}"` : '';
-    const box = c => `<label${tipAt(c)}><input type="checkbox" data-opt="${o.key}" value="${c[0]}"${(P.opts[o.key] ?? o.def).includes(c[0]) ? ' checked' : ''}>${c[1]}</label>`;
-    const fixed = c => `<span class="opt-fixed" tabindex="0"${tipAt(c)}>${c[1]}</span>`;      // always in the game: no checkbox
-    if (o.type === 'checks' && o.groups) return `<div class="field"><label>${o.label}</label>${o.groups.map(g =>     // grouped choices, e.g. roles by difficulty
-      `<div class="opt-group"><div class="opt-group-title">${g.title}</div>${g.note ? `<div class="opt-group-note">${g.note}</div>` : ''}<div class="checks">${g.choices.map(g.fixed ? fixed : box).join('')}</div></div>`).join('')}</div>`;
-    if (o.type === 'checks') return `<div class="field"><label>${o.label}</label><div class="checks">${o.choices.map(box).join('')}</div></div>`;
-    return `<div class="field"><label for="opt-${o.key}">${o.label}</label><select id="opt-${o.key}" data-opt="${o.key}">${o.choices.map(([v, l]) =>
-      `<option value="${v}"${String(P.opts[o.key] ?? o.def) === String(v) ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
-  }).join('');
+  $('#opts').innerHTML = (G.options || []).map(o => optHTML(o).replace('<div class="field">', `<div class="field" data-field="${o.key}">`)).join('');
   $('#opts').querySelectorAll('[data-opt]').forEach(el => el.addEventListener('change', readOpts));
+  showOpts();
+}
+// An option can depend on others (showIf: e.g. the Doctor's options only when the Doctor is in the game)
+function showOpts() {
+  (G.options || []).forEach(o => { const el = o.showIf && $(`#opts [data-field="${o.key}"]`); if (el) el.hidden = !o.showIf(P.opts); });
+}
+function optHTML(o) {
+  // a choice is [value, label, short description?, full rules (HTML)?]: hovering shows the full rules, or the description
+  const tipAt = ([v, , d, more]) => d || more ? ` data-tip-key="${o.key}" data-tip-v="${esc(v)}"` : '';
+  const box = c => `<label${tipAt(c)}><input type="checkbox" data-opt="${o.key}" value="${c[0]}"${(P.opts[o.key] ?? o.def).includes(c[0]) ? ' checked' : ''}>${c[1]}</label>`;
+  const fixed = c => `<span class="opt-fixed" tabindex="0"${tipAt(c)}>${c[1]}</span>`;      // always in the game: no checkbox
+  if (o.type === 'checks' && o.groups) return `<div class="field"><label>${o.label}</label>${o.groups.map(g =>     // grouped choices, e.g. roles by difficulty
+    `<div class="opt-group"><div class="opt-group-title">${g.title}</div>${g.note ? `<div class="opt-group-note">${g.note}</div>` : ''}<div class="checks">${g.choices.map(g.fixed ? fixed : box).join('')}</div></div>`).join('')}</div>`;
+  if (o.type === 'checks') return `<div class="field"><label>${o.label}</label><div class="checks">${o.choices.map(box).join('')}</div></div>`;
+  return `<div class="field"><label for="opt-${o.key}">${o.label}</label><select id="opt-${o.key}" data-opt="${o.key}">${o.choices.map(([v, l]) =>
+    `<option value="${v}"${String(P.opts[o.key] ?? o.def) === String(v) ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
 }
 // The hover card for an option's choice (e.g. a Werewolf role's full rules): on mouse hover or keyboard focus
 const optTip = Object.assign(document.createElement('div'), { id: 'optTip', className: 'opt-tip', hidden: true });
@@ -65,6 +72,7 @@ function readOpts() {
     if (o.type === 'checks') P.opts[o.key] = [...$('#opts').querySelectorAll(`input[data-opt="${o.key}"]:checked`)].map(i => i.value);
     else { const v = $(`#opt-${o.key}`).value; P.opts[o.key] = isNaN(+v) ? v : +v; }
   });
+  showOpts();
   renderLobby();
 }
 (G.options || []).forEach(o => { P.opts[o.key] = o.def; });
@@ -154,7 +162,7 @@ function finishGame(results, html) {
   $('#endBody').innerHTML = (html || '') + `<div class="end-rows">${results.map(r => {
       const s = P.seats.find(x => x.name === r.name);
       return `<div class="sum-row" style="--pc:${s ? s.color : '#888'}"><div class="who"><span class="dot"></span>${esc(r.name)}${r.note ? ` <span class="zero">${esc(r.note)}</span>` : ''}</div>
-        <div>${r.points != null ? `${r.points} ${G.pointsLabel || 'pts'} · ` : ''}${r.won ? '<span class="pos">Winner</span>' : '<span class="zero">—</span>'}</div></div>`; }).join('')}</div>`;
+        <div>${r.points != null && G.pointsLabel !== null ? `${r.points} ${G.pointsLabel || 'pts'} · ` : ''}${r.won ? '<span class="pos">Winner</span>' : '<span class="zero">—</span>'}</div></div>`; }).join('')}</div>`;
   $('#endModal').hidden = false;
   $('#endBtn').hidden = true;
   render();

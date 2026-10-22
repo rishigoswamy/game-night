@@ -13,6 +13,7 @@
     "public/games/party/catan.js",
     "public/games/party/common.js",
     "public/games/party/gofish.js",
+    "public/games/party/mafia.js",
     "public/games/party/tambola.js",
     "public/games/party/werewolf.js",
     "public/js/lib/admin-lock.js",

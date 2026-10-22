@@ -105,7 +105,7 @@ function render() {
   if (ST.end) {
     const w = ST.end.results.filter(r => r.won).map(r => r.name);
     $('#endTitle').textContent = w.length ? `🏆 ${w.join(' & ')} win${w.length === 1 ? 's' : ''}!` : 'Game over';
-    $('#endBody').innerHTML = (ST.end.html || '') + `<div class="endlist">${ST.end.results.map(r => `<div><span>${esc(r.name)}${r.note ? ` <span class="muted">${esc(r.note)}</span>` : ''}</span><span>${r.points != null ? r.points + ' · ' : ''}${r.won ? '<span class="pos">Winner</span>' : '—'}</span></div>`).join('')}</div>`;
+    $('#endBody').innerHTML = (ST.end.html || '') + `<div class="endlist">${ST.end.results.map(r => `<div><span>${esc(r.name)}${r.note ? ` <span class="muted">${esc(r.note)}</span>` : ''}</span><span>${r.points != null && G.pointsLabel !== null ? r.points + ' · ' : ''}${r.won ? '<span class="pos">Winner</span>' : '—'}</span></div>`).join('')}</div>`;
   }
   $('#phase').textContent = phase === 'lobby' ? 'Lobby' : phase === 'end' ? 'Game over' : (ST.view?.title || G.name);
   $('#sub').textContent = seated ? `You are ${ST.seats[ST.me]?.name}` : '';

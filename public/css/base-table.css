@@ -507,6 +507,7 @@
   }
   .card h2 { margin: 0 0 16px; font-family: Georgia, serif; color: var(--gold); text-align: center; }
   .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .field[hidden] { display: none; }
   .field label { font-size: .85rem; color: var(--muted); }
   .field input, .field select {
     padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.3);

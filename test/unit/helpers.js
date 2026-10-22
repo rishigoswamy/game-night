@@ -52,7 +52,7 @@ const seededShuffle = rand => arr => { for (let i = arr.length - 1; i > 0; i--) 
 
 // The context a party game gets from party-table.html, without a screen: records what it says, logs and how it ends.
 // Timers don't run on their own: a test resolves the current countdown with ctx.expire() (time ran out) or ctx.skip().
-const NAMES = ['Ana', 'Bob', 'Cy', 'Dee', 'Eli', 'Fay', 'Gus', 'Hal', 'Ivy', 'Jo'];
+const NAMES = ['Ana', 'Bob', 'Cy', 'Dee', 'Eli', 'Fay', 'Gus', 'Hal', 'Ivy', 'Jo', 'Kit', 'Lu', 'Mo', 'Ned', 'Oz', 'Pia'];
 function partyCtx(n, { opts = {}, rand = seededRand(1), shuffle } = {}) {
   let countdown = null;
   const ctx = {

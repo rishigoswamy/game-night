@@ -10,8 +10,8 @@ No accounts, no app to install, no internet needed once it's set up. Chips are p
 
 | Casino | Party games |
 |---|---|
-| Roulette, Blackjack, Baccarat, Dragon Tiger, Sic Bo, Craps | One Night Werewolf, Catan, Go Fish, Bluff, Tambola |
-| A talking dealer opens a betting window; everyone bets from their phone. | The master screen runs the game (narrates Werewolf, calls the Tambola numbers); everyone plays on their phone. |
+| Roulette, Blackjack, Baccarat, Dragon Tiger, Sic Bo, Craps | One Night Werewolf, Mafia, Catan, Go Fish, Bluff, Tambola |
+| A talking dealer opens a betting window; everyone bets from their phone. | The master screen runs the game (narrates Werewolf and Mafia, calls the Tambola numbers); everyone plays on their phone. |
 
 **Contents:** [Set up once](#1-set-up-once) · [Start the game](#2-start-the-game-become-the-master) ·
 [Stop the game](#3-stop-the-game) · [Hosting guide](#hosting-a-game-night) · [Players' guide](#for-players) ·
@@ -125,12 +125,13 @@ and use `:9000` instead of `:8080` in the addresses.
    | Game | Players | Notes |
    |---|---|---|
    | One Night Werewolf | 3–10 | 22 roles grouped Beginner / Intermediate / Advanced; hover a role in the lobby for its full rules ([details](docs/2026-10-werewolf-roles.md)) |
+   | Mafia | 4–16 | Nights and days until one side wins: 22 roles, trials and verdicts, the dead watch as spectators ([rules](docs/2026-10-mafia.md)) |
    | Catan | 2–4 | Choose the points to win |
    | Go Fish | 2–6 | |
    | Bluff | 3–8 | |
    | Tambola (Housie) | 2–10 | Traditional calls; prizes from Early Five to Full House ([details](docs/2026-10-tambola.md)) |
 2. Pick the options and click **Start**.
-3. Nobody plays on the master screen. It shows the table; in Werewolf it narrates the night out loud, and in Tambola it is
+3. Nobody plays on the master screen. It shows the table; in Werewolf and Mafia it narrates out loud (Mafia's trials too), and in Tambola it is
    the caller (the board of numbers called, **Pause** and **Next number now**).
 4. At the end: **Play again** (same players) or **Change players**. **End game** stops a game early (nothing is recorded).
 

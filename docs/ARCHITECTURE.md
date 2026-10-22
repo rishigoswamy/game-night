@@ -100,7 +100,8 @@ everything else: players, betting window, phones, voice, celebrations, leaderboa
 **Party game modules** (`games/party/*.js`) set `window.PARTY_GAME` with: `start(ctx)`, `act(ctx, player, msg)` (a
 phone's move; return an error string to refuse it), `view(ctx, player)` (that player's private view, the only thing
 sent to their phone), `hostHTML` (master screen), `phoneHTML` (+ optional `phoneLocal` / `phoneAct` for choices made
-on the phone before sending). Optional: `options` (shown in the lobby; a choice may carry a hover card with full rules), `canStart`,
+on the phone before sending). Optional: `options` (shown in the lobby; a choice may carry a hover card with full rules; `showIf(opts)` shows an option
+only when it applies, e.g. Mafia's Doctor options), `canStart`,
 `lobbyHTML` (extra lobby info, e.g. Werewolf's night order), `hostAct` (buttons on the master screen, e.g. Tambola's Pause),
 `phoneNotify` (vibrate the phone). `party-table.html` handles seats, timers (`ctx.countdown`), narration and leaderboards.
 Adding a game: the module, its id in `PARTY_IDS` (`party-table.html`, `party-remote.html`), the phone routing (`PAGE_FOR` in
@@ -131,7 +132,7 @@ memory only.
 |---|---|---|
 | Where | `test/unit/*.test.js` | `test/e2e/*.js`, found by the runner (`run.js`); files that export something are shared modules, not tests |
 | How | Node's built-in test runner; browser files run in a sandbox (`helpers.js`: fake `window` and storage, seeded random, a stand-in for the party page) | Real games in a muted Chrome (`playwright-core`); phones simulated through the computer's Wi-Fi address; 3 tests at a time, each with its own test server and port (`E2E_PORT`), longest first; `update-bar` (it touches a game file) runs alone; the two voice tests (`dealer-voice`, `phone-voice`) never run at the same time, since they share the Mac's speech engine |
-| Covers | Every casino payout and drawing rule (all six tables, incl. Roulette and Blackjack); Werewolf, Catan, Go Fish, Bluff and Tambola rules; leaderboard, admin lock, storage migration; server security and relay | Whole games end to end: pages, phones, timers, voice, leaderboards |
+| Covers | Every casino payout and drawing rule (all six tables, incl. Roulette and Blackjack); Werewolf, Mafia, Catan, Go Fish, Bluff and Tambola rules; leaderboard, admin lock, storage migration; server security and relay | Whole games end to end: pages, phones, timers, voice, leaderboards |
 | Time | a few seconds | about 5 minutes (about 15 one at a time) |
 
 Game modules expose a few internals for the unit tests as `_test` (e.g. Catan's `longest`, Baccarat's `bankerDraws`); pages

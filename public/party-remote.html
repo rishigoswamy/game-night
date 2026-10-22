@@ -12,7 +12,7 @@
 <script src="js/lib/storage-migrate.js"></script>
 <script src="games/party/common.js"></script>
 <script>
-window.PARTY_IDS = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff', tambola: 'Tambola' };
+window.PARTY_IDS = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff', tambola: 'Tambola', mafia: 'Mafia' };
 window.PARTY_ID = new URLSearchParams(location.search).get('g');
 if (PARTY_IDS[PARTY_ID]) document.write(`<script src="games/party/${PARTY_ID}.js"><\/script>`);
 </script>

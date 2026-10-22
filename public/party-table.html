@@ -12,7 +12,7 @@
 <script src="games/party/common.js"></script>
 <script>
 // Which party game this screen moderates: party-table.html?g=werewolf | catan | gofish | bluff | tambola
-window.PARTY_IDS = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff', tambola: 'Tambola' };
+window.PARTY_IDS = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff', tambola: 'Tambola', mafia: 'Mafia' };
 window.PARTY_ID = new URLSearchParams(location.search).get('g');
 if (!PARTY_IDS[PARTY_ID]) PARTY_ID = 'gofish';
 document.write(`<script src="games/party/${PARTY_ID}.js"><\/script>`);

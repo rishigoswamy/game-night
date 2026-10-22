@@ -146,4 +146,15 @@
     45%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
   @keyframes ptDaub { 0%, 30% { opacity: 0; transform: scale(2); } 40%, 85% { opacity: .85; transform: scale(1); } 100% { opacity: 0; } }
   .tb-daub { transform-box: fill-box; transform-origin: center; }
+  .pm-light, .pm-bulb, .pm-rain line, .pm-glow { transition: opacity .4s; }
+  .pm-rain { opacity: 0; } .pm-glow { opacity: 0; }
+  .game:hover .pm-hat { animation: pmTip 2.2s ease-in-out infinite; }
+  .game:hover .pm-light, .game:hover .pm-bulb { animation: pmFlicker 2.6s steps(1) infinite; }
+  .game:hover .pm-rain { opacity: .7; } .game:hover .pm-rain line { animation: pmRain .7s linear infinite; }
+  .game:hover .pm-rain line:nth-child(2n) { animation-delay: .35s; }
+  .game:hover .pm-glow { animation: pmGlow 2.2s ease-in-out infinite; }
+  @keyframes pmTip { 0%, 55%, 100% { transform: none; } 70%, 85% { transform: rotate(-16deg) translate(-2px, -3px); } }
+  @keyframes pmFlicker { 0%, 40%, 46%, 100% { opacity: 1; } 42%, 48% { opacity: .35; } }
+  @keyframes pmRain { from { transform: translate(0, -14px); } to { transform: translate(-4px, 14px); } }
+  @keyframes pmGlow { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .game:hover .party-icon * { animation: none !important; } }
