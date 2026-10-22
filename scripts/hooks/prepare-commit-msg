@@ -1,0 +1,5 @@
+#!/bin/sh
+# Runs when you start a commit (installed with: npm run setup-hooks). Shows which release version the commit leads to,
+# and how to ask for more: [minor] / [major] in the message (docs/CI.md). With the editor, as # comments that git removes;
+# with `git commit -m`, as a line in the terminal. It never blocks a commit.
+node "$(git rev-parse --show-toplevel)/scripts/release-hint.js" commit-msg "$1" "$2" || true

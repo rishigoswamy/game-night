@@ -75,35 +75,75 @@ Once per clone: `npm run setup-hooks` (sets `git config core.hooksPath scripts/h
   coverage gate, the end-to-end tests and the package stage. If anything fails, nothing is pushed.
 - `git push --no-verify` skips it (the GitHub pipeline still runs).
 
+The same command installs `scripts/hooks/prepare-commit-msg`: every commit shows which release version it leads to
+(`scripts/release-hint.js`). When git opens the editor, a short guide sits under your message as `#` comment lines, which
+git removes; with `git commit -m`, one line in the terminal says the version and how to amend for `[minor]` / `[major]`.
+It never blocks a commit. A successful `npm run test:e2e` on your Mac ends with the same reminder: the next version and
+the commands to release it. (They read the tags your copy knows; `git fetch --tags` brings in releases made on GitHub.)
+
 ## On GitHub: the pipeline (`.github/workflows/pipeline.yml`)
 
 One workflow, in stages; each starts only if the one before it passed. GitHub draws it as a graph on each run's page.
 
 ```
-1 · Build ─▶ 2 · Unit tests ─▶ 3 · Coverage ─▶ 4 · End-to-end (macOS) ─▶ 5 · Package ─▶ 6 · Approve ─▶ 7 · Release
+1 · Build ─▶ 2 · Unit tests ─▶ 3 · Coverage ─▶ 4 · End-to-end (macOS) ─▶ 5 · Package
 ```
 
-| Stage | Runs on | When | What |
-|---|---|---|---|
-| 1 · Build | Linux | every push and pull request | `npm run check`, with the cache-version check against the previous commit |
-| 2 · Unit tests | Linux | ″ | every unit test (`coverage.js --tests-only`), recording which lines ran and handing that data to stage 3 |
-| 3 · Coverage | Linux | ″ | the coverage gate on stage 2's data (`coverage.js --gate-only`; the tests aren't run again). A drop fails this stage on its own, with the file and the numbers; the table is shown on the run's summary page |
-| 4 · End-to-end (macOS) | macOS (Chrome preinstalled) | ″ | `npm run test:e2e`, 2 at a time; logs and screenshots kept as a download |
-| 5 · Package | Linux | ″ | `npm run package`: the zip and its smoke test; the zip is kept as a download for 2 weeks |
-| 6 · Approve | — | releases only (Release button or version tag) | waits until you click **Approve** on the run (the `release` environment) |
-| 7 · Release | Linux | releases only, after approval | checks the commit is on `main`, creates the tag (Release button), then publishes the GitHub release with the zip and generated notes. The only stage allowed to publish |
+| Stage | Runs on | What |
+|---|---|---|
+| 1 · Build | Linux | `npm run check`, with the cache-version check against the previous commit (for a version tag: also that it looks like `v1.0.1` and is on `main`) |
+| 2 · Unit tests | Linux | every unit test (`coverage.js --tests-only`), recording which lines ran and handing that data to stage 3 |
+| 3 · Coverage | Linux | the coverage gate on stage 2's data (`coverage.js --gate-only`; the tests aren't run again). A drop fails this stage on its own, with the file and the numbers; the table is shown on the run's summary page |
+| 4 · End-to-end (macOS) | macOS (Chrome preinstalled) | `npm run test:e2e`, 2 at a time; logs and screenshots kept as a download |
+| 5 · Package | Linux | `npm run package`: the zip and its smoke test; the zip is kept as a download for 2 weeks |
 
-Free for a public repository, macOS included. A newer push to the same branch cancels a run still in progress (a
-release run always finishes).
+It runs on every push to any branch, every pull request into `main` and every version tag. Free for a public
+repository, macOS included. A newer push to the same branch cancels a run still in progress.
+
+## On GitHub: releases (`.github/workflows/release.yml`)
+
+A separate **Release** workflow (so the pipeline's own runs stay green). Every release is a commit on `main` that has
+passed the pipeline, and every release waits for you:
+
+```
+Version ─▶ Approve vX.Y.Z (waits for you) ─▶ Publish vX.Y.Z
+```
+
+1. **Version** works out the number (`scripts/next-version.js`) and shows it on the run's summary page.
+2. **Approve vX.Y.Z** waits until you open the run and click **Review deployments**, tick `release`, then
+   **Approve and deploy** (or **Reject**: that release is skipped). Not answering also skips it; GitHub gives up after
+   30 days.
+3. **Publish vX.Y.Z** packages the zip (smoke-tested), creates the tag and publishes the GitHub release with the zip
+   and notes generated from the changes since the last release. The only job allowed to publish.
+
+**Three ways a release starts:**
+
+| Way | How | Version |
+|---|---|---|
+| **Automatic candidate** | After every green pipeline run on `main` | The next **patch** after the latest release, or the next **minor** / **major** if a commit since then says `[minor]` / `[major]` |
+| **Release button** | **Actions → Release → Run workflow** (from `main`) | Pick **patch / minor / major**, or type an exact version (`1.5.0`) |
+| **Tag from your Mac** | `git tag v1.5.0 && git push origin v1.5.0`; released once the pipeline passes for it | Exactly that tag |
+
+- **Versions** are `MAJOR.MINOR.PATCH`: patch for fixes and tweaks (`1.4.3 → 1.4.4`), minor for a new feature in a
+  game (`→ 1.5.0`), major for a new game or a big change (`→ 2.0.0`). The first release is `v1.0.0`. The next version
+  always follows the latest release, however it was made.
+- **Bumping in a commit:** put `[minor]` or `[major]` anywhere in a commit message (title or description); the next
+  candidate after it uses that bump. Major is rare, so it's always a deliberate word or a choice on the button.
+- **Candidates are skipped freely:** a newer candidate replaces one still waiting, and a rejected or ignored one never
+  blocks anything. A commit with nothing new since the last release (or already released) makes no candidate.
+- The button checks that the latest `main` has passed the pipeline; an exact version must be new and higher than the
+  latest release. Mistakes fail in seconds, with the reason on the run's page.
 
 ## Setting up GitHub (once)
 
 The repository is [rishigoswamy/game-night](https://github.com/rishigoswamy/game-night). The pipeline starts running as
 soon as a commit containing `.github/workflows/pipeline.yml` is pushed: see each run under the repository's **Actions** tab.
 
-**The approval stage:** in the repository, **Settings → Environments → New environment**, name it `release`, tick
-**Required reviewers** and add yourself (optionally **Prevent self-review** off, since you work alone; and under
-**Deployment branches and tags**, allow only tags `v*`). Without this environment, stage 6 doesn't wait.
+**The approval step:** in the repository, **Settings → Environments → New environment**, name it `release`, tick
+**Required reviewers** and add yourself, and leave **Prevent self-review** off (you approve your own releases). Under
+**Deployment branches and tags**, either leave **No restriction** or choose **Selected branches and tags** and add the
+**branch** `main`: every release runs from `main`, so a rule allowing only tags would block them all. Without this
+environment, releases publish without waiting for you.
 
 Then protect `main` so that only changes that passed the pipeline can reach it. In the repository on GitHub:
 **Settings → Branches → Add branch protection rule** (or **Rules → Rulesets**), branch `main`:
@@ -128,23 +168,13 @@ gh pr create --fill                   # a pull request into main
 gh pr merge --auto --merge            # merges by itself as soon as the pipeline is green
 ```
 
-A release (only when you want one; everyday pushes need nothing extra). Either way it releases a commit on `main`,
-runs all seven stages on it, and waits at stage 6 for you to click **Review deployments → Approve and deploy**.
-
-**Option 1: the Release button** (no terminal). On GitHub, **Actions → Pipeline → Run workflow**, leave **Use workflow
-from** on `main`, type the version (`1.0.1`, no "v") and click **Run workflow**. Stage 1 first checks the version (three
-numbers, not used before) and the branch, so a typo fails in seconds; stage 7 creates the `v1.0.1` tag and publishes the
-release.
-
-**Or option 2: a tag from your Mac.** From an up-to-date `main`:
+A release: approve the waiting candidate on the latest **Release** run (Actions → Release), or start one yourself
+with the Release button or a tag (see [Releases](#on-github-releases-githubworkflowsreleaseyml)):
 
 ```sh
 git switch main && git pull
-git tag v1.0.1 && git push origin v1.0.1     # all seven stages: when stage 6 asks, open the run and click Approve
+git tag v1.0.1 && git push origin v1.0.1     # once the pipeline passes, open the Release run and click Approve
 ```
-
-Both release the same way; use whichever is handier. Version numbers: `v1.0.1` for fixes, `v1.1.0` for new features,
-`v2.0.0` for big changes.
 
 ## If the end-to-end tests fail only on GitHub
 

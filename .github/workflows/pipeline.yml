@@ -1,12 +1,10 @@
 # Game Night's pipeline (docs/CI.md). One workflow, run in stages; each stage starts only if the one before it passed.
 #
-#   1 · Build ─▶ 2 · Unit tests ─▶ 3 · Coverage ─▶ 4 · End-to-end (macOS) ─▶ 5 · Package ─▶ 6 · Approve ─▶ 7 · Release
+#   1 · Build ─▶ 2 · Unit tests ─▶ 3 · Coverage ─▶ 4 · End-to-end (macOS) ─▶ 5 · Package
 #
-# Every push to a branch and every pull request into main: stages 1–5 (the zip is kept as a download for 2 weeks).
-# A release, all seven stages, started either way:
-#   - the Release button: Actions → Pipeline → Run workflow, type the version (1.2.0); stage 7 creates the v1.2.0 tag
-#   - or a version tag pushed from your Mac: git tag v1.2.0 && git push origin v1.2.0
-# Stage 6 waits for you to click Approve on GitHub (the "release" environment), then stage 7 publishes the release with the zip.
+# Runs on every push to a branch, every pull request into main and every version tag pushed from a Mac (the zip is
+# kept as a download for 2 weeks). Releasing happens in release.yml, after this pipeline has passed:
+# a release candidate after every green push to main, the Release button, or a version tag.
 name: Pipeline
 on:
   push:
@@ -14,21 +12,13 @@ on:
     tags: ['v*']
   pull_request:
     branches: [main]
-  workflow_dispatch:            # the Release button (Actions → Pipeline → Run workflow)
-    inputs:
-      version:
-        description: 'Version to release, e.g. 1.0.1 (without the v). Releases the latest main.'
-        required: true
-        type: string
 permissions:
   contents: read
 concurrency:
   group: pipeline-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/') }}   # a newer push replaces a running one; releases always finish
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}   # a newer push replaces a running one; tag runs always finish
 env:
-  RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' }}
-  # the release's version: the pushed tag, or v + the version typed on the Release button
-  VERSION_TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+  TAG_RUN: ${{ startsWith(github.ref, 'refs/tags/v') }}   # a version tag pushed from a Mac (it is then released by release.yml)
 
 jobs:
   build:
@@ -43,20 +33,11 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - name: Check the release version and that it's on main (releases only, so a mistake fails in seconds)
-        if: env.RELEASE == 'true'
+      - name: A version tag must look like v1.0.1 and be on main (tag runs only, so a mistake fails in seconds)
+        if: env.TAG_RUN == 'true'
         run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            [ "$GITHUB_REF_NAME" = main ] || { echo "Releases are made from main: pick main under 'Use workflow from' (got $GITHUB_REF_NAME)."; exit 1; }
-            echo "$INPUT_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "Type the version as 1.0.1 (three numbers, no v). Got: $INPUT_VERSION"; exit 1; }
-            if git ls-remote --exit-code --tags origin "refs/tags/$VERSION_TAG" >/dev/null; then echo "$VERSION_TAG already exists: pick a new version."; exit 1; fi
-          else                                     # a tag pushed from a Mac
-            echo "$VERSION_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "Tags for releases look like v1.0.1 (got $VERSION_TAG). Delete it: git push origin :$VERSION_TAG && git tag -d $VERSION_TAG"; exit 1; }
-            git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "$VERSION_TAG is not on main: releases are made from main only. Delete it: git push origin :$VERSION_TAG && git tag -d $VERSION_TAG"; exit 1; }
-          fi
-          echo "Releasing $VERSION_TAG from main at ${GITHUB_SHA::7}."
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
+          echo "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "Release tags look like v1.0.1 (got $GITHUB_REF_NAME). Delete it: git push origin :$GITHUB_REF_NAME && git tag -d $GITHUB_REF_NAME"; exit 1; }
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "$GITHUB_REF_NAME is not on main: releases are made from main only. Delete it: git push origin :$GITHUB_REF_NAME && git tag -d $GITHUB_REF_NAME"; exit 1; }
       - run: npm ci
       - name: Build check (files parse, links, offline cache, games registered, cache version)
         run: node scripts/stage.js build --base "$BASE"
@@ -156,49 +137,9 @@ jobs:
         run: node scripts/stage.js package "$VERSION"
         env:
           CI_STAGE: 5/7
-          VERSION: ${{ env.RELEASE == 'true' && env.VERSION_TAG || format('dev-{0}', github.sha) }}
+          VERSION: ${{ env.TAG_RUN == 'true' && github.ref_name || format('dev-{0}', github.sha) }}
       - uses: actions/upload-artifact@v4
         with:
           name: game-night-package
           path: dist/
           retention-days: 14
-
-  approve:
-    name: 6 · Approve release
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    needs: package
-    runs-on: ubuntu-latest
-    environment: release         # waits here until a required reviewer approves (set up once: docs/CI.md)
-    steps:
-      - run: echo "Release ${{ env.VERSION_TAG }} approved. Stages 1–5 passed for ${{ github.sha }}."
-
-  release:
-    name: 7 · Release
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    needs: approve
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write            # only this stage may publish
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Only from main
-        run: |
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "$VERSION_TAG is not on main: releases are made from main only."; exit 1; }
-      - name: Tag the release (Release button only; a pushed tag already exists)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$VERSION_TAG" "$GITHUB_SHA" -m "Game Night $VERSION_TAG"
-          git push origin "$VERSION_TAG"      # pushed by the pipeline itself, so it doesn't start another run
-      - uses: actions/download-artifact@v4
-        with:
-          name: game-night-package
-          path: dist/
-      - name: Publish the GitHub release with the zip (notes generated from the changes since the last release)
-        run: gh release create "$VERSION_TAG" dist/* --verify-tag --title "Game Night $VERSION_TAG" --generate-notes
-        env:
-          GH_TOKEN: ${{ github.token }}

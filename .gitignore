@@ -12,3 +12,6 @@ coverage/
 
 # Release zips (npm run package)
 dist/
+
+# Personal notes, kept out of the repository
+docs/FUTURE-WORK.md
