@@ -8,18 +8,19 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
-const { spawnSync } = require('node:child_process');
-// A free port, asked of the computer each run (never the game's 8080 or the end-to-end tests' 8091–8093), so these tests
-// can run while the end-to-end tests do (e.g. during a git push's checks)
-const PORT = (() => {
-  for (;;) {
-    const p = +spawnSync(process.execPath, ['-e', "const s = require('net').createServer().listen(0, () => { console.log(s.address().port); s.close(); })"], { encoding: 'utf8' }).stdout;
-    if (p && p !== 8080 && (p < 8091 || p > 8093)) return p;
-  }
-})();
+// A free port, asked of the computer in this process when the tests start (never the game's 8080 or the end-to-end
+// tests' 8091–8093), so these tests can run while the end-to-end tests do, e.g. during a git push's checks.
+// (Not in a helper process: under `node --test` a child's output can arrive in the test runner's own format.)
+const net = require('node:net');
+function freePort() {
+  return new Promise((res, rej) => {
+    const s = net.createServer().listen(0, () => { const p = s.address().port; s.close(() => res(p)); }).on('error', rej);
+  });
+}
+let PORT, MAC, PHONE;
 const SERVER = path.resolve(__dirname, '..', '..', 'server', 'server.js');
 const LAN = Object.values(os.networkInterfaces()).flat().find(a => a && a.family === 'IPv4' && !a.internal)?.address;
-const MAC = `http://localhost:${PORT}`, PHONE = LAN && `http://${LAN}:${PORT}`;
+
 const noLan = { skip: LAN ? false : 'no Wi-Fi/LAN address to act as a phone' };
 
 // A stand-in for macOS's "say" (server.js runs GN_SAY_COMMAND instead), so the dealer's voice can be tested on any
@@ -37,6 +38,9 @@ const sayCalls = () => (fs.existsSync(SAY_LOG) ? fs.readFileSync(SAY_LOG, 'utf8'
 
 let server;
 test.before(async () => {
+  for (let tries = 0; !PORT && tries < 20; tries++) { const p = await freePort(); if (p !== 8080 && (p < 8091 || p > 8093)) PORT = p; }
+  if (!PORT) throw new Error('no free port for the test server');
+  MAC = `http://localhost:${PORT}`; PHONE = LAN && `http://${LAN}:${PORT}`;
   server = spawn(process.execPath, [SERVER, String(PORT)], { env: { ...process.env, DC_LOOPBACK_ONLY: '1', GN_SAY_COMMAND: SAY }, stdio: ['ignore', 'pipe', 'inherit'] });
   await new Promise((res, rej) => { server.stdout.once('data', res); server.once('exit', code => rej(new Error('server exited ' + code))); });
 });
