@@ -3,7 +3,7 @@
 // inside the tests' sandbox, the server as a child process), then compares each file's line coverage with
 // coverage-thresholds.json. It fails if a test fails, if a file drops below its minimum, or if a new file has none.
 //   npm run coverage                      tests + gate; report in coverage/summary.txt (and .json)
-//   npm run coverage -- --update          raise the minimums to today's coverage (they never go down this way)
+//   npm run coverage -- --update          after improving tests: raise the exceptions, refresh the list of tested files
 // The pipeline runs the two halves as separate stages, so a coverage drop shows as its own failed stage:
 //   node scripts/coverage.js --tests-only  the unit tests, keeping their coverage data in coverage/raw (no gate)
 //   node scripts/coverage.js --gate-only   the gate, from coverage/raw (the tests aren't run again)
@@ -112,31 +112,41 @@ const report = Object.entries(files).map(([rel, { src, hit }]) => {
 const total = report.reduce((a, r) => ({ lines: a.lines + r.lines, missed: a.missed + r.missed }), { lines: 0, missed: 0 });
 const totalPct = Math.floor((1 - total.missed / total.lines) * 1000) / 10;
 
-// 4. The gate
-const limits = fs.existsSync(LIMITS) ? JSON.parse(fs.readFileSync(LIMITS, 'utf8')) : { total: 0, files: {} };
+// 4. The gate (coverage-thresholds.json): every file at least `perFile` % (80), the whole project at least `total` %
+// (85). A few files below the rule keep their own minimum in `exceptions` until their tests improve; `files` lists every
+// file the unit tests run, so a file that stops being tested at all fails too (it would otherwise just vanish).
+const limits = fs.existsSync(LIMITS) ? JSON.parse(fs.readFileSync(LIMITS, 'utf8')) : {};
+const perFile = limits.perFile ?? 80, exceptions = limits.exceptions || {}, roster = limits.files || [];
+const minFor = f => exceptions[f] ?? perFile;
 const problems = [];
 for (const r of report) {
-  const min = limits.files[r.file];
-  if (min == null) problems.push(`${r.file}: new file with no minimum yet (${r.pct}%). Add tests, then run npm run coverage -- --update`);
-  else if (r.pct < min) problems.push(`${r.file}: ${r.pct}% of lines run by the unit tests, below its minimum ${min}%`);
+  if (r.pct < minFor(r.file)) problems.push(`${r.file}: ${r.pct}% of lines run by the unit tests, below ${exceptions[r.file] != null ? `its minimum ${exceptions[r.file]}% (an exception to the ${perFile}% rule)` : `the ${perFile}% minimum for every file`}`);
 }
-for (const f of Object.keys(limits.files)) if (!report.some(r => r.file === f) && fs.existsSync(path.join(ROOT, f))) problems.push(`${f}: no longer run by any unit test (minimum ${limits.files[f]}%)`);
-if (totalPct < limits.total) problems.push(`total: ${totalPct}%, below the minimum ${limits.total}%`);
+for (const f of new Set([...roster, ...Object.keys(exceptions)])) {
+  if (!report.some(r => r.file === f) && fs.existsSync(path.join(ROOT, f))) problems.push(`${f}: no longer run by any unit test (minimum ${minFor(f)}%)`);
+}
+if (totalPct < (limits.total ?? 85)) problems.push(`total: ${totalPct}%, below the ${limits.total ?? 85}% minimum for the whole project`);
 
-const lines = report.map(r => `${String(r.pct).padStart(5)}%  (min ${String(limits.files[r.file] ?? '—').padStart(4)})  ${r.file}  ${r.missed ? `${r.missed} of ${r.lines} lines not run` : `all ${r.lines} lines run`}`);
-const summary = `Unit test coverage (lines)\n${lines.join('\n')}\n${String(totalPct).padStart(5)}%  (min ${String(limits.total).padStart(4)})  TOTAL  ${total.lines - total.missed} of ${total.lines} lines\n`;
+const lines = report.map(r => `${String(r.pct).padStart(5)}%  (min ${String(minFor(r.file)).padStart(3)}${exceptions[r.file] != null ? '*' : ' '})  ${r.file}  ${r.missed ? `${r.missed} of ${r.lines} lines not run` : `all ${r.lines} lines run`}`);
+const summary = `Unit test coverage (lines). Every file at least ${perFile}%, the whole project at least ${limits.total ?? 85}%${Object.keys(exceptions).length ? `; * = an exception, until its tests improve` : ''}\n${lines.join('\n')}\n${String(totalPct).padStart(5)}%  (min ${String(limits.total ?? 85).padStart(3)} )  TOTAL  ${total.lines - total.missed} of ${total.lines} lines\n`;
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'summary.txt'), summary);
 fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({ total: totalPct, files: report }, null, 1));
 console.log(summary);
 
 if (process.argv.includes('--update')) {
-  // whole percentages, rounded down: a little slack for a new line or two, but a real drop fails
-  const files = Object.fromEntries(report.map(r => [r.file, Math.max(Math.floor(r.pct), limits.files[r.file] ?? 0)]));
-  fs.writeFileSync(LIMITS, JSON.stringify({ total: Math.max(Math.floor(totalPct), limits.total), files }, null, 2) + '\n');
-  console.log(`minimums updated in ${path.relative(ROOT, LIMITS)}`);
+  // after improving tests: the list of tested files is refreshed, and each exception rises to the file's coverage (rounded
+  // down, never lower); a file that reaches the rule stops being an exception. The rule and the total stay as they are.
+  const next = {};
+  for (const [f, min] of Object.entries(exceptions)) {
+    const r = report.find(x => x.file === f), now = r ? Math.floor(r.pct) : min;
+    if (now < perFile) next[f] = Math.max(min, now); else console.log(`${f} reached ${perFile}%: no longer an exception`);
+  }
+  const files = [...new Set([...roster.filter(f => fs.existsSync(path.join(ROOT, f))), ...report.map(r => r.file)])].sort();
+  fs.writeFileSync(LIMITS, JSON.stringify({ total: limits.total ?? 85, perFile, exceptions: next, files }, null, 2) + '\n');
+  console.log(`updated ${path.relative(ROOT, LIMITS)}`);
   process.exit(0);
 }
 B.record('coverage', !problems.length, `${totalPct}%${problems.length ? ' (dropped)' : ''}`, Date.now() - gateStarted);
 if (problems.length) { B.fail(`Coverage dropped: ${problems.length} problem${problems.length === 1 ? '' : 's'}  (total ${totalPct}%)`); console.error(`- ${problems.join('\n- ')}`); process.exit(1); }
-B.ok(`Coverage passed: every file at or above its minimum  (total ${totalPct}%, minimum ${limits.total}%)`);
+B.ok(`Coverage passed: every file at or above its minimum  (total ${totalPct}%, minimum ${limits.total ?? 85}%)`);

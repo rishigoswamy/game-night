@@ -22,22 +22,19 @@ function state(extraMessage = '') {
   return { last: last && fmt(last), asked, next: fmt(up(last, asked)), patch: fmt(up(last, 'patch')), minor: fmt(up(last, 'minor')), major: fmt(up(last, 'major')) };
 }
 
-// For the end of a successful e2e run: the next release and how to make it
+// For the end of a successful run (the ci summary, or e2e on its own): the next release and how to make it. Not how to
+// ask for a bigger bump: the commits are already made by then (the commit-time hint covers that)
 function lines() {
   const s = state();
   if (!s.last) return [
     'Next release: v1.0.0, the first release.',
     'To release: push to main and approve the release candidate on GitHub (Actions → Release),',
     '  or tag it yourself:  git tag v1.0.0 && git push origin v1.0.0',
-    'After that, versions go up by themselves: put [minor] or [major] in a commit message for a bigger bump.',
   ];
   return [
     `Next release: ${s.next} (${s.asked === 'patch' ? `patch; latest release ${s.last}` : `${s.asked}, as a commit since ${s.last} asks`}).`,
     'To release: push to main and approve the release candidate on GitHub (Actions → Release),',
     `  or tag it yourself:  git tag ${s.next} && git push origin ${s.next}`,
-    s.asked === 'major' ? 'A major release (a new game or a big change), as a commit asks.'
-      : s.asked === 'minor' ? `Added a new game? Put [major] in a commit message (→ ${s.major}).`
-      : `Added a feature to a game? Put [minor] in a commit message (→ ${s.minor}). A new game? [major] (→ ${s.major}).`,
   ];
 }
 

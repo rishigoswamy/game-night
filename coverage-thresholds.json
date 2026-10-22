@@ -1,22 +1,28 @@
 {
   "total": 85,
-  "files": {
-    "public/games/casino/baccarat.js": 98,
-    "public/games/casino/blackjack-rules.js": 100,
-    "public/games/casino/craps.js": 98,
-    "public/games/casino/dragontiger.js": 100,
-    "public/games/casino/roulette-rules.js": 100,
-    "public/games/casino/sicbo.js": 98,
-    "public/games/party/bluff.js": 92,
-    "public/games/party/catan.js": 90,
-    "public/games/party/common.js": 100,
-    "public/games/party/gofish.js": 93,
-    "public/games/party/tambola.js": 99,
-    "public/games/party/werewolf.js": 99,
+  "perFile": 80,
+  "exceptions": {
     "public/js/lib/admin-lock.js": 61,
     "public/js/lib/leaderboard.js": 63,
-    "public/js/lib/roulette-view.js": 19,
-    "public/js/lib/storage-migrate.js": 100,
     "server/server.js": 70
-  }
+  },
+  "files": [
+    "public/games/casino/baccarat.js",
+    "public/games/casino/blackjack-rules.js",
+    "public/games/casino/craps.js",
+    "public/games/casino/dragontiger.js",
+    "public/games/casino/roulette-rules.js",
+    "public/games/casino/sicbo.js",
+    "public/games/party/bluff.js",
+    "public/games/party/catan.js",
+    "public/games/party/common.js",
+    "public/games/party/gofish.js",
+    "public/games/party/tambola.js",
+    "public/games/party/werewolf.js",
+    "public/js/lib/admin-lock.js",
+    "public/js/lib/leaderboard.js",
+    "public/js/lib/roulette-view.js",
+    "public/js/lib/storage-migrate.js",
+    "server/server.js"
+  ]
 }

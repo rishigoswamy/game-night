@@ -6,7 +6,7 @@ GitHub after it.
 | Step | Command | What fails it | Time |
 |---|---|---|---|
 | 1. Build check | `npm run check` | A JS file that doesn't parse; a page linking a missing file; a file missing from (or extra in) the offline cache list; a party game not registered everywhere it must be; `public/` changed but the cache `VERSION` in `sw.js` wasn't bumped | seconds |
-| 2. Unit tests + coverage gate | `npm run coverage` | A failing unit test; a file whose share of lines run by the unit tests drops below its minimum in `coverage-thresholds.json`; a new file with no minimum | ~10 s |
+| 2. Unit tests + coverage gate | `npm run coverage` | A failing unit test; a file below 80% of its lines run by the unit tests, or the whole project below 85% (`coverage-thresholds.json`); a tested file that stops being tested | ~10 s |
 | 3. End-to-end tests | `npm run test:e2e` | Any of the browser tests (real games, simulated phones) | ~5 min |
 | 4. Package | `npm run package` | The release zip is missing something or holds what it shouldn't (tests, CI files), or, unpacked somewhere new, it doesn't install, start and serve the main pages | ~15 s |
 
@@ -56,14 +56,18 @@ end-to-end stage may take up to 75 minutes when it has to retry (about 11 normal
 In the pipeline the tests and the gate are separate stages (2 and 3) on the same test run: `coverage.js --tests-only`
 keeps the coverage data in `coverage/raw`, `coverage.js --gate-only` judges it. Locally `npm run coverage` does both.
 
-`coverage-thresholds.json` holds each file's minimum (whole percentages, rounded down from the coverage when it was last
-raised). The report is in `coverage/summary.txt` after each run.
+The rule (`coverage-thresholds.json`): **every file at least 80%** of its lines run by the unit tests, and **the whole
+project at least 85%**. Coverage is measured afresh on every run; these are the bars it's compared with. The report is
+in `coverage/summary.txt` after each run (`*` marks an exception).
 
-- After adding tests, raise the minimums: `npm run coverage -- --update` (it never lowers them), and commit the file.
-- A new file needs a minimum before the gate passes: write its tests, then `--update`.
-- Some files are mostly screen code that only a browser runs (`roulette-view.js` draws the wheel, `admin-lock.js` uses
-  Touch ID / passkeys, `leaderboard.js` draws its dialogs). Their minimums are low on purpose: the end-to-end tests cover
-  them. The game rules (`games/`) are at 90–100%.
+- **Exceptions:** files below 80% today keep their own minimum until their tests improve (`exceptions`; currently
+  `admin-lock.js` 61, `leaderboard.js` 63, `server.js` 70: mostly code only a browser or macOS runs, which the
+  end-to-end tests cover). After improving one, run `npm run coverage -- --update` and commit the file: an exception
+  rises with the coverage (never falls), and leaves the list once its file reaches 80%.
+- **Tested files** (`files`): every file the unit tests run. A file on the list that stops being tested at all fails the
+  gate, even if the total still looks fine. `--update` refreshes the list.
+- **A new file** must reach 80% like any other: no setup needed beyond writing its tests (then `--update` to add it to
+  the list).
 
 ## Before every push (your Mac)
 

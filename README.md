@@ -184,7 +184,7 @@ test/unit/               unit tests (Node's built-in test runner): game rules, l
 test/e2e/                end-to-end tests: real games in a muted Chrome with simulated phones (runner: run.js)
 scripts/                 the pipeline's stages (check, coverage, package, stage, ci), the pre-push hook, serve.sh
 .github/workflows/       the GitHub pipeline (pipeline.yml)
-coverage-thresholds.json each file's minimum unit-test coverage
+coverage-thresholds.json the coverage rule: every file ≥ 80%, the whole project ≥ 85% (and the exceptions)
 docs/                    ARCHITECTURE.md (how it all fits together), CI.md (checks, pipeline, releases), change notes
 ```
 
@@ -209,7 +209,7 @@ docs/                    ARCHITECTURE.md (how it all fits together), CI.md (chec
   each, 10 s apart). Anything that passes only on a retry is flagged yellow as flaky. `TEST_RETRIES=0 STAGE_RETRIES=0`
   turns retries off.
 - **Adding tests:** a new file in `test/unit/` or `test/e2e/` is picked up and counted automatically. A new source file
-  needs a coverage minimum: write its tests, then `npm run coverage -- --update`.
+  must reach 80% unit-test coverage (the whole project 85%); after adding tests, `npm run coverage -- --update`.
 
 **Before you push:** `npm run setup-hooks` (once per clone) installs two git hooks: every `git push` runs `npm run ci`
 first and refuses the push if a stage fails (`git push --no-verify` skips it), and every commit shows which release
