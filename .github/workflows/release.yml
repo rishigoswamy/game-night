@@ -5,12 +5,13 @@
 #   1. Automatically: after every green pipeline run on main, a release candidate. Its version is the next patch after
 #      the latest release, or the next minor / major if a commit since then says [minor] / [major] (scripts/next-version.js).
 #      A newer candidate replaces one still waiting; a rejected or ignored candidate is simply skipped.
-#   2. The Release button: Actions → Release → Run workflow → choose patch / minor / major (or type an exact version).
-#      It releases the latest main, which must have passed the pipeline.
+#   2. A manual release: Actions → Release → Run workflow → choose patch / minor / major (or type an exact version),
+#      and optionally what's in it (the run's title and the start of the release notes). It releases the latest main,
+#      which must have passed the pipeline.
 #   3. A version tag pushed from a Mac (git tag v1.2.0 && git push origin v1.2.0): released once the pipeline passes for it.
 name: Release
 run-name: >-
-  ${{ github.event_name == 'workflow_dispatch' && format('Release button: {0}', inputs.version || inputs.bump)
+  ${{ github.event_name == 'workflow_dispatch' && format('Manual release ({0}){1}', inputs.version && format('v{0}', inputs.version) || inputs.bump, inputs.notes && format(' · {0}', inputs.notes) || '')
   || github.event.workflow_run.conclusion != 'success' && format('No release (pipeline failed) · {0}', github.event.workflow_run.display_title)
   || startsWith(github.event.workflow_run.head_branch, 'v') && format('Release {0} (tag)', github.event.workflow_run.head_branch)
   || format('Release candidate · {0}', github.event.workflow_run.display_title) }}
@@ -28,6 +29,10 @@ on:
         default: patch
       version:
         description: 'Or an exact version, e.g. 1.5.0 (optional; overrides the choice above)'
+        type: string
+        required: false
+      notes:
+        description: "What's in this release (optional): the run's title, and the first line of the release notes on GitHub"
         type: string
         required: false
 permissions:
@@ -55,10 +60,10 @@ jobs:
       - id: sha
         name: The commit to release
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Release button only, from main, and main must have passed the pipeline
+      - name: Manual releases only, from main, and main must have passed the pipeline
         if: github.event_name == 'workflow_dispatch'
         run: |
-          [ "$GITHUB_REF_NAME" = main ] || { echo "Run the Release button from main (Use workflow from: main), not $GITHUB_REF_NAME."; exit 1; }
+          [ "$GITHUB_REF_NAME" = main ] || { echo "Run the manual release from main (Use workflow from: main), not $GITHUB_REF_NAME."; exit 1; }
           green=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/pipeline.yml/runs?head_sha=$(git rev-parse HEAD)&status=success" --jq '.total_count')
           [ "$green" -gt 0 ] || { echo "The latest main ($(git rev-parse --short HEAD)) hasn't passed the pipeline: wait until its run is green, then try again."; exit 1; }
         env:
@@ -76,16 +81,21 @@ jobs:
           PUSHED_TAG: ${{ startsWith(github.event.workflow_run.head_branch, 'v') && github.event.workflow_run.head_branch || '' }}
 
   approve:
-    name: Approve ${{ needs.version.outputs.tag }}
+    name: Approve           # the version is on the run's summary page (job names aren't filled in when a job is skipped)
     needs: version
     if: needs.version.outputs.skip == 'false'
     runs-on: ubuntu-latest
     environment: release         # waits here for a required reviewer: Review deployments → Approve and deploy / Reject
     steps:
-      - run: echo "${{ needs.version.outputs.tag }} approved for commit ${{ needs.version.outputs.sha }}."
+      - run: |
+          echo "$TAG approved for commit ${SHA::7}."
+          echo "### ✅ $TAG approved" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+          SHA: ${{ needs.version.outputs.sha }}
 
   publish:
-    name: Publish ${{ needs.version.outputs.tag }}
+    name: Publish
     needs: [version, approve]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -94,6 +104,7 @@ jobs:
     env:
       TAG: ${{ needs.version.outputs.tag }}
       SHA: ${{ needs.version.outputs.sha }}
+      NOTES: ${{ inputs.notes }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -115,7 +126,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" "$SHA" -m "Game Night $TAG"
           git push origin "$TAG"      # pushed by a workflow, so it doesn't start the pipeline again (the commit already passed)
-      - name: Publish the GitHub release with the zip (notes generated from the changes since the last release)
-        run: gh release create "$TAG" dist/* --verify-tag --title "Game Night $TAG" --generate-notes
+      - name: Publish the GitHub release with the zip (your note first, then the changes since the last release)
+        run: |
+          args=(--verify-tag --title "Game Night $TAG" --generate-notes)
+          [ -n "$NOTES" ] && args+=(--notes "$NOTES")      # gh puts it before the generated list of changes
+          gh release create "$TAG" dist/* "${args[@]}"
+          echo "### 🚀 Published [Game Night $TAG]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"
         env:
           GH_TOKEN: ${{ github.token }}

@@ -4,7 +4,7 @@
 #
 # Runs on every push to a branch, every pull request into main and every version tag pushed from a Mac (the zip is
 # kept as a download for 2 weeks). Releasing happens in release.yml, after this pipeline has passed:
-# a release candidate after every green push to main, the Release button, or a version tag.
+# a release candidate after every green push to main, a manual release (Run workflow), or a version tag.
 name: Pipeline
 on:
   push:

@@ -126,17 +126,17 @@ Version ─▶ Approve vX.Y.Z (waits for you) ─▶ Publish vX.Y.Z
 | Way | How | Version |
 |---|---|---|
 | **Automatic candidate** | After every green pipeline run on `main` | The next **patch** after the latest release, or the next **minor** / **major** if a commit since then says `[minor]` / `[major]` |
-| **Release button** | **Actions → Release → Run workflow** (from `main`) | Pick **patch / minor / major**, or type an exact version (`1.5.0`) |
+| **Manual release** | **Actions → Release → Run workflow** (from `main`); optionally say what's in it (the run's title and the first line of the release notes) | Pick **patch / minor / major**, or type an exact version (`1.5.0`) |
 | **Tag from your Mac** | `git tag v1.5.0 && git push origin v1.5.0`; released once the pipeline passes for it | Exactly that tag |
 
 - **Versions** are `MAJOR.MINOR.PATCH`: patch for fixes and tweaks (`1.4.3 → 1.4.4`), minor for a new feature in a
   game (`→ 1.5.0`), major for a new game or a big change (`→ 2.0.0`). The first release is `v1.0.0`. The next version
   always follows the latest release, however it was made.
 - **Bumping in a commit:** put `[minor]` or `[major]` anywhere in a commit message (title or description); the next
-  candidate after it uses that bump. Major is rare, so it's always a deliberate word or a choice on the button.
+  candidate after it uses that bump. Major is rare, so it's always a deliberate word or a choice in a manual release.
 - **Candidates are skipped freely:** a newer candidate replaces one still waiting, and a rejected or ignored one never
   blocks anything. A commit with nothing new since the last release (or already released) makes no candidate.
-- The button checks that the latest `main` has passed the pipeline; an exact version must be new and higher than the
+- A manual release checks that the latest `main` has passed the pipeline; an exact version must be new and higher than the
   latest release. Mistakes fail in seconds, with the reason on the run's page.
 
 ## Setting up GitHub (once)
@@ -216,7 +216,7 @@ gh pr merge --auto --merge            # merges by itself as soon as the pipeline
 ```
 
 A release: approve the waiting candidate on the latest **Release** run (Actions → Release), or start one yourself
-with the Release button or a tag (see [Releases](#on-github-releases-githubworkflowsreleaseyml)):
+with a manual release or a tag (see [Releases](#on-github-releases-githubworkflowsreleaseyml)):
 
 ```sh
 git switch main && git pull

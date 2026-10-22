@@ -24,7 +24,7 @@ test('the latest release is the highest vX.Y.Z (not the newest in the list, not 
   assert.equal(decide({ tags: ['v1.9.0', 'v1.10.0'], messages: ['x'] }).tag, 'v1.10.1', '1.10 is higher than 1.9');
 });
 
-test('the Release button: the dropdown bumps patch, minor or major; an exact version must be new and higher', () => {
+test('a manual release: the chosen bump raises patch, minor or major; an exact version must be new and higher', () => {
   const tags = ['v1.4.3'];
   assert.equal(decide({ tags, bump: 'patch' }).tag, 'v1.4.4');
   assert.equal(decide({ tags, bump: 'minor' }).tag, 'v1.5.0');

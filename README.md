@@ -225,7 +225,8 @@ its zip):
 - **Automatically:** after every green push to `main` a release candidate waits under **Actions → Release**. It's the
   next patch (fixes, `1.4.3 → 1.4.4`), or the next minor / major if a commit since the last release says **`[minor]`** (a
   new feature in a game, `→ 1.5.0`) or **`[major]`** (a new game, `→ 2.0.0`). Approve it to publish, or ignore / reject it to skip.
-- **Release button:** **Actions → Release → Run workflow**, choose patch / minor / major (or type an exact version).
+- **Manual release:** **Actions → Release → Run workflow**, choose patch / minor / major (or type an exact version), and
+  optionally what's in it: it becomes the run's title and the first line of the release notes.
 - **From your Mac:** `git tag v1.5.0 && git push origin v1.5.0`; released once the pipeline passes.
 
 **Changing the game:** read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the page/module map, how phones and the

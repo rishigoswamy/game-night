@@ -2,7 +2,7 @@
 // Works out which version a release gets (used by .github/workflows/release.yml; docs/CI.md):
 //   - an automatic release candidate: the next PATCH after the latest release, or the next MINOR / MAJOR if a commit
 //     since that release says [minor] / [major];
-//   - the Release button: the bump chosen in its dropdown (patch / minor / major), or an exact version typed in;
+//   - a manual release (Actions → Release → Run workflow): the bump chosen (patch / minor / major), or an exact version;
 //   - a tag pushed from a Mac: that tag.
 // The first release is v1.0.0. A version must be new and higher than the latest release.
 // "Releases" are versions published as GitHub Releases (RELEASED_TAGS), not just any tag: a stray tag can't change the
@@ -29,23 +29,23 @@ function bump(v, part) {
 function decide({ tags = [], taken = tags, messages = [], bump: chosen = '', exact = '', pushedTag = '', alreadyTagged = false }) {
   const last = latest(tags);
   const free = d => (d.tag && !pushedTag && taken.includes(d.tag)
-    ? { error: `${d.tag} is already taken by a tag that was never released (release tags are permanent). Release with an exact, higher version on the Release button.` }
+    ? { error: `${d.tag} is already taken by a tag that was never released (release tags are permanent). Make a manual release with an exact, higher version (Actions → Release → Run workflow).` }
     : d);
   if (pushedTag) {                                                 // a tag pushed from a Mac: release exactly that
     const v = parse(pushedTag);
     if (!v || !pushedTag.startsWith('v')) return { error: `Release tags look like v1.0.1 (got ${pushedTag}).` };
     return { tag: fmt(v), why: `the tag ${pushedTag} pushed from a Mac` };
   }
-  if (exact) {                                                     // an exact version typed on the Release button
+  if (exact) {                                                     // an exact version typed for a manual release
     const v = parse(exact);
     if (!v) return { error: `Type an exact version as 1.0.1 (three numbers). Got: ${exact}` };
     if (tags.includes(fmt(v)) || taken.includes(fmt(v))) return { error: `${fmt(v)} already exists: pick a new version.` };
     if (last && cmp(v, last) <= 0) return { error: `${fmt(v)} isn't higher than the latest release ${fmt(last)}.` };
-    return { tag: fmt(v), why: `the exact version typed on the Release button` };
+    return { tag: fmt(v), why: `the exact version typed for this manual release` };
   }
-  if (chosen) {                                                    // the Release button's dropdown
+  if (chosen) {                                                    // the bump chosen for a manual release
     if (!['patch', 'minor', 'major'].includes(chosen)) return { error: `Unknown bump "${chosen}" (patch, minor or major).` };
-    return free({ tag: fmt(bump(last, chosen)), why: `${chosen} chosen on the Release button${last ? ` (latest release ${fmt(last)})` : ' (first release)'}` });
+    return free({ tag: fmt(bump(last, chosen)), why: `${chosen} chosen for this manual release${last ? ` (latest release ${fmt(last)})` : ' (first release)'}` });
   }
   // an automatic release candidate after a green push to main
   if (alreadyTagged) return { skip: 'this commit is already released' };
