@@ -1,5 +1,5 @@
 // Offline cache for Game Night. Bump VERSION whenever the app files change.
-const VERSION = 'gamenight-v67';
+const VERSION = 'gamenight-v68';
 const FILES = ['./',
   './admin.html',
   './bj-remote.html',
@@ -41,6 +41,7 @@ const FILES = ['./',
   './games/party/catan.js',
   './games/party/common.js',
   './games/party/gofish.js',
+  './games/party/tambola.js',
   './games/party/werewolf.js',
   './js/lib/admin-lock.js',
   './js/lib/casino-sounds.js',

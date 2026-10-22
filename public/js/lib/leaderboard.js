@@ -5,7 +5,8 @@
 const Leaderboard = (() => {
   const KEY = 'gn-leaderboard', KEEP = 100;
   const CASINO = { roulette: 'Roulette', blackjack: 'Blackjack', baccarat: 'Baccarat', dragontiger: 'Dragon Tiger', sicbo: 'Sic Bo', craps: 'Craps' };
-  const PARTY = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff' };
+  const PARTY = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff', tambola: 'Tambola' };
+  const POINTS = { catan: 'Victory points', gofish: 'Books', tambola: 'Prizes' };   // party games whose points are worth showing
   const NAMES = { ...CASINO, ...PARTY };
   const isParty = g => g in PARTY;
   const cents = n => Math.round(n * 100) / 100;
@@ -143,14 +144,14 @@ const Leaderboard = (() => {
   const moneyRow = (e, k, full) => `<tr class="r${k + 1}"><td class="rank">${k === 0 ? '🏆' : k + 1}</td><td class="nm">${esc(e.name)}</td>
     <td class="num ${e.net > 0 ? 'pos' : e.net < 0 ? 'neg' : ''}">${signed(e.net)}</td>${full ? `<td class="num">${money(e.final)}</td><td class="num">${e.rounds}</td><td class="num">${e.best ? '+' + money(e.best) : '—'}</td>` : ''}<td class="num">${fmtDate(e.at)}</td></tr>`;
   const partyRow = (r, k, full, game) => `<tr class="r${k + 1}"><td class="rank">${k === 0 ? '🏆' : k + 1}</td><td class="nm">${esc(r.name)}</td>
-    <td class="num">${r.wins}</td>${full ? `<td class="num">${r.games}</td><td class="num">${Math.round(r.wins / r.games * 100)}%</td>${game === 'catan' || game === 'gofish' ? `<td class="num">${r.points}</td>` : ''}` : ''}<td class="num">${fmtDate(r.at)}</td></tr>`;
+    <td class="num">${r.wins}</td>${full ? `<td class="num">${r.games}</td><td class="num">${Math.round(r.wins / r.games * 100)}%</td>${POINTS[game] ? `<td class="num">${r.points}</td>` : ''}` : ''}<td class="num">${fmtDate(r.at)}</td></tr>`;
   const flushBtn = label => `<button type="button" class="lb-flush" title="Erase this leaderboard (admin)"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1zm2 0h6V7a3 3 0 0 0-6 0v3z"/></svg>${label}</button>`;
   function table(game, n, full) {
     if (isParty(game)) {
       const list = topParty(game, n);
       if (!list.length) return '';
-      const pts = full && (game === 'catan' || game === 'gofish');
-      return `<table><thead><tr><th>#</th><th>Player</th><th class="num">Wins</th>${full ? `<th class="num">Games</th><th class="num">Win rate</th>${pts ? `<th class="num">${game === 'catan' ? 'Victory points' : 'Books'}</th>` : ''}` : ''}<th class="num">Last played</th></tr></thead>
+      const pts = full && POINTS[game];
+      return `<table><thead><tr><th>#</th><th>Player</th><th class="num">Wins</th>${full ? `<th class="num">Games</th><th class="num">Win rate</th>${pts ? `<th class="num">${pts}</th>` : ''}` : ''}<th class="num">Last played</th></tr></thead>
         <tbody>${list.map((r, k) => partyRow(r, k, full, game)).join('')}</tbody></table>`;
     }
     const list = top(game, n);
@@ -202,5 +203,6 @@ const Leaderboard = (() => {
     listeners.push(draw);
     window.addEventListener('storage', e => { if (e.key === KEY) draw(); });
   }
-  return { record, recordParty, top, topParty, count, flush, mount, mountAll, confirmAdmin, NAMES, CASINO, PARTY, isParty };
+  return { record, recordParty, top, topParty, count, flush, mount, mountAll, confirmAdmin, NAMES, CASINO, PARTY, isParty,
+    _test: { table } };   // internals, for the unit tests only
 })();

@@ -134,4 +134,16 @@
   @keyframes pbFace { 0% { opacity: 0; } 40% { opacity: 1; } 92% { opacity: 0; } }
   @keyframes pbBubble { 0% { opacity: 0; transform: translateY(6px); } 10%, 35% { opacity: 1; transform: none; } 45%, 100% { opacity: 0; } }
   @keyframes pbStamp { 0%, 45% { opacity: 0; transform: scale(2) rotate(-20deg); } 55%, 85% { opacity: 1; transform: scale(1) rotate(-12deg); } 100% { opacity: 0; } }
+    /* Tambola: a ball pops out of the cage and lands; numbers get daubed on the ticket */
+  .pt-ball { opacity: 0; } .tb-daub { opacity: 0; }
+  .game:hover .pt-cage { animation: ptSpin 1.2s linear infinite; }
+  .game:hover .pt-ball { animation: ptBall 2.4s cubic-bezier(.3,.7,.4,1) infinite; }
+  .game:hover .tb-daub { animation: ptDaub 2.4s ease-out infinite; }
+  .game:hover .tb-daub.d1 { animation-delay: .25s; } .game:hover .tb-daub.d2 { animation-delay: .5s; }
+  .game:hover .tb-daub.d3 { animation-delay: .75s; } .game:hover .tb-daub.d4 { animation-delay: 1s; }
+  @keyframes ptSpin { to { transform: rotate(360deg); } }
+  @keyframes ptBall { 0% { opacity: 0; transform: translate(-37px, 22px) scale(.3); } 25% { opacity: 1; transform: translate(-10px, -8px) scale(1.1); }
+    45%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+  @keyframes ptDaub { 0%, 30% { opacity: 0; transform: scale(2); } 40%, 85% { opacity: .85; transform: scale(1); } 100% { opacity: 0; } }
+  .tb-daub { transform-box: fill-box; transform-origin: center; }
   @media (prefers-reduced-motion: reduce) { .game:hover .party-icon * { animation: none !important; } }

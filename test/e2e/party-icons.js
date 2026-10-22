@@ -13,8 +13,8 @@ const { spawn } = require('child_process');
     const p = await c.newPage(); p.on('pageerror', e => errs.push(e.message)); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
     await p.goto(`http://localhost:${H.PORT}/party.html`);
     const icons = await p.$$eval('.game .party-icon', s => s.length);
-    console.log(`${motion}: icons`, icons); if (icons !== 4) console.log('BAD expected 4 icons');
-    const parts = { werewolf: '.pw-howl', catan: '.pc-d1', gofish: '.pg-fish', bluff: '.pb-mid' };
+    console.log(`${motion}: icons`, icons); if (icons !== 5) console.log('BAD expected 5 icons');
+    const parts = { werewolf: '.pw-howl', catan: '.pc-d1', gofish: '.pg-fish', bluff: '.pb-mid', tambola: '.pt-ball' };
     for (const [g, sel] of Object.entries(parts)) {
       const card = `.game[href*="g=${g}"]`;
       const anim = s => p.$eval(`${card} ${s}`, e => getComputedStyle(e).animationName);

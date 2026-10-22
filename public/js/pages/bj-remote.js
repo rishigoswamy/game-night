@@ -25,7 +25,7 @@ function post(msg) {
 
 /* ---------- Find the one table (and go to the right page for its game) ---------- */
 // Where each game is played on a phone
-const PAGE_FOR = g => g === 'roulette' ? 'remote.html' : g === 'blackjack' ? 'bj-remote.html' : ['werewolf', 'catan', 'gofish', 'bluff'].includes(g) ? `party-remote.html?g=${g}` : `table-remote.html?g=${g}`;
+const PAGE_FOR = g => g === 'roulette' ? 'remote.html' : g === 'blackjack' ? 'bj-remote.html' : ['werewolf', 'catan', 'gofish', 'bluff', 'tambola'].includes(g) ? `party-remote.html?g=${g}` : `table-remote.html?g=${g}`;
 let findTimer = null;
 async function findTable() {
   clearTimeout(findTimer);
