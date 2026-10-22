@@ -1,0 +1,166 @@
+# Game Night's pipeline (docs/CI.md). One workflow, run in stages; each stage starts only if the one before it passed.
+#
+#   1 · Build ─▶ 2 · Unit tests ─▶ 3 · Coverage ─▶ 4 · End-to-end (macOS) ─▶ 5 · Package ─▶ 6 · Approve ─▶ 7 · Release
+#
+# Every push to a branch and every pull request into main: stages 1–5 (the zip is kept as a download for 2 weeks).
+# A version tag (git tag v1.2.0 && git push origin v1.2.0): all seven. Stage 6 waits for you to click Approve on GitHub
+# (the "release" environment), then stage 7 publishes the GitHub release with the zip.
+name: Pipeline
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: pipeline-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}   # a newer push replaces a running one; releases always finish
+env:
+  RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
+
+jobs:
+  build:
+    name: 1 · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # the cache-version check compares with the previous commit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build check (files parse, links, offline cache, games registered, cache version)
+        run: npm run check -- --base "$BASE"
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+
+  unit:
+    name: 2 · Unit tests
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: All unit tests (recording coverage for the next stage)
+        run: node scripts/coverage.js --tests-only
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-data
+          path: coverage/raw/
+          retention-days: 3
+
+  coverage:
+    name: 3 · Coverage
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4      # same paths as stage 2, so its coverage data lines up with the files
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-data
+          path: coverage/raw/
+      - name: Coverage gate (each file against its minimum in coverage-thresholds.json)
+        run: node scripts/coverage.js --gate-only
+      - name: Coverage table on the run's summary page
+        if: always()
+        run: |
+          if [ -f coverage/summary.txt ]; then { echo '### Unit test coverage'; echo '```'; cat coverage/summary.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            coverage/summary.txt
+            coverage/summary.json
+          if-no-files-found: ignore
+
+  e2e:
+    name: 4 · End-to-end tests (macOS)
+    needs: coverage
+    runs-on: macos-latest       # like the Mac that hosts game night: Chrome is preinstalled
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Real games in Chrome with simulated phones
+        run: npm run test:e2e
+        env:
+          E2E_OUT: ${{ runner.temp }}/e2e
+          E2E_WORKERS: '2'        # CI machines are smaller than a desktop Mac: 2 tests at a time
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-logs-and-screenshots
+          path: ${{ runner.temp }}/e2e
+          if-no-files-found: ignore
+
+  package:
+    name: 5 · Package
+    needs: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build the zip and smoke-test it (unpack, install, start, load the pages)
+        run: npm run package -- "$VERSION"
+        env:
+          VERSION: ${{ env.RELEASE == 'true' && github.ref_name || format('dev-{0}', github.sha) }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game-night-package
+          path: dist/
+          retention-days: 14
+
+  approve:
+    name: 6 · Approve release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    environment: release         # waits here until a required reviewer approves (set up once: docs/CI.md)
+    steps:
+      - run: echo "Release ${{ github.ref_name }} approved. Stages 1–5 passed for ${{ github.sha }}."
+
+  release:
+    name: 7 · Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: approve
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write            # only this stage may publish
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Only from main
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "Tag $GITHUB_REF_NAME is not on main: releases are made from main only."; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-night-package
+          path: dist/
+      - name: Publish the GitHub release with the zip (notes generated from the changes since the last release)
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Game Night $GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

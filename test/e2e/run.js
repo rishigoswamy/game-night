@@ -28,7 +28,7 @@ if (unknown.length) { console.error(`Unknown test(s): ${unknown.join(', ')}\nAva
 // update-bar touches a game file, so every running server would report an update
 const SOLO = new Set(['update-bar']);
 const PORTS = [8091, 8092, 8093].slice(0, Math.max(1, Math.min(3, +process.env.E2E_WORKERS || 3)));
-const work = path.join(os.tmpdir(), 'game-night-e2e');
+const work = process.env.E2E_OUT || path.join(os.tmpdir(), 'game-night-e2e');   // logs and screenshots (CI sets E2E_OUT to keep them)
 fs.mkdirSync(path.join(work, 'shots'), { recursive: true });
 // How long each test took last time, so the longest start first (the run then ends sooner)
 const timesFile = path.join(work, 'times.json');

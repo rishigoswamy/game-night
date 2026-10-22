@@ -172,6 +172,10 @@ docs/                 ARCHITECTURE.md (how it all fits together) and change note
 - **End-to-end tests:** `npm install` once (adds the browser-automation tool), then `npm run test:e2e`, about 5 minutes:
   real games in a muted Chrome (`test/e2e/`), 3 at a time on test ports 8091–8093. Run single ones with e.g.
   `npm run test:e2e -- party-gofish blackjack-phone`; `E2E_WORKERS=1 npm run test:e2e` runs them one at a time.
+- **Before pushing:** `npm run ci` runs the build check, the unit tests with a coverage gate, the end-to-end tests and
+  the package stage (release zip + smoke test);
+  `npm run setup-hooks` makes every `git push` run them first. On GitHub a staged pipeline (Build → Unit tests → Coverage →
+  End-to-end → Package → Approve → Release) gates `main` and releases: see [docs/CI.md](docs/CI.md).
   Needs Google Chrome (set `CHROME_PATH` if it's elsewhere) and a Wi-Fi/LAN connection (tests act as phones through the
   computer's network address). They use ports 8091–8093, never the game's 8080.
 - **Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the page/module map, how phones and the master talk,

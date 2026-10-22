@@ -6,3 +6,9 @@ node_modules/
 
 # Logs
 *.log
+
+# Coverage report (npm run coverage)
+coverage/
+
+# Release zips (npm run package)
+dist/

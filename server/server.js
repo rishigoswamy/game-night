@@ -274,3 +274,5 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`  This computer:  http://localhost:${PORT}`);
   ips.forEach(ip => console.log(`  Phones on Wi-Fi: http://${ip}:${PORT}`));
 });
+// Stopping (Ctrl+C, closing the Terminal, a test ending) exits normally, so Node finishes its own work (e.g. coverage data)
+['SIGINT', 'SIGTERM', 'SIGHUP'].forEach(sig => process.on(sig, () => process.exit(0)));
