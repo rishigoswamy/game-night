@@ -4,7 +4,9 @@
 //   - as git's prepare-commit-msg hook (scripts/hooks/prepare-commit-msg): when git opens the editor for a commit
 //     message, a short guide to [minor] / [major] is added as # comment lines, which git removes from the message;
 //     with `git commit -m`, the same is printed in the terminal instead (comment lines would stay in a -m message).
-// It reads the tags this copy of the repo knows; `git fetch --tags` brings in releases made on GitHub.
+// It reads the tags this copy of the repo knows. Releases are made on GitHub (their tags don't come back with a push), so
+// it keeps them fresh by itself: the summary fetches tags first (it runs while online, e.g. during a push), and a commit's
+// hint starts a quiet fetch in the background afterwards, so the next hint is current without slowing the commit.
 const fs = require('fs');
 const { spawnSync } = require('child_process');
 const { parse, bumpFrom } = require('./next-version');
@@ -24,7 +26,15 @@ function state(extraMessage = '') {
 
 // For the end of a successful run (the ci summary, or e2e on its own): the next release and how to make it. Not how to
 // ask for a bigger bump: the commits are already made by then (the commit-time hint covers that)
+// Bring in tags made on GitHub. wait: block up to a few seconds (the summary); otherwise run in the background
+function refreshTags(wait) {
+  const args = ['fetch', '--quiet', '--tags', 'origin'];
+  if (wait) { spawnSync('git', args, { timeout: 5000, stdio: 'ignore' }); return; }
+  try { require('child_process').spawn('git', args, { detached: true, stdio: 'ignore' }).unref(); } catch {}
+}
+
 function lines() {
+  refreshTags(true);
   const s = state();
   if (!s.last) return [
     'Next release: v1.0.0, the first release.',
@@ -38,7 +48,7 @@ function lines() {
   ];
 }
 
-module.exports = { lines, state };
+module.exports = { lines, state, refreshTags };
 
 // prepare-commit-msg <message file> [source]: source is empty when git opens the editor; "message" for -m / -F;
 // "template", "merge", "squash" or "commit" (amend) otherwise
@@ -70,4 +80,5 @@ if (require.main === module && process.argv[2] === 'commit-msg') {
       process.stderr.write(`\x1b[2mℹ ${hint}\x1b[0m\n`);
     }
   } catch { /* never block a commit over a hint */ }
+  refreshTags(false);                                            // for next time: releases made on GitHub since
 }

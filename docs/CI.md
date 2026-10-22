@@ -84,7 +84,10 @@ The same command installs `scripts/hooks/prepare-commit-msg`: every commit shows
 git removes; with `git commit -m`, one line in the terminal says the version and how to amend for `[minor]` / `[major]`.
 It never blocks a commit. When every stage passes, the summary at the end of `npm run ci` (and of the pre-push
 hook) adds the same reminder: the next version and the commands to release it; a successful `npm run test:e2e` run on
-its own ends with it too. (They read the tags your copy knows; `git fetch --tags` brings in releases made on GitHub.)
+its own ends with it too. (They read the tags your copy knows, and keep them fresh themselves: releases are made on GitHub and their tags don't
+come back with a push, so the summary fetches tags first, and each commit's hint fetches them quietly in the background
+for the next one. Right after a release, one commit's hint can still show the old number; the real version is always
+decided on GitHub.)
 
 ## On GitHub: the pipeline (`.github/workflows/pipeline.yml`)
 
