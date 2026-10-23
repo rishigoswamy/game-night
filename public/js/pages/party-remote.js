@@ -8,6 +8,8 @@ if (!DEVICE) { DEVICE = 'd' + [...crypto.getRandomValues(new Uint8Array(8))].map
 let myName = '';
 try { myName = localStorage.getItem('gn-party-name') || ''; } catch {}
 let token = null, code = null, es = null, ST = null, deadlineAt = null, renaming = false;
+let touching = false, redrawLater = false, viewHTML = '', releaseTimer = null;
+let leaveArmed = false, leaveArmTimer = null;                                         // "Leave now" needs a second tap   // see render(): no redraw under a finger
 // Was this phone seated in this browser tab? Then it rejoins by itself if the Mac reloads. Reopening the page later,
 // or tapping Leave, shows the join form instead (your last name filled in, so you can keep it or pick another).
 const SEATED = 'gn-party-seated';
@@ -89,6 +91,10 @@ function render() {
   $('#leavePanel').hidden = !(seated && phase === 'game');
   $('#leaveText').textContent = ST.leaving ? "You'll leave the table when this game ends." : 'Need to go? You can leave once this game is over.';
   $('#leaveLaterBtn').textContent = ST.leaving ? 'Stay for the next game' : 'Leave after this game';
+  // games that can go on without a player (e.g. Catan) also let you leave right away: tap twice, to be sure
+  $('#leaveNowBtn').hidden = !G?.playerLeft;
+  $('#leaveNowBtn').textContent = leaveArmed ? 'Tap again to leave now' : 'Leave now';
+  $('#leaveNowBtn').classList.toggle('danger', leaveArmed);
   $('#seatsA').innerHTML = seatsHTML;
   if (!seated && !$('#nameIn').value && myName) $('#nameIn').value = myName;
   $('#lobbyPanel').hidden = !((seated && (phase === 'lobby' || phase === 'end')) || ST.waiting);
@@ -98,8 +104,11 @@ function render() {
   $('#seatsB').innerHTML = seatsHTML;
   $('#viewPanel').hidden = !(seated && ST.view && phase !== 'lobby');
   if (!$('#viewPanel').hidden) {
-    $('#view').innerHTML = G.phoneHTML(ST.view, local, { esc, me: ST.me, seats: ST.seats });
-    G.phoneAfter?.($('#view'), ST.view, local);
+    // Redraw only when something changed, and never under a finger: replacing the button being touched can lose the
+    // tap (iPhone Safari drops it), so an update that lands mid-tap waits until just after it
+    const html = G.phoneHTML(ST.view, local, { esc, me: ST.me, seats: ST.seats });
+    if (touching) redrawLater = true;
+    else if (html !== viewHTML) { $('#view').innerHTML = viewHTML = html; G.phoneAfter?.($('#view'), ST.view, local); }
   }
   $('#endPanel').hidden = !(phase === 'end' && ST.end);
   if (ST.end) {
@@ -122,8 +131,17 @@ function tick() {
 }
 setInterval(tick, 250);
 
+const touchEnd = () => {
+  clearTimeout(releaseTimer);
+  releaseTimer = setTimeout(() => { touching = false; if (redrawLater) { redrawLater = false; render(); } }, 120);   // after the click has fired
+};
+$('#view').addEventListener('pointerdown', () => { touching = true; clearTimeout(releaseTimer); releaseTimer = setTimeout(touchEnd, 1500); });   // never hold for long
+$('#view').addEventListener('pointerup', touchEnd);
+$('#view').addEventListener('pointercancel', touchEnd);
 // Taps on the game view: the game module handles local choices (picking cards…); [data-act] buttons go to the Mac
 $('#view').addEventListener('click', e => {
+  clearTimeout(releaseTimer); touching = false;            // the tap is done: redraw now (with any update that waited)
+  if (redrawLater) { redrawLater = false; render(); }
   const el = e.target.closest('[data-act], [data-local]');
   if (!el || el.disabled || !ST?.view) return;
   const send = msg => post({ type: 'act', ...msg });
@@ -143,6 +161,13 @@ $('#nameForm').addEventListener('submit', e => {
 });
 $('#leaveBtn').addEventListener('click', () => { leaving = true; setSeated(false); renaming = false; post({ type: 'leave' }); });
 $('#renameBtn').addEventListener('click', () => { renaming = true; render(); $('#nameIn').value = myName; $('#nameIn').select(); });
+$('#leaveNowBtn').addEventListener('click', () => {
+  clearTimeout(leaveArmTimer);
+  if (!leaveArmed) { leaveArmed = true; leaveArmTimer = setTimeout(() => { leaveArmed = false; render(); }, 4000); return render(); }
+  leaveArmed = false; leaving = true; setSeated(false);
+  post({ type: 'leave', now: true });
+  render();
+});
 $('#leaveLaterBtn').addEventListener('click', () => {
   const stay = !!ST?.leaving;
   setSeated(stay);

@@ -46,6 +46,8 @@ const { setup } = require('./party-setup');
       }
       const ghost = phones.find((_, k) => !s.alive[k]);
       if (ghost && !ghostSeen) {
+        // the phone gets its new view a moment after the death (updates are pushed in batches)
+        await ghost.p.waitForFunction(() => ST.view && !ST.view.alive && ST.view.players.every(x => x.role), null, { timeout: 5000 }).catch(() => {});
         const g = await ghost.p.evaluate(() => ST.view);
         ghostSeen = true;
         bad(g.players.every(x => x.role), `${ghost.name}, out of the game, sees every role`);

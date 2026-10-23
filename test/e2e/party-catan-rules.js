@@ -8,7 +8,9 @@ const { setup } = require('./party-setup');
   const out = await mac.evaluate(() => {
     const ctx = P.ctx, st = ctx.state, G = PARTY_GAME, log = [];
     const act = (i, m) => G.act(ctx, i, m);
-    // play the setup through the game's own rules: first legal spots
+    // keep the first island and roll for turn order, then play the setup through the game's own rules: first legal spots
+    G.hostAct(ctx, { host: 'useBoard' });
+    while (st.step === 'order') act(st.turn, { act: 'orderRoll' });
     while (st.step.startsWith('setup')) {
       const v = G.view(ctx, st.turn);
       if (st.step === 'setup-settle') act(st.turn, { act: 'build', kind: 'settlement', at: v.legal.settlement[0] });

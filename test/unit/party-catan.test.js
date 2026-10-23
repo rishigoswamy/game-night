@@ -1,7 +1,7 @@
 // Catan rules (public/games/party/catan.js)
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { loadScripts, plain, partyCtx, seededRand, seededShuffle } = require('./helpers');
+const { loadScripts, plain, partyCtx, seededRand, seededShuffle, flush } = require('./helpers');
 
 const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
 const load = () => loadScripts(['games/party/common.js', 'games/party/catan.js']).PARTY_GAME;
@@ -58,6 +58,36 @@ test('new boards (50 of them) are fair: right tiles and numbers, no 6/8 neighbou
     assert.deepEqual(plain(b.ports.map(p => p.type)).sort(), ['any', 'any', 'any', 'any', 'brick', 'ore', 'sheep', 'wheat', 'wood']);
     for (const p of b.ports) assert.ok(b.edges.some(e => e.hexes.length === 1 && ((e.a === p.a && e.b === p.b) || (e.a === p.b && e.b === p.a))), 'harbours sit on the coast');
   }
+});
+
+test('harbours: 9 fixed spots on the sea frame, evenly spread with no shared corners; only their types are shuffled', () => {
+  const { newBoard, seaRing } = T();
+  assert.equal(seaRing().length, 18);
+  const spots = new Set(), types = new Set();
+  for (let seed = 1; seed <= 20; seed++) {
+    const rand = seededRand(seed), b = newBoard(rand, seededShuffle(rand));
+    spots.add(JSON.stringify(plain(b.ports.map(p => [p.a, p.b]))));
+    types.add(b.ports.map(p => p.type).join());
+    // along the 30 coast edges (in order around the island) the harbours are 3 or 4 edges apart
+    const coast = b.edges.map((e, i) => ({ e, i })).filter(o => o.e.hexes.length === 1)
+      .sort((x, y) => { const ang = o => { const a = b.verts[o.e.a], c = b.verts[o.e.b]; return Math.atan2(a.y + c.y, a.x + c.x); }; return ang(x) - ang(y); });
+    const at = b.ports.map(p => coast.findIndex(o => [o.e.a, o.e.b].sort().join() === [p.a, p.b].sort().join())).sort((x, y) => x - y);
+    assert.ok(at.every(k => k >= 0), 'every harbour is on a coast edge');
+    const gaps = at.map((k, j) => (at[(j + 1) % 9] - k + 30) % 30);
+    assert.ok(gaps.every(g => g === 3 || g === 4), `gaps ${gaps}`);
+    assert.equal(new Set(b.ports.flatMap(p => [p.a, p.b])).size, 18, 'no two harbours share a corner');
+    for (const p of b.ports) assert.ok(Math.abs(p.x) + .34 <= 5.55 && Math.abs(p.y) + .34 <= 4.95, 'the token fits on the board (not cut off)');
+  }
+  assert.equal(spots.size, 1, 'the spots are fixed, like the printed frame');
+  assert.ok(types.size > 1, 'the harbour types are shuffled');
+});
+
+test('the robber starts in the middle of the desert (no number token there)', () => {
+  const { t, st } = bareState(4);
+  const svg = t.boardSVG(t.boardData(st), ['#f00', '#0f0', '#00f']), d = st.board.hexes[st.board.robber];
+  const [, cx] = svg.match(/<g pointer-events="none"><circle cx="([-\d.]+)"/);     // the robber is drawn first (with its hex)
+  assert.equal(cx, (d.x * 46).toFixed(1));
+  assert.ok(svg.includes('🦹'));
 });
 
 /* ---------------- Placement ---------------- */
@@ -177,6 +207,8 @@ test('production: when the bank runs short, nobody gets that resource, unless on
 async function game(n = 3, opts = {}) {
   const G = load(), ctx = partyCtx(n, { opts, rand: seededRand(11) });
   await G.start(ctx);
+  G.hostAct(ctx, { host: 'useBoard' });                                // keep the first island
+  while (ctx.state.step === 'order') G.act(ctx, ctx.state.turn, { act: 'orderRoll' });
   return { G, ctx, st: ctx.state };
 }
 function playSetup(G, ctx, st) {
@@ -292,18 +324,79 @@ test('development cards: Monopoly, Year of Plenty and Road Building', async () =
   assert.ok(conserved(st));
 });
 
-test('trading: bank rates are enforced; a player trade happens only if both still have the cards', async () => {
+test('trading with players: offers to everyone or to chosen players, requests to the active player; accept, decline, counter', async () => {
   const { G, ctx, st } = await game(3);
   playSetup(G, ctx, st);
-  const p = st.turn, q = (p + 1) % 3;
+  const p = st.turn, q = (p + 1) % 3, o = (p + 2) % 3, both = () => ({ p: plain(st.res[p]), q: plain(st.res[q]), o: plain(st.res[o]) });
+  setHand(st, p, { wood: 3 }); setHand(st, q, { ore: 1 }); setHand(st, o, { sheep: 1 });
+  assert.match(G.act(ctx, o, { act: 'offer', give: 'sheep', want: 'wood' }), /once .* has rolled/, 'no trading before the roll');
   st.step = 'main';
-  setHand(st, p, { wood: 3 }); setHand(st, q, { ore: 1 });
-  const rate = G._test.ratio(st, p, 'wood');
-  if (rate === 4) assert.match(G.act(ctx, p, { act: 'bank', give: 'wood', get: 'ore' }), /need 4/);
+  // to everyone: several answers, so the offerer picks one
   assert.equal(G.act(ctx, p, { act: 'offer', give: 'wood', want: 'ore' }), undefined);
-  assert.match(G.act(ctx, (p + 2) % 3, { act: 'accept' }), /don't have/);
-  assert.equal(G.act(ctx, q, { act: 'accept' }), undefined);
-  assert.equal(st.res[p].ore, 1); assert.equal(st.res[q].wood, 1); assert.equal(st.offer, null);
+  assert.deepEqual(plain(st.trades[0].to), [q, o].sort((x, y) => x - y));
+  assert.match(G.act(ctx, o, { act: 'reply', id: st.trades[0].id, r: 'accept' }), /don't have/);
+  G.act(ctx, o, { act: 'reply', id: st.trades[0].id, r: 'decline' });
+  const before = both();
+  G.act(ctx, q, { act: 'reply', id: st.trades[0].id, r: 'accept' });
+  assert.deepEqual(both(), before, 'nothing moves until the offerer confirms');
+  assert.match(G.act(ctx, p, { act: 'confirm', id: st.trades[0].id, p: o }), /haven't agreed/);
+  assert.equal(G.act(ctx, p, { act: 'confirm', id: st.trades[0].id, p: q }), undefined);
+  assert.equal(st.res[p].ore, 1); assert.equal(st.res[q].wood, 1); assert.equal(st.trades.length, 0);
+  // to one chosen player: their yes is the trade
+  setHand(st, q, { ore: 1 });
+  G.act(ctx, p, { act: 'offer', give: 'wood', want: 'ore', to: String(q) });
+  assert.deepEqual(plain(st.trades[0].to), [q]);
+  assert.match(G.act(ctx, o, { act: 'reply', id: st.trades[0].id, r: 'accept' }), /no longer open/, 'not sent to them');
+  G.act(ctx, q, { act: 'reply', id: st.trades[0].id, r: 'accept' });
+  assert.equal(st.res[q].wood, 1); assert.equal(st.trades.length, 0);
+  // a counter-offer (several resources on each side) goes back to the offerer
+  setHand(st, p, { wood: 3, brick: 1 }); setHand(st, q, { ore: 2, wheat: 1 });
+  G.act(ctx, p, { act: 'offer', give: 'wood', want: 'ore', to: String(q) });
+  assert.match(G.act(ctx, q, { act: 'reply', id: st.trades[0].id, r: 'counter', give: 'wood,wood,brick', want: 'ore,ore,ore' }), /don't have the cards you would give/);
+  G.act(ctx, q, { act: 'reply', id: st.trades[0].id, r: 'counter', give: 'wood,wood,brick', want: 'ore,wheat' });
+  assert.equal(st.res[q].ore, 2, 'a counter waits for the offerer');
+  G.act(ctx, p, { act: 'confirm', id: st.trades[0].id, p: q });
+  assert.deepEqual(plain(st.res[p]), { wood: 1, brick: 0, sheep: 0, wheat: 1, ore: 1 });
+  assert.deepEqual(plain(st.res[q]), { wood: 2, brick: 1, sheep: 0, wheat: 0, ore: 1 });
+  // a request from another player to the active player; a new one replaces the old
+  setHand(st, o, { sheep: 2 });
+  G.act(ctx, o, { act: 'offer', give: 'sheep', want: 'wood' });
+  G.act(ctx, o, { act: 'offer', give: 'sheep,sheep', want: 'wood' });
+  assert.equal(st.trades.length, 1); assert.deepEqual(plain(st.trades[0].to), [p], 'a request always goes to the active player');
+  assert.equal(st.trades[0].give.sheep, 2);
+  assert.ok(!JSON.stringify(G.view(ctx, q).trades).includes('sheep'), 'others don\'t see it');
+  G.act(ctx, p, { act: 'reply', id: st.trades[0].id, r: 'accept' });
+  assert.equal(st.res[p].sheep, 2); assert.equal(st.res[o].wood, 1);
+  // offline players can't be sent a trade; "everyone" means everyone online
+  ctx.online = k => k !== o;
+  setHand(st, p, { ...st.res[p], wood: 2 });
+  assert.match(G.act(ctx, p, { act: 'offer', give: 'wood', want: 'ore', to: String(o) }), /offline/);
+  G.act(ctx, p, { act: 'offer', give: 'wood', want: 'ore' });
+  assert.deepEqual(plain(st.trades[0].to), [q]);
+  assert.equal(G.view(ctx, p).players.find(x => x.i === o).online, false);
+  G.act(ctx, p, { act: 'withdraw' });
+  assert.equal(st.trades.length, 0);
+  G.act(ctx, p, { act: 'offer', give: 'wood', want: 'ore' });
+  G.act(ctx, p, { act: 'end' });
+  assert.equal(st.trades.length, 0, 'open trades end with the turn');
+  assert.ok(conserved(st));
+});
+
+test('trading with the bank: mix resources and rates in one trade, in whole lots at your rates', async () => {
+  const { G, ctx, st } = await game(3);
+  playSetup(G, ctx, st);
+  const p = st.turn, rate = r => G._test.ratio(st, p, r);
+  st.step = 'main';
+  setHand(st, p, { wood: 3 });
+  if (rate('wood') === 4) assert.match(G.act(ctx, p, { act: 'bank', give: 'wood', get: 'ore' }), /need 4/, 'a single resource means one lot at your rate');
+  const [a, b] = ['wood', 'sheep'], la = rate(a), lb = rate(b);
+  setHand(st, p, { [a]: la + 1, [b]: lb });
+  const cards = (r, n) => Array(n).fill(r);
+  assert.match(G.act(ctx, p, { act: 'bank', give: [...cards(a, la + 1), ...cards(b, lb)].join(','), get: 'brick,wheat' }), /at a time/);
+  assert.match(G.act(ctx, p, { act: 'bank', give: [...cards(a, la), ...cards(b, lb)].join(','), get: 'brick' }), /buys 2 cards/);
+  assert.match(G.act(ctx, p, { act: 'bank', give: [...cards(a, la), ...cards(b, lb)].join(','), get: 'wood,wheat' }), /take back/);
+  assert.equal(G.act(ctx, p, { act: 'bank', give: [...cards(a, la), ...cards(b, lb)].join(','), get: 'brick,wheat' }), undefined);
+  assert.deepEqual(plain(st.res[p]), { ...empty(), [a]: 1, brick: 1, wheat: 1 });
   assert.ok(conserved(st));
 });
 
@@ -353,6 +446,260 @@ test('300 turns of random legal play never create or lose a resource', async () 
   [0, 1, 2, 3].forEach(p => {
     assert.ok(G._test.count(st, p, 'road') <= 15); assert.ok(G._test.count(st, p, 'settlement') <= 5); assert.ok(G._test.count(st, p, 'city') <= 4);
   });
+});
+
+test('before setup: the host keeps the island or shuffles a new one; then everyone rolls for turn order', async () => {
+  const { firstPlayer, seatOrder } = T();
+  assert.equal(firstPlayer([{ p: 2, t: 9 }, { p: 0, t: 11 }, { p: 1, t: 11 }]), 0, 'a tie on 11: whoever rolled it first starts');
+  assert.equal(firstPlayer([{ p: 1, t: 4 }, { p: 2, t: 12 }, { p: 0, t: 7 }]), 2);
+  assert.deepEqual(plain(seatOrder({ first: 2 }, 4)), [2, 3, 0, 1], 'then seat order from the starter');
+  const G = load(), ctx = partyCtx(4, { rand: seededRand(3) });
+  await G.start(ctx);
+  const st = ctx.state;
+  assert.equal(st.step, 'board'); assert.deepEqual(plain(G.view(ctx, 0).legal), {});
+  assert.equal(G.act(ctx, 0, { act: 'orderRoll' }), undefined); assert.equal(st.order, null, 'no rolling before the island is chosen');
+  const layout = () => JSON.stringify(st.board.hexes.map(h => h.res + h.num));
+  const first = layout();
+  G.hostAct(ctx, { host: 'newBoard' });
+  assert.notEqual(layout(), first, 'a new island'); assert.equal(st.boards, 2);
+  G.hostAct(ctx, { host: 'useBoard' });
+  assert.equal(st.step, 'order');
+  assert.deepEqual(plain(st.order.queue).sort(), [0, 1, 2, 3]);
+  assert.match(G.act(ctx, st.order.queue[1], { act: 'orderRoll' }), /not your turn/, 'players roll when called');
+  const kept = layout();
+  G.hostAct(ctx, { host: 'newBoard' });
+  assert.equal(layout(), kept, 'the island is fixed once chosen');
+  while (st.step === 'order') G.act(ctx, st.turn, { act: 'orderRoll' });
+  assert.deepEqual(plain(st.order.rolls.map(r => r.p)), plain(st.order.queue), 'each player rolled once, in the called order');
+  assert.equal(st.first, firstPlayer(st.order.rolls));
+  assert.ok(ctx.logLines.some(l => l.includes('Turn order:')));
+  const f = st.first, v = plain(G.view(ctx, 0));
+  assert.ok(v.ordered); assert.deepEqual(v.players.map(p => p.i), [0, 1, 2, 3].map(k => (f + k) % 4), 'phones list players in turn order');
+  assert.deepEqual(playSetup(G, ctx, st), [0, 1, 2, 3, 3, 2, 1, 0].map(k => (f + k) % 4).map((x, j) => (j < 4 ? x : (f + 7 - j) % 4)));
+  assert.equal(st.turn, f);
+});
+
+test('turn timer: when time runs out the game plays on for you (order roll, setup, roll, discards, robber, end of turn)', async () => {
+  const G = load(), ctx = partyCtx(3, { opts: { turnTime: 60 }, rand: seededRand(5) });
+  await G.start(ctx);
+  const st = ctx.state;
+  assert.equal(st.turnTime, 60);
+  G.hostAct(ctx, { host: 'useBoard' });
+  while (st.step === 'order') { ctx.expire(); await flush(); }
+  assert.equal(st.order.rolls.length, 3, 'nobody tapped: everyone was rolled for');
+  for (let k = 0; k < 10 && st.step.startsWith('setup'); k++) { ctx.expire(); await flush(); }
+  assert.equal(st.step, 'roll'); assert.equal(Object.keys(st.bld).length, 6); assert.equal(Object.keys(st.roads).length, 6);
+  // a 7 while another player holds 8 cards: the discard clock runs out, then the turn clock
+  const p = st.turn, q = (p + 1) % 3;
+  setHand(st, q, { wood: 4, brick: 4 });
+  const keep = ctx.rand;
+  ctx.rand = (() => { const seq = [2, 3]; let i = 0; return () => seq[i++ % 2]; })();   // dice 3 + 4
+  G.act(ctx, p, { act: 'roll' });
+  ctx.rand = keep;
+  assert.equal(st.step, 'discard');
+  ctx.expire(); await flush();
+  assert.equal(hand(st)[q], 4, 'random discard of half');
+  assert.equal(st.step, 'robber');
+  ctx.expire(); await flush();
+  assert.equal(st.turn, (p + 1) % 3, 'the robber was moved for them and the turn passed on');
+  assert.equal(st.step, 'roll');
+  assert.ok(ctx.logLines.some(l => l.includes("Time's up")));
+  assert.ok(conserved(st));
+  // the next player sits it out entirely: rolled for, then the turn ends
+  const r = st.turn;
+  st.trades = [{ id: 99, from: r, to: [(r + 1) % 3], give: { ...empty(), wood: 1 }, want: { ...empty(), ore: 1 }, replies: {} }];
+  ctx.expire(); await flush();
+  assert.notEqual(st.turn, r); assert.ok(st.turnNo > 1); assert.equal(st.trades.length, 0, 'an open offer is withdrawn');
+});
+
+test('cards changing hands: production from the hex, a steal face down for all but the two players, development cards never named', async () => {
+  const { G, ctx, st } = await game(3);
+  playSetup(G, ctx, st);
+  assert.ok(st.flows.some(f => /^h\d+$/.test(f.from) && typeof f.to === 'number'), 'the second settlements collected from their hexes');
+  const p = st.turn, q = (p + 1) % 3, o = (p + 2) % 3, H = { esc: x => x, color: () => '#888' }, HP = { esc: x => x, me: q, seats: [] };
+  const localQ = {};
+  G.hostHTML(ctx, H); G.phoneHTML(plain(G.view(ctx, q)), localQ, HP);         // what's on screen before
+  setHand(st, q, { ore: 2 });
+  st.step = 'robber'; st.afterRobber = 'main';
+  const qv = Object.keys(st.bld).map(Number).find(v => st.bld[v].p === q);
+  G.act(ctx, p, { act: 'robber', h: st.board.verts[qv].hexes.find(h => h !== st.board.robber) });
+  if (st.step === 'steal') G.act(ctx, p, { act: 'steal', p: q });
+  const last = st.flows.at(-1);
+  assert.deepEqual([last.from, last.to, last.r, last.secret], [q, p, 'ore', true]);
+  assert.equal(G.view(ctx, p).flows.at(-1).r, 'ore'); assert.equal(G.view(ctx, q).flows.at(-1).r, 'ore');
+  assert.equal(G.view(ctx, o).flows.at(-1).r, 'hidden', 'the third player only sees a card back');
+  assert.equal(G._test.flowsFor(st, -1).at(-1).r, 'hidden', 'so does the Mac');
+  const host = G.hostHTML(ctx, H);
+  assert.match(host, /cat-glow/); assert.match(host, /−1 🂠/); assert.ok(!host.includes('−1 ⛰️'), 'the Mac doesn\'t name the stolen card');
+  assert.match(G.phoneHTML(plain(G.view(ctx, q)), localQ, HP), /r-ore cat-down" data-d="-1"/, 'the victim\'s ore glows red');
+  // buying a development card: a purple back, never the card
+  st.step = 'main';
+  setHand(st, p, { sheep: 1, wheat: 1, ore: 1 });
+  st.devDeck.push('monopoly');
+  G.act(ctx, p, { act: 'buydev' });
+  assert.equal(st.flows.at(-1).r, 'dev');
+  for (const i of [0, 1, 2]) assert.ok(!JSON.stringify(G.view(ctx, i).flows).includes('monopoly'));
+  // a bank trade: the cards go to the bank, one comes back
+  setHand(st, p, { wood: 4 });
+  G.act(ctx, p, { act: 'bank', give: 'wood', get: 'brick' });
+  const [give, get] = st.flows.slice(-2);
+  assert.equal(give.to, 'bank'); assert.equal(give.r, 'wood'); assert.ok(give.n >= 2);
+  assert.deepEqual([get.from, get.to, get.r, get.n], ['bank', p, 'brick', 1]);
+});
+
+test('dice: everyone sees both dice of every roll (and the last roll until the next one)', async () => {
+  const { G, ctx, st } = await game(3);
+  const HP = { esc: x => x, me: 0, seats: [] }, dieCount = html => (html.match(/class="cat-die"/g) || []).length;
+  assert.ok(st.order.rolls.every(r => r.d.length === 2 && r.t === r.d[0] + r.d[1]));
+  assert.ok(ctx.logLines.some(l => /for turn order/.test(l) && /\(\d \+ \d\)/.test(l)), 'the log shows both dice');
+  playSetup(G, ctx, st);
+  const p = st.turn;
+  G.act(ctx, p, { act: 'roll' });
+  for (const i of [0, 1, 2]) {
+    const v = plain(G.view(ctx, i));
+    assert.deepEqual(v.dice, plain(st.dice), 'every phone gets both dice');
+    assert.equal(dieCount(G.phoneHTML(v, {}, { ...HP, me: i })), 2);
+  }
+  assert.equal(dieCount(G.hostHTML(ctx, { esc: x => x, color: () => '#888' })), 2);
+  assert.ok(ctx.said.some(t => new RegExp(`rolls ${st.dice[0]} and ${st.dice[1]}`).test(t)));
+  // the next turn: no new roll yet, so everyone still sees who rolled what last
+  if (st.step === 'discard') Object.keys(st.discards).forEach(q => G.act(ctx, +q, { act: 'discard', res: RES.flatMap(r => Array(st.res[q][r]).fill(r)).slice(0, st.discards[q]).join(',') }));
+  if (st.step === 'robber') G.act(ctx, p, { act: 'robber', h: G.view(ctx, p).legal.robber[0] });
+  if (st.step === 'steal') G.act(ctx, p, { act: 'steal', p: st.victims[0] });
+  const last = plain(st.dice);
+  G.act(ctx, p, { act: 'end' });
+  const v = plain(G.view(ctx, (p + 2) % 3));
+  assert.equal(v.dice, null); assert.deepEqual(v.lastRoll, { name: ctx.players[p].name, d: last });
+  assert.equal(dieCount(G.phoneHTML(v, {}, HP)), 2);
+});
+
+test('phone board: big invisible tap areas around corners and roads, not overlapping their neighbours', async () => {
+  const { G, ctx, st } = await game(3);
+  const t = G._test, b = t.boardData(st);
+  const corners = G.view(ctx, st.turn).legal.settlement;
+  const svg = t.boardSVG(b, ['#f00', '#0f0', '#00f'], { hl: { settlement: corners } });
+  assert.equal((svg.match(/r="21" fill="transparent" class="pick-hit"/g) || []).length, corners.length);
+  const d = Math.min(...st.board.edges.map(e => Math.hypot(st.board.verts[e.a].x - st.board.verts[e.b].x, st.board.verts[e.a].y - st.board.verts[e.b].y))) * 46;
+  assert.ok(2 * 21 < d, 'neighbouring corner targets (one edge apart) don\'t overlap');
+  const roads = t.boardSVG(b, ['#f00', '#0f0', '#00f'], { hl: { road: [0, 1, 2] } });
+  assert.equal((roads.match(/stroke-width="30" class="pick-hit"/g) || []).length, 3);
+});
+
+/* ---------------- Leaving mid-game ---------------- */
+// Roads of exactly `len` edges, on corners nobody else uses (so the lengths are exact)
+function giveRoad(st, p, len) {
+  const used = new Set(Object.keys(st.roads).flatMap(e => [st.board.edges[e].a, st.board.edges[e].b]));
+  for (let v = 0; v < st.board.verts.length; v++) {
+    if (used.has(v)) continue;
+    const seen = new Set([v]), edges = [];
+    const go = (at, left) => {
+      if (!left) return true;
+      for (const e of st.board.verts[at].edges) {
+        const ed = st.board.edges[e], w = ed.a === at ? ed.b : ed.a;
+        if (seen.has(w) || used.has(w) || st.board.verts[w].adj.some(x => used.has(x) && !seen.has(x))) continue;
+        seen.add(w); edges.push(e);
+        if (go(w, left - 1)) return true;
+        seen.delete(w); edges.pop();
+      }
+      return false;
+    };
+    if (go(v, len)) { edges.forEach(e => { st.roads[e] = p; }); return; }
+  }
+  throw new Error('no room for a road of ' + len);
+}
+async function leaveGame(n = 3) {
+  const g = await game(n);
+  playSetup(g.G, g.ctx, g.st);
+  g.st.bld = {}; g.st.roads = {}; g.st.longestRoad = null; g.st.largestArmy = null;
+  return g;
+}
+
+test('a player leaves: their pieces come off, their cards go back, their turn passes, trades with them end', async () => {
+  const { G, ctx, st } = await leaveGame(3);
+  const p = st.turn, q = (p + 1) % 3, o = (p + 2) % 3;
+  giveRoad(st, q, 3); st.bld[st.board.edges[Object.keys(st.roads)[0]].a] = { p: q, city: true };
+  setHand(st, q, { wood: 2, ore: 3 });
+  st.dev[q] = [{ type: 'knight' }, { type: 'vp' }];
+  const deck = st.devDeck.length;
+  st.step = 'main';
+  setHand(st, p, { sheep: 1 });
+  G.act(ctx, p, { act: 'offer', give: 'sheep', want: 'ore' });
+  G.act(ctx, o, { act: 'offer', give: 'brick', want: 'wood' });     // o has no brick: refused, fine
+  G.playerLeft(ctx, q);
+  assert.ok(!Object.values(st.roads).includes(q) && !Object.values(st.bld).some(b => b.p === q), 'roads and buildings are gone');
+  assert.equal(hand(st)[q], 0); assert.ok(conserved(st), 'their cards are back in the bank');
+  assert.equal(st.devDeck.length, deck + 2, 'their development cards are back in the deck');
+  assert.deepEqual(plain(st.trades[0].to), [o], 'an offer to everyone now goes to the others only');
+  assert.match(G.act(ctx, p, { act: 'offer', give: 'sheep', want: 'ore', to: String(q) }), /offline/);
+  assert.equal(G.view(ctx, p).players.find(x => x.i === q).left, true);
+  // the player on turn leaves: the next one plays, and the leaver is skipped from now on
+  G.playerLeft(ctx, p);
+  assert.ok(ctx.ended, 'two of three left: the last one wins');
+  assert.equal(ctx.ended.results.find(r => r.won).name, ctx.players[o].name);
+  assert.deepEqual(ctx.ended.results.filter(r => r.left).map(r => r.name).sort(), [ctx.players[p].name, ctx.players[q].name].sort());
+});
+
+test('a player leaves on their turn: the turn passes on, and seat order skips them', async () => {
+  const { G, ctx, st } = await leaveGame(4);
+  const p = st.turn, nx = (p + 1) % 4;
+  st.step = 'main';
+  G.playerLeft(ctx, nx);                              // the next player leaves first
+  G.playerLeft(ctx, p);                               // then the player on turn
+  assert.equal(st.turn, (p + 2) % 4); assert.equal(st.step, 'roll');
+  G.act(ctx, st.turn, { act: 'roll' });
+  if (st.step === 'main') { G.act(ctx, st.turn, { act: 'end' }); assert.equal(st.turn, (p + 3) % 4); }
+});
+
+test('leaving during setup and during the roll for turn order', async () => {
+  const G = load(), ctx = partyCtx(4, { rand: seededRand(8) });
+  await G.start(ctx);
+  const st = ctx.state;
+  G.hostAct(ctx, { host: 'useBoard' });
+  const first = st.turn;
+  G.act(ctx, first, { act: 'orderRoll' });
+  G.playerLeft(ctx, first);                           // rolled, then left: their roll doesn't count
+  assert.ok(!st.order.rolls.some(r => r.p === first) && !st.order.queue.includes(first));
+  while (st.step === 'order') G.act(ctx, st.turn, { act: 'orderRoll' });
+  assert.notEqual(st.first, first);
+  // setup: someone leaves while placing; the snake order goes on without them
+  const placer = st.turn;
+  G.act(ctx, placer, { act: 'build', kind: 'settlement', at: G.view(ctx, placer).legal.settlement[0] });
+  G.playerLeft(ctx, placer);
+  const order = playSetup(G, ctx, st);
+  assert.ok(!order.includes(placer) && !order.includes(first));
+  assert.equal(order.length, 4, 'two players, two settlements each');
+  assert.equal(Object.keys(st.bld).length, 4);
+});
+
+test('Longest Road and Largest Army when the holder leaves: the single runner-up, or on a tie whoever got there first', async () => {
+  const { G, ctx, st } = await leaveGame(4);
+  const [a, b, c, d] = [0, 1, 2, 3], up = () => G._test.updateAwards(ctx);
+  giveRoad(st, a, 7); up();
+  assert.equal(st.longestRoad, a);
+  giveRoad(st, b, 6); up();                           // b reaches 6 first
+  giveRoad(st, c, 6); up();                           // then c
+  assert.equal(st.longestRoad, a, 'a still holds it');
+  st.knights = [4, 0, 0, 0]; up();
+  assert.equal(st.largestArmy, a);
+  st.knights[c] = 3; up();                            // c reaches 3 knights first, then d, then b
+  st.knights[d] = 3; up();
+  st.knights[b] = 3; up();
+  G.playerLeft(ctx, a);
+  assert.equal(st.longestRoad, b, 'tie at 6: b got there first');
+  assert.equal(st.largestArmy, c, 'tie at 3 knights: c got there first (not seat order)');
+  // the single runner-up: c's road is longer than d's when b leaves
+  giveRoad(st, d, 5); up();
+  G.playerLeft(ctx, b);
+  assert.equal(st.longestRoad, c, 'the single longest of the rest');
+  assert.equal(st.largestArmy, c, 'c keeps it');
+});
+
+test('Longest Road: a road cut in normal play still follows the official rule (a tie at the top: nobody)', () => {
+  const { successor, award } = T();
+  assert.equal(award(0, [3, 6, 6], 5), null, 'cut road, two tied above: nobody');
+  assert.equal(successor([0, 6, 6], [0, 9, 4], 5, { out: [true, false, false] }), 2, 'holder left, tie: who got there first');
+  assert.equal(successor([0, 4, 3], [0, 1, 1], 5, { out: [true] }), null, 'nobody long enough');
+  assert.equal(successor([9, 5, 7], [0, 1, 1], 5, { out: [true] }), 2, 'the leaver\'s own road never counts');
 });
 
 /* ---------------- What each screen shows (privacy) ---------------- */

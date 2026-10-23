@@ -112,6 +112,8 @@ function makeCtx() {
     opts: { ...P.opts },
     state: null,
     rand: randInt, shuffle,
+    online: i => online.has(ctx.players[i]?.device),        // is this player's phone connected right now?
+    removePlayer: i => leaveMidGame(ctx.players[i]?.device, true),   // the host's "remove" button on the game screen
     log(text) { ctx.logLines.unshift(text); ctx.logLines.length = Math.min(ctx.logLines.length, 60); },
     logLines: [],
     say(text, pose) { return ctx.alive ? say(text, pose) : Promise.resolve(); },
@@ -149,17 +151,29 @@ async function startGame() {
   render();
   try { await G.start(ctx); } catch (e) { if (e !== ABORT) { console.error(e); toast('Something went wrong in the game: ' + e.message); } }
 }
+// A player leaves in the middle of a game that allows it (G.playerLeft, e.g. Catan): their seat goes, the game takes
+// their pieces off and plays on without them. byHost: removed from the Mac (their phone is told so)
+function leaveMidGame(device, byHost) {
+  const ctx = P.ctx;
+  if (!ctx || !ctx.alive || P.phase !== 'game' || !G.playerLeft) return;
+  const k = ctx.players.findIndex(p => p.device === device && !p.left), si = seatIndex(device);
+  if (k < 0) return;
+  ctx.players[k].left = true;
+  if (si >= 0) { P.seats.splice(si, 1); send({ type: byHost ? 'kicked' : 'left' }, device); }
+  G.playerLeft(ctx, k);
+  render();
+}
 function finishGame(results, html) {
   const ctx = P.ctx;
   if (!ctx || !ctx.alive) return;
   ctx.alive = false; ctx.clear?.();
   P.phase = 'end';
-  P.endInfo = { results: results.map(r => ({ name: r.name, won: !!r.won, points: r.points ?? null, note: r.note || '' })), html: html || '' };
-  Leaderboard.recordParty(G.id, results);
+  P.endInfo = { results: results.map(r => ({ name: r.name, won: !!r.won, points: r.left ? null : r.points ?? null, note: r.left ? 'left the game' : r.note || '' })), html: html || '' };
+  Leaderboard.recordParty(G.id, results.filter(r => !r.left));      // someone who left mid-game isn't recorded
   dropLeavers();
   const winners = results.filter(r => r.won).map(r => r.name);
   $('#endTitle').textContent = winners.length ? `🏆 ${winners.join(' & ')} win${winners.length === 1 ? 's' : ''}!` : 'Game over';
-  $('#endBody').innerHTML = (html || '') + `<div class="end-rows">${results.map(r => {
+  $('#endBody').innerHTML = (html || '') + `<div class="end-rows">${P.endInfo.results.map(r => {
       const s = P.seats.find(x => x.name === r.name);
       return `<div class="sum-row" style="--pc:${s ? s.color : '#888'}"><div class="who"><span class="dot"></span>${esc(r.name)}${r.note ? ` <span class="zero">${esc(r.note)}</span>` : ''}</div>
         <div>${r.points != null && G.pointsLabel !== null ? `${r.points} ${G.pointsLabel || 'pts'} · ` : ''}${r.won ? '<span class="pos">Winner</span>' : '<span class="zero">—</span>'}</div></div>`; }).join('')}</div>`;
@@ -194,6 +208,7 @@ function render() {
   if (ctx && ctx.state && P.phase !== 'lobby') {
     $('#info').textContent = (G.status ? G.status(ctx) : '') || `${ctx.players.length} players`;
     $('#stage').innerHTML = G.hostHTML(ctx, HOST_HELPERS);
+    G.hostAfter?.($('#stage'), ctx);                   // e.g. Catan's cards flying between the board and the players
     $('#log').innerHTML = ctx.logLines.map(l => `<div>${l}</div>`).join('');
   }
   renderClock();
@@ -291,6 +306,7 @@ function handleRemote(m) {
     }
     case 'leave':
       P.waiting = P.waiting.filter(w => w.device !== m.device);
+      if (i >= 0 && P.phase === 'game' && m.now && G.playerLeft) return leaveMidGame(m.device, false);   // leave right now
       if (i >= 0 && P.phase === 'game') {               // mid-game: leave when this game ends (or change your mind)
         P.seats[i].leaving = !m.stay;
         P.ctx?.log(m.stay ? `${esc(P.seats[i].name)} is staying.` : `👋 ${esc(P.seats[i].name)} will leave after this game.`);

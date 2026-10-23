@@ -7,6 +7,34 @@ const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
   await mac.selectOption('#opt-target', '8');
   await mac.click('#startBtn');
   await mac.waitForFunction(() => P.ctx?.state);
+  // the board check: a new island, then keep it; harbour tokens stay inside the board
+  const layout = () => mac.evaluate(() => P.ctx.state.board.hexes.map(h => h.res + h.num).join());
+  const first = await layout();
+  await mac.click('#stage [data-host="newBoard"]');
+  if (await layout() === first) console.log('BAD New board did not change the island');
+  const cut = await mac.evaluate(() => { const b = document.querySelector('.cat-main .cat-board').getBoundingClientRect();
+    return [...document.querySelectorAll('.cat-main .cat-board circle[fill="#f6ecd2"]')].filter(c => { const r = c.getBoundingClientRect(); return r.left < b.left || r.right > b.right || r.top < b.top || r.bottom > b.bottom; }).length; });
+  if (cut) console.log('BAD', cut, 'harbour tokens cut off at the board edge');
+  await mac.screenshot({ path: 'shots/catan-mac-board.png' });
+  await mac.click('#stage [data-host="useBoard"]');
+  // everyone rolls for turn order from their phone, when called
+  for (let k = 0; k < phones.length; k++) {
+    const who = await mac.evaluate(() => P.ctx.state.turn);
+    const p = phones[who].p;
+    await p.waitForSelector('#view [data-act="orderRoll"]');
+    if (k === 0) await p.screenshot({ path: 'shots/catan-phone-order.png', fullPage: true });
+    await p.locator('#view [data-act="orderRoll"]').dispatchEvent('click');
+    await mac.waitForFunction(n => P.ctx.state.order.rolls.length > n, k);
+  }
+  const ord = await mac.evaluate(() => ({ first: P.ctx.state.first, rolls: P.ctx.state.order.rolls, rows: [...document.querySelectorAll('.cat-score tr')].map(r => +r.dataset.p) }));
+  const best = Math.max(...ord.rolls.map(r => r.t));
+  console.log('order rolls:', ord.rolls.map(r => `${phones[r.p].name} ${r.t}`).join(', '), '→ first', phones[ord.first].name);
+  if (ord.first !== ord.rolls.find(r => r.t === best).p) console.log('BAD the highest (earliest on a tie) should start');
+  if (ord.rows.join() !== [0, 1, 2].map(k => (ord.first + k) % 3).join()) console.log('BAD the scoreboard should list turn order', ord.rows);
+  await mac.screenshot({ path: 'shots/catan-mac-order.png' });
+  // cards flying on the Mac and glowing on the phones (watched for the whole game)
+  await mac.evaluate(() => { window.__fly = 0; new MutationObserver(m => m.forEach(x => x.addedNodes.forEach(n => { if (n.classList?.contains('cat-fly')) window.__fly++; }))).observe(document.body, { childList: true }); });
+  for (const x of phones) await x.p.evaluate(() => { window.__glow = 0; new MutationObserver(() => { if (document.querySelector('#view .cat-up, #view .cat-down')) window.__glow++; }).observe(document.querySelector('#view'), { childList: true, subtree: true }); });
   for (const x of phones) await x.p.evaluate(() => { window.__c = {}; const o = es.onmessage; es.onmessage = e => { const m = JSON.parse(e.data); window.__c[m.type] = (window.__c[m.type] || 0) + 1; o(e); }; });
   const actP = (p, msg) => p.evaluate(m => post({ type: 'act', ...m }), msg);
   const view = p => p.evaluate(() => ST?.view);
@@ -21,7 +49,7 @@ const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
     const r = await mac.evaluate(() => { const st = P.ctx?.state; if (!st) return null; return ['wood', 'brick', 'sheep', 'wheat', 'ore'].map(k => st.bank[k] + st.res.reduce((a, h) => a + h[k], 0)); });
     if (r && r.some(x => x !== 19)) throw new Error('resource count broken: ' + r);
   };
-  let turns = 0, uiBuild = false, shots = 0, steps = 0, stats = { roads: 0, settlements: 0, cities: 0, devs: 0, dev: {}, bank: 0, trades: 0, sevens: 0 };
+  let turns = 0, uiBuild = false, shots = 0, steps = 0, stats = { roads: 0, settlements: 0, cities: 0, devs: 0, dev: {}, bank: 0, trades: 0, offers: 0, counters: 0, requests: 0, confirmed: 0, sevens: 0 }, waits = {};
   while (!(await mac.isVisible('#endModal')) && steps < 6000) {
     steps++;
     let did = false;
@@ -33,7 +61,18 @@ const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
         const cards = RES.flatMap(r => Array(v.res[r]).fill(r)).slice(0, v.discard);
         await actP(p, { act: 'discard', res: cards.join(',') }); did = true; continue;
       }
-      if (v.offer && v.offer.from !== v.me && v.offer.canAccept && !v.offer.declined) { await actP(p, { act: 'accept' }); stats.trades++; did = true; continue; }
+      // trades: answer what was sent to you (yes, sometimes a counter, or no); now and then ask the active player
+      const incoming = (v.trades || []).find(t => !t.sent && !t.myReply);
+      if (incoming) {
+        const r = incoming.canAccept ? (Math.random() < .2 ? 'counter' : 'accept') : 'decline';
+        const m = { act: 'reply', id: incoming.id, r };
+        if (r === 'counter') { m.give = RES.filter(k => incoming.give[k]).join(','); m.want = RES.filter(k => incoming.want[k]).join(','); stats.counters++; }
+        await actP(p, m); if (r === 'accept') stats.trades++; did = true; continue;
+      }
+      if (v.canRequest && !(v.trades || []).some(t => t.sent) && Math.random() < .03) {
+        const g = RES.find(r => v.res[r] >= 1), w = RES.find(r => r !== g && !v.res[r]);
+        if (g && w) { await actP(p, { act: 'offer', give: g, want: w }); stats.requests++; did = true; continue; }
+      }
       if (!v.mine) continue;
       const L = v.legal;
       const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -75,9 +114,16 @@ const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
         if (can('road') && L.road.length && Math.random() < .7) { await actP(p, { act: 'build', kind: 'road', at: pick(L.road) }); stats.roads++; did = true; continue; }
         const rich = RES.find(r => v.res[r] >= v.ratios[r] + 1), poor = RES.find(r => !v.res[r] && v.bank[r]);
         if (rich && poor && rich !== poor) { await actP(p, { act: 'bank', give: rich, get: poor }); stats.bank++; did = true; continue; }
-        if (!v.offer && RES.some(r => v.res[r] >= 2) && Math.random() < .15) {
+        const mineT = (v.trades || []).find(t => t.sent);
+        if (mineT) {                                   // take an answer, give the others a moment, or withdraw
+          const yes = mineT.to.find(x => x.reply && x.reply.r !== 'decline');
+          if (yes) { await actP(p, { act: 'confirm', id: mineT.id, p: yes.i }); stats.confirmed++; did = true; continue; }
+          if (mineT.to.some(x => !x.reply) && (waits[mineT.id] = (waits[mineT.id] || 0) + 1) < 4) continue;
+          await actP(p, { act: 'withdraw' }); did = true; continue;
+        }
+        if (RES.some(r => v.res[r] >= 2) && Math.random() < .15) {
           const g = RES.find(r => v.res[r] >= 2), w = RES.find(r => r !== g && !v.res[r]) || RES.find(r => r !== g);
-          await actP(p, { act: 'offer', give: g, want: w }); did = true; continue;
+          await actP(p, { act: 'offer', give: g, want: w }); stats.offers++; did = true; continue;
         }
         await actP(p, { act: 'end' }); did = true;
       }
@@ -88,6 +134,9 @@ const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
   await check();
   const st = await mac.evaluate(() => { const s = P.ctx.state; return { lr: s.longestRoad, la: s.largestArmy, len: s.roadLen, kn: s.knights, deck: s.devDeck.length }; });
   console.log('turns:', turns, '| built:', JSON.stringify(stats), '\nawards:', JSON.stringify(st));
+  const fly = await mac.evaluate(() => window.__fly), glow = await Promise.all(phones.map(x => x.p.evaluate(() => window.__glow)));
+  console.log('cards flown on the Mac:', fly, '| phone glows:', glow.join(', '));
+  if (!fly) console.log('BAD no cards flew on the Mac'); if (glow.some(g => !g)) console.log('BAD a phone never glowed');
   console.log('end:', await mac.textContent('#endTitle'), '|', (await mac.textContent('#endBody')).replace(/\s+/g, ' ').trim());
   await mac.screenshot({ path: 'shots/catan-mac-end.png' });
   console.log('log tail:', (await mac.$$eval('#log div', d => d.slice(0, 8).map(x => x.textContent))).join(' / '));

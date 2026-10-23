@@ -103,7 +103,9 @@ sent to their phone), `hostHTML` (master screen), `phoneHTML` (+ optional `phone
 on the phone before sending). Optional: `options` (shown in the lobby; a choice may carry a hover card with full rules; `showIf(opts)` shows an option
 only when it applies, e.g. Mafia's Doctor options), `canStart`,
 `lobbyHTML` (extra lobby info, e.g. Werewolf's night order), `hostAct` (buttons on the master screen, e.g. Tambola's Pause),
-`phoneNotify` (vibrate the phone). `party-table.html` handles seats, timers (`ctx.countdown`), narration and leaderboards.
+`hostAfter` / `phoneAfter` (run after each render, e.g. Catan's cards flying between the board and the players), `phoneNotify` (vibrate the phone),
+`playerLeft(ctx, i)` (the game can go on without a player: phones then show *Leave now*, the host can remove a player mid-game
+with `ctx.removePlayer(i)`, and results marked `left` are not recorded). `ctx.online(i)` says whether a player's phone is connected. `party-table.html` handles seats, timers (`ctx.countdown`), narration and leaderboards.
 Adding a game: the module, its id in `PARTY_IDS` (`party-table.html`, `party-remote.html`), the phone routing (`PAGE_FOR` in
 `remote.js`, `table-remote.js`, `bj-remote.js`), `leaderboard.js` (`PARTY`, `POINTS`), `sw.js`, the card in `party.html`, tests.
 

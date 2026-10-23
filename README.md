@@ -126,7 +126,7 @@ and use `:9000` instead of `:8080` in the addresses.
    |---|---|---|
    | One Night Werewolf | 3–10 | 22 roles grouped Beginner / Intermediate / Advanced; hover a role in the lobby for its full rules ([details](docs/2026-10-werewolf-roles.md)) |
    | Mafia | 4–16 | Nights and days until one side wins: 22 roles, trials and verdicts, the dead watch as spectators ([rules](docs/2026-10-mafia.md)) |
-   | Catan | 2–4 | Choose the points to win |
+   | Catan | 2–4 | Shuffle the island until you like it, roll for turn order, optional time per turn; trade with the bank in mixed lots, offer or ask other players (with counter-offers); cards glow as they change hands; players can leave mid-game |
    | Go Fish | 2–6 | |
    | Bluff | 3–8 | |
    | Tambola (Housie) | 2–10 | Traditional calls; prizes from Early Five to Full House ([details](docs/2026-10-tambola.md)) |
