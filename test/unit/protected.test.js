@@ -21,7 +21,7 @@ describe('Protected files', () => {
     assert.ok(matches('/package.json', 'package.json'));
     assert.ok(!matches('/package.json', 'node_modules/x/package.json'));
     assert.ok(matches('package.json', 'node_modules/x/package.json'), 'without "/", a name anywhere');
-    assert.ok(matches('/Start*.command', 'Start Game Night.command'), 'a wildcard covers the spaces in the name');
+    assert.ok(matches('/LaunchGame.command', 'LaunchGame.command'));
     assert.ok(matches('/docs/**/*.md', 'docs/a/b/c.md'));
     assert.ok(!matches('/public/sw.js', 'public/sw.json'));
   });
@@ -31,7 +31,7 @@ describe('Protected files', () => {
     for (const f of ['.github/CODEOWNERS', '.github/workflows/pipeline.yml', '.github/workflows/release.yml', 'coverage-thresholds.json',
       'scripts/coverage.js', 'scripts/check.js', 'scripts/release-hint.js', 'scripts/protected.js', 'test/e2e/run.js', 'test/e2e/helpers.js',
       'test/e2e/party-setup.js', 'test/unit/helpers.js', 'docs/CI.md', 'package.json', 'package-lock.json', 'server/server.js',
-      'Start Game Night.command', 'public/js/lib/admin-lock.js', 'public/sw.js']) assert.ok(owned(f), `${f} is protected`);
+      'LaunchGame.command', 'public/js/lib/admin-lock.js', 'public/sw.js']) assert.ok(owned(f), `${f} is protected`);
     for (const f of ['public/games/party/tambola.js', 'public/party.html', 'public/css/pages/party.css', 'public/js/lib/leaderboard.js',
       'docs/ARCHITECTURE.md', 'README.md', 'test/unit/party-tambola.test.js', 'test/e2e/party-gofish.js']) assert.ok(!owned(f), `${f} is open`);
     assert.deepEqual([...new Set(REAL.flatMap(r => r.owners))], ['rishigoswamy'], 'one owner');

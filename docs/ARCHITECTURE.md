@@ -28,7 +28,7 @@ is exactly what browsers load.
 game-night/
 ├── server/server.js          Node server (no framework). Web root = public/
 ├── scripts/serve.sh          start the server (same as `npm start`)
-├── Start Game Night.command  double-click starter for macOS
+├── LaunchGame.command        double-click starter for macOS
 ├── public/                   everything browsers load (served at /)
 │   ├── *.html                the pages: markup only, URLs unchanged since the start of the project
 │   ├── css/

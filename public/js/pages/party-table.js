@@ -446,7 +446,7 @@ renderOpts();
     $('#joinUrl').textContent = `http://${ip}:${info.port}`;
     const img = $('#qr'); img.onload = () => { img.hidden = false; }; img.src = '/api/qr.svg';
     startSharing();
-  } catch { $('#joinUrl').textContent = 'Start Game Night (npm start, or Start Game Night.command) to let phones join.'; }
+  } catch { $('#joinUrl').textContent = 'Start Game Night (npm start, or LaunchGame.command) to let phones join.'; }
 })();
 let filesVer = null;
 setInterval(async () => {

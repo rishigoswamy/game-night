@@ -48,13 +48,14 @@ by itself the first time; with the Terminal you run `npm install` once. Either w
 
 ## 2. Start the game (become the master)
 
-**On a Mac, the easy way:** open the `game-night` folder and double-click **`Start Game Night.command`**.
+**On a Mac, the easy way:** open the `game-night` folder and double-click **`LaunchGame.command`**.
 A Terminal window opens and the home page opens in your browser. (If a Game Night tab is already open, no new tab
 opens; that tab reconnects by itself.)
+From Terminal in the project folder, you can also run `./LaunchGame.command`.
 
 > If macOS refuses to open it the first time ("unidentified developer" / "Apple could not verify…"), click **Done**,
 > then open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to
-> *Start Game Night.command*. (On older macOS: right-click the file → **Open** → **Open**.) You only do this once.
+> *LaunchGame.command*. (On older macOS: right-click the file → **Open** → **Open**.) You only do this once.
 
 **Any computer, with the Terminal.** The Terminal is a window where you type commands
 (Mac: Applications → Utilities → **Terminal**; Windows: Start menu → **PowerShell**). Type each line and press Enter:

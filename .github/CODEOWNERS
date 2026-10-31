@@ -22,6 +22,6 @@
 
 # Code that runs on the host's computer, and the security-sensitive parts of the game
 /server/                     @rishigoswamy
-/Start*.command              @rishigoswamy
+/LaunchGame.command              @rishigoswamy
 /public/js/lib/admin-lock.js @rishigoswamy
 /public/sw.js                @rishigoswamy
