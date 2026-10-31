@@ -128,7 +128,7 @@ and use `:9000` instead of `:8080` in the addresses.
    | Mafia | 4–16 | Nights and days until one side wins: 22 roles, trials and verdicts, the dead watch as spectators ([rules](docs/2026-10-mafia.md)) |
    | Catan | 2–4 | Shuffle the island until you like it, roll for turn order, optional time per turn; trade with the bank in mixed lots, offer or ask other players (with counter-offers); cards glow as they change hands; players can leave mid-game |
    | Go Fish | 2–6 | |
-   | Bluff | 3–8 | |
+   | Bluff | 3–8 | Indian-style rounds: the leader names a rank, the others add cards or pass, anyone can call Bluff! |
    | Tambola (Housie) | 2–10 | Traditional calls; prizes from Early Five to Full House ([details](docs/2026-10-tambola.md)) |
 2. Pick the options and click **Start**.
 3. Nobody plays on the master screen. It shows the table; in Werewolf and Mafia it narrates out loud (Mafia's trials too), and in Tambola it is

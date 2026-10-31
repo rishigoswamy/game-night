@@ -94,66 +94,92 @@ test('bluff: the whole deck is dealt as evenly as possible', async () => {
   }
 });
 
-test('bluff: plays are refused unless it is your turn and you play 1–4 of your own cards', async () => {
-  const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.hands[0] = [card('A'), card('2'), card('3'), card('4'), card('5')]; });
+test('bluff: plays are refused unless it is your turn, you name a rank when leading, and you play 1–4 of your own cards', async () => {
+  const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.round.lead = 0; s.hands[0] = [card('A'), card('2'), card('3'), card('4'), card('5')]; });
   const ids = st.hands[0].map(id);
-  assert.match(G.act(ctx, 1, { act: 'play', cards: id(st.hands[1][0]) }), /not your turn/);
-  assert.match(G.act(ctx, 0, { act: 'play', cards: '' }), /1 to 4/);
-  assert.match(G.act(ctx, 0, { act: 'play', cards: ids.join(',') }), /1 to 4/);
-  assert.match(G.act(ctx, 0, { act: 'play', cards: 'K|♥' }), /not in your hand/);
+  assert.match(G.act(ctx, 1, { act: 'play', cards: id(st.hands[1][0]), rank: 'A' }), /not your turn/);
+  assert.match(G.act(ctx, 0, { act: 'play', cards: 'A|♠' }), /Pick the rank/, 'the leader names the rank');
+  assert.match(G.act(ctx, 0, { act: 'pass' }), /You lead/, 'the leader can\'t pass');
+  assert.match(G.act(ctx, 0, { act: 'play', cards: '', rank: 'A' }), /1 to 4/);
+  assert.match(G.act(ctx, 0, { act: 'play', cards: ids.join(','), rank: 'A' }), /1 to 4/);
+  assert.match(G.act(ctx, 0, { act: 'play', cards: 'K|♥', rank: 'A' }), /not in your hand/);
 });
 
-test('bluff: nobody calls → the next player plays the next rank', async () => {
-  const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.hands[0] = [card('A'), card('9')]; });
-  G.act(ctx, 0, { act: 'play', cards: 'A|♠' });
-  assert.equal(st.phase, 'challenge');
-  assert.equal(st.pile.length, 1);
+test('bluff: the leader names any rank; nobody calls → the next player adds that rank (any cards) or passes', async () => {
+  const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.round.lead = 0; s.hands[0] = [card('7'), card('7', '♥'), card('9')]; s.hands[1] = [card('2'), card('K')]; });
+  G.act(ctx, 0, { act: 'play', cards: '7|♠,7|♥', rank: '7' });
+  assert.equal(st.phase, 'challenge'); assert.equal(st.pile.length, 2); assert.equal(st.round.rank, '7');
   ctx.expire(); await flush(); await flush();
-  assert.equal(st.phase, 'play'); assert.equal(st.turn, 1); assert.equal(st.rank, 1, 'Aces → 2s');
+  assert.equal(st.phase, 'play'); assert.equal(st.turn, 1); assert.equal(st.round.rank, '7', 'the round keeps its rank');
+  G.act(ctx, 1, { act: 'play', cards: '2|♠,K|♠', rank: 'A' });           // a false stack: any cards, claimed as Sevens
+  assert.equal(st.claim.rank, '7', 'the claim is the round\'s rank, whatever is asked');
+  assert.equal(st.claim.count, 2);
 });
 
-test('bluff: calling a lie makes the liar take the pile', async () => {
-  const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.hands[0] = [card('9'), card('5')]; s.hands[1] = [card('K')]; s.pile = [{ card: card('3'), by: 2 }]; });
-  G.act(ctx, 0, { act: 'play', cards: '9|♠' });                    // claims an Ace with a 9
+test('bluff: everyone passes back to the last player who played → the pile is set aside and they lead', async () => {
+  const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.round.lead = 0; s.hands[0] = [card('7'), card('9')]; });
+  G.act(ctx, 0, { act: 'play', cards: '7|♠', rank: '7' });
+  ctx.expire(); await flush(); await flush();
+  assert.equal(G.act(ctx, 1, { act: 'pass' }), undefined);
+  assert.equal(st.turn, 2); assert.equal(st.pile.length, 1);
+  G.act(ctx, 2, { act: 'pass' });
+  assert.equal(st.pile.length, 0); assert.equal(st.cleared, 1, 'set aside, out of the game');
+  assert.equal(st.turn, 0); assert.equal(st.round.rank, null, 'a new round: the last player to play picks a rank');
+  assert.deepEqual(ranks(st.hands[0]), ['9'], 'Ana still holds her other card; the 7 she played is set aside');
+});
+
+test('bluff: calling a lie → the liar takes the pile, the caller leads; the picked-up cards glow for the liar', async () => {
+  const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.round.lead = 0; s.hands[0] = [card('9'), card('5')]; s.hands[1] = [card('K')]; s.pile = [{ card: card('3'), by: 2 }]; });
+  G.act(ctx, 0, { act: 'play', cards: '9|♠', rank: 'A' });                // claims an Ace with a 9
   assert.match(G.act(ctx, 0, { act: 'bluff' }) || '', /yourself/);
   G.act(ctx, 1, { act: 'bluff' });
   await flush(); await flush(); await flush();
   assert.deepEqual(ranks(st.hands[0]), ['3', '5', '9'], 'the liar took the whole pile');
   assert.equal(st.pile.length, 0);
-  assert.equal(st.turn, 1, 'play moves on after the claimant');
+  assert.equal(st.turn, 1, 'the caller was right and leads'); assert.equal(st.round.rank, null);
+  const v = plain(G.view(ctx, 0));
+  assert.deepEqual(v.fresh.ids.sort(), ['3|♠', '9|♠']);
+  assert.equal(G.view(ctx, 1).fresh, null, 'only the taker\'s phone highlights them');
+  assert.equal((G.phoneHTML(v, {}, H).match(/pcard[^"]* fresh/g) || []).length, 2);
 });
 
-test('bluff: calling the truth makes the caller take the pile', async () => {
-  const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.hands[0] = [card('A'), card('5')]; s.hands[2] = [card('Q')]; });
-  G.act(ctx, 0, { act: 'play', cards: 'A|♠' });
+test('bluff: calling the truth → the caller takes the pile, and the player who was doubted leads', async () => {
+  const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.round.lead = 0; s.hands[0] = [card('A'), card('5')]; s.hands[2] = [card('Q')]; });
+  G.act(ctx, 0, { act: 'play', cards: 'A|♠', rank: 'A' });
   G.act(ctx, 2, { act: 'bluff' });
   assert.match(G.act(ctx, 1, { act: 'bluff' }) || '', /Too late/, 'only the first call counts');
   await flush(); await flush(); await flush();
   assert.deepEqual(ranks(st.hands[2]), ['A', 'Q']);
+  assert.equal(st.turn, 0, 'the truthful player keeps the lead'); assert.equal(st.round.rank, null);
 });
 
 test('bluff: emptying your hand wins, unless you were caught lying on the last play', async () => {
   {
-    const { G, ctx } = await bluff(3, s => { s.turn = 0; s.hands[0] = [card('A')]; });
-    G.act(ctx, 0, { act: 'play', cards: 'A|♠' });
+    const { G, ctx } = await bluff(3, s => { s.turn = 0; s.round.lead = 0; s.hands[0] = [card('A')]; });
+    G.act(ctx, 0, { act: 'play', cards: 'A|♠', rank: 'A' });
     ctx.expire(); await flush(); await flush();
     assert.ok(ctx.ended); assert.equal(ctx.ended.results.find(r => r.won).name, 'Ana');
   }
   {
-    const { G, ctx } = await bluff(3, s => { s.turn = 0; s.hands[0] = [card('A')]; });
-    G.act(ctx, 0, { act: 'play', cards: 'A|♠' });
+    const { G, ctx } = await bluff(3, s => { s.turn = 0; s.round.lead = 0; s.hands[0] = [card('A')]; });
+    G.act(ctx, 0, { act: 'play', cards: 'A|♠', rank: 'A' });
     G.act(ctx, 1, { act: 'bluff' });                                   // called, but it was the truth
     await flush(); await flush(); await flush();
     assert.ok(ctx.ended, 'a truthful last card still wins'); assert.equal(ctx.ended.results.find(r => r.won).name, 'Ana');
   }
   {
-    const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.hands[0] = [card('7')]; });
-    G.act(ctx, 0, { act: 'play', cards: '7|♠' });                       // claims an Ace with a 7
+    const { G, ctx, st } = await bluff(3, s => { s.turn = 0; s.round.lead = 0; s.hands[0] = [card('7')]; });
+    G.act(ctx, 0, { act: 'play', cards: '7|♠', rank: 'A' });           // claims an Ace with a 7
     G.act(ctx, 1, { act: 'bluff' });
     await flush(); await flush(); await flush();
     assert.equal(ctx.ended, null, 'caught lying: no win');
     assert.ok(st.hands[0].length >= 1, 'and takes the pile back');
   }
+});
+
+test('bluff: claims are written in words, so the count and the rank can\'t run together', () => {
+  const { many } = load('bluff')._test;
+  assert.equal(many(3, '7'), 'three Sevens'); assert.equal(many(1, 'A'), 'one Ace'); assert.equal(many(2, '6'), 'two Sixes'); assert.equal(many(4, '10'), 'four Tens');
 });
 
 /* ---------------- What each screen shows (privacy) ---------------- */
@@ -200,7 +226,7 @@ test('bluff screens: own hand only; the Mac shows backs until a challenge reveal
     assert.ok(G.phoneHTML(v, {}, H).length > 50);
   }
   assert.doesNotMatch(G.hostHTML(ctx, H), /class="face/);
-  assert.match(G.status(ctx), /Rank to play: Aces · pile 0 cards/);
+  assert.match(G.status(ctx), /New round · pile 0 cards/);
 });
 
 test('cards: face cards show their letter, number cards their suit; red suits are red', () => {
