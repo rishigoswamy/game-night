@@ -97,7 +97,7 @@ blackjack, when Double / Split are allowed, the dealer's peek and drawing, each 
 returned), `announce`, `token` (recent-results bead), `stageHTML`, payout table and rules. `table.html` handles
 everything else: players, betting window, phones, voice, celebrations, leaderboards.
 
-**Party game modules** (`games/party/*.js`; Business's board pictures are in `games/party/art/business-art.js`, which both party pages load before it) set `window.PARTY_GAME` with: `start(ctx)`, `act(ctx, player, msg)` (a
+**Party game modules** (`games/party/*.js`; Business's board pictures are `games/party/art/boards/*.jpg`) set `window.PARTY_GAME` with: `start(ctx)`, `act(ctx, player, msg)` (a
 phone's move; return an error string to refuse it), `view(ctx, player)` (that player's private view, the only thing
 sent to their phone), `hostHTML` (master screen), `phoneHTML` (+ optional `phoneLocal` / `phoneAct` for choices made
 on the phone before sending). Optional: `options` (shown in the lobby; a choice may carry a hover card with full rules; `showIf(opts)` shows an option

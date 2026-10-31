@@ -10,24 +10,11 @@ game nights.
 
 ## Boards
 
-Ten boards, chosen in the lobby. All play the same; each has its own names, money, colours, centre picture, tokens, card
+Twelve boards, chosen in the lobby. All play the same; each has its own names, money, colours, centre picture, tokens, card
 wording and narrator lines.
 
-**The centre pictures** are painted collages of three or four of each city's best-known landmarks and a touch of its daily
-life, drawn as vector art from reference photos (`public/games/party/art/business-art.js`):
-
-| Board | In the picture |
-|---|---|
-| New York | the Statue of Liberty, One World Trade Center, the Empire State and Chrysler buildings, the Brooklyn Bridge, yellow cabs |
-| Mumbai | the Gateway of India and the Taj Mahal Palace, Chhatrapati Shivaji Terminus, the Bandra–Worli Sea Link, Marine Drive's lights, ferries, kaali-peeli taxis |
-| Paris | the Eiffel Tower, the Arc de Triomphe, the Louvre and its pyramid, Sacré-Cœur, a bateau-mouche on the Seine, the quays' bookstalls |
-| Rio | Christ the Redeemer on Corcovado, Sugarloaf and its cable car, the Lapa Arches and the Santa Teresa tram, Copacabana |
-| Zurich | the Alps over the lake, the Grossmünster, the Fraumünster, St. Peter's clock, guild houses, a paddle steamer, swans, a tram |
-| Tokyo | the Skytree, Tokyo Tower, Sensō-ji's pagoda and the Kaminarimon lantern, a Shinkansen, neon, cherry blossom, the Shibuya crossing |
-| Dublin | the Record Tower of Dublin Castle, Christ Church Cathedral, Georgian doors, a pub front, the Ha'penny Bridge over the Liffey |
-| Ancient Greece | the Parthenon on the Acropolis, the Temple of Poseidon at Sounion, the theatre of Epidaurus, Mount Olympus, a trireme |
-| Cairo | the pyramids of Giza and the Sphinx, the Muhammad Ali Mosque, the Cairo Tower, feluccas on the Nile, camels |
-| Sydney | the Opera House, the Harbour Bridge, Sydney Tower, a green-and-gold harbour ferry, Bondi's ocean pool |
+**The centre pictures.** Each board shows a painted picture of the city (`public/games/party/art/boards/<board>.jpg`), cut
+from the centre of a full board render, with its own logo plate and card piles.
 
 | Board | Mood | Money | Dearest street |
 |---|---|---|---|
@@ -38,9 +25,11 @@ life, drawn as vector art from reference photos (`public/games/party/art/busines
 | Zurich | snowy mountains and lakes | CHF | CHF 4.5M (Goldküste) |
 | Tokyo | sci-fi | ¥ | ¥380M (Ginza) |
 | Dublin | an old kingdom | € | €1.7M (Shrewsbury Road) |
-| Ancient Greece | temples and myths | drachmae | 4,000 dr (The Parthenon) |
+| Santorini | white villages, blue domes, the Aegean | € | €1.8M (Oia) |
 | Cairo | pyramids, camels, oases | E£ | E£7.5M (Zamalek) |
-| Sydney | the harbour, the reef, kangaroos | A$ | A$6.5M (Bennelong Point) |
+| Tromsø | the northern lights, fjords, snow | NOK | NOK 10.5M (Strandkanten) |
+| Hong Kong | neon, skyscrapers, the harbour | HK$ | HK$90M (The Peak) |
+| Prague | castles, bridges, autumn colours | Kč | Kč 40M (Pařížská) |
 
 **Money.** The game keeps the standard amounts (60…400 for streets, 1,500 to start, 200 at GO). Each board multiplies
 every amount by one factor and shows it in local style. The factor makes the dearest street cost roughly a prime 150 m²
@@ -49,13 +38,13 @@ factor is the same for every amount (salary, rents, houses, taxes, cards, bid bu
 every board.
 
 The real city boards rank real places by value, but never put a slum or favela at the cheap end. London and Paris street
-lists that appear in Hasbro's editions are avoided, which is why Paris uses neighbourhoods and landmarks. Greece uses real
-places and myths, nothing from Ubisoft's *Assassin's Creed*.
+lists that appear in Hasbro's editions are avoided, which is why Paris uses neighbourhoods and landmarks. Santorini uses real
+Greek islands and towns.
 
 ## The open table: showing the boards
 
 In the lobby, **Open the table: show the boards** puts the chosen board on the whole Mac screen, with the join QR code
-and the players who have joined. The host flips through the ten boards (◀ ▶, or a tap on a board's name) while players
+and the players who have joined. The host flips through the twelve boards (◀ ▶, or a tap on a board's name) while players
 join. On their phones, players see the board being shown and can vote 👍 for any boards they like, once per board (a
 second tap takes the vote back). The votes are only advice: the Mac shows the count on each board, and the host picks.
 **Start on …** starts the game on the board showing; **Close** goes back to the lobby.

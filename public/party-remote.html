@@ -14,7 +14,6 @@
 <script>
 window.PARTY_IDS = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff', tambola: 'Tambola', mafia: 'Mafia', business: 'Business' };
 window.PARTY_ID = new URLSearchParams(location.search).get('g');
-if (PARTY_ID === 'business') document.write('<script src="games/party/art/business-art.js"><\/script>');   // Business's board pictures
 if (PARTY_IDS[PARTY_ID]) document.write(`<script src="games/party/${PARTY_ID}.js"><\/script>`);
 </script>
 <link rel="stylesheet" href="css/party.css">

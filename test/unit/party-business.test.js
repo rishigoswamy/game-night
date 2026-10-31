@@ -1,4 +1,4 @@
-// Business (public/games/party/business.js): a Monopoly-style property game with ten themed boards (Beta)
+// Business (public/games/party/business.js): a Monopoly-style property game with twelve themed boards (Beta)
 const test = require('node:test');
 const { describe } = test;
 const assert = require('node:assert/strict');
@@ -21,7 +21,7 @@ function dice(ctx, ...faces) {
 }
 const own = (st, p, ...spaces) => spaces.forEach(i => { st.own[i] = { p, h: 0, mort: false }; });
 
-describe('The board and its ten themes', () => {
+describe('The board and its twelve themes', () => {
   test('40 spaces: 22 streets in 8 colour sets, 4 stations, 2 utilities, the standard prices', () => {
     const t = T();
     assert.equal(t.SPACES.length, 40);
@@ -34,7 +34,7 @@ describe('The board and its ten themes', () => {
 
   test('every board is complete: names, stations, utilities, 8 tokens, money, and all 32 cards and narrator lines in its own words', () => {
     const t = T();
-    assert.deepEqual(plain(t.BOARD_KEYS), ['newyork', 'mumbai', 'paris', 'rio', 'zurich', 'tokyo', 'dublin', 'greece', 'cairo', 'sydney']);
+    assert.deepEqual(plain(t.BOARD_KEYS), ['newyork', 'mumbai', 'paris', 'rio', 'zurich', 'tokyo', 'dublin', 'santorini', 'cairo', 'tromso', 'hongkong', 'prague']);
     for (const k of t.BOARD_KEYS) {
       const b = t.BOARDS[k];
       assert.equal(new Set(b.streets).size, 22, `${k}: 22 different streets`);
@@ -51,10 +51,10 @@ describe('The board and its ten themes', () => {
   test('money is shown in each board\'s own scale and style', () => {
     const { money, BOARDS: B } = T();
     assert.equal(money(B.newyork, 400), '$4M'); assert.equal(money(B.newyork, 60), '$600k'); assert.equal(money(B.newyork, 1500), '$15M');
-    assert.equal(money(B.zurich, 400), 'CHF 4.5M'); assert.equal(money(B.sydney, 400), 'A$6.5M'); assert.equal(money(B.rio, 400), 'R$3.9M');
+    assert.equal(money(B.zurich, 400), 'CHF 4.5M'); assert.equal(money(B.tromso, 400), 'NOK 10.5M'); assert.equal(money(B.rio, 400), 'R$3.9M');
     assert.equal(money(B.paris, 400), '€2.6M'); assert.equal(money(B.dublin, 400), '€1.7M'); assert.equal(money(B.cairo, 400), 'E£7.5M');
     assert.equal(money(B.tokyo, 400), '¥380M'); assert.equal(money(B.mumbai, 400), '₹16 Cr'); assert.equal(money(B.mumbai, 10), '₹40 L');
-    assert.equal(money(B.greece, 400), '4,000 dr'); assert.equal(money(B.greece, 1500), '15,000 dr');
+    assert.equal(money(B.santorini, 400), '€1.8M'); assert.equal(money(B.hongkong, 400), 'HK$90M'); assert.equal(money(B.prague, 400), 'Kč 40M'); assert.equal(money(B.prague, 60), 'Kč 6M');
   });
 });
 
@@ -380,7 +380,7 @@ describe('The open table: showing the boards and voting', () => {
     G.lobbyAct(state, { host: true, lobby: 'open' }, apiL);
     assert.equal(state.open, true);
     G.lobbyAct(state, { host: true, lobby: 'next' }, apiL); assert.equal(opts.board, 'mumbai');
-    G.lobbyAct(state, { host: true, lobby: 'prev' }, apiL); G.lobbyAct(state, { host: true, lobby: 'prev' }, apiL); assert.equal(opts.board, 'sydney', 'wraps around');
+    G.lobbyAct(state, { host: true, lobby: 'prev' }, apiL); G.lobbyAct(state, { host: true, lobby: 'prev' }, apiL); assert.equal(opts.board, 'prague', 'wraps around');
     G.lobbyAct(state, { host: true, lobby: 'pick', board: 'tokyo' }, apiL); assert.equal(opts.board, 'tokyo');
     G.lobbyAct(state, { host: false, lobby: 'vote', board: 'rio', device: 'phone-a' }, apiL);
     G.lobbyAct(state, { host: false, lobby: 'vote', board: 'rio', device: 'phone-b' }, apiL);
@@ -394,7 +394,7 @@ describe('The open table: showing the boards and voting', () => {
     assert.match(host, /class="bz-show"/); assert.match(host, /data-lobby-start /); assert.match(host, /Start on Tokyo/); assert.match(host, /👍 1/); assert.match(host, /api\/qr\.svg/);
     assert.match(G.lobbyHTML(1, opts, state, { esc: x => String(x), canStart: false, min: 2, max: 8 }), /data-lobby-start disabled/);
     const phone = G.lobbyPhoneHTML(v, {}, { esc: x => String(x) });
-    assert.equal((phone.match(/data-lobby="vote"/g) || []).length, 10);
+    assert.equal((phone.match(/data-lobby="vote"/g) || []).length, 12);
     assert.match(phone, /class="on" data-lobby="vote" data-board="cairo"/);
   });
 

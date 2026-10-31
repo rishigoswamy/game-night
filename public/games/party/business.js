@@ -1,4 +1,4 @@
-// Business (Beta): a Monopoly-style property game with ten themed boards. The rules follow the official Monopoly rules
+// Business (Beta): a Monopoly-style property game with twelve themed boards. The rules follow the official Monopoly rules
 // (docs/2026-10-business.md); the names, card wording and look are our own. Money is kept in the standard units
 // (60…400 for streets) and shown × the board's factor in its local money, so every board plays the same.
 window.PARTY_GAME = (() => {
@@ -37,8 +37,8 @@ window.PARTY_GAME = (() => {
   const DECK = { fortune: FORTUNE, treasury: TREASURY };
   const SPEED = [1, 2, 3, 'bus', 'ff', 'ff'];                      // the speed die: three numbers, the bus, two fast-forwards
 
-  /* ---------- The ten boards ---------- */
-  // money: sym and style (west: 1.2M / 650k; yen: ¥380M; india: ₹16 Cr / ₹25 L; plain: ₯4,000). factor: × the standard
+  /* ---------- The twelve boards ---------- */
+  // money: sym and style (west: 1.2M / 650k; yen: ¥380M; india: ₹16 Cr / ₹25 L). factor: × the standard
   // amounts, so the dearest street (400) is about a prime flat there (2025 prices, local money)
   const WORDS = (keys, list) => Object.fromEntries(keys.map((k, n) => [k, list[n]]));
   const FK = ['go', 'adv24', 'adv11', 'util', 'rail', 'div', 'jailfree', 'back3', 'jail', 'repairs', 'fine', 'adv5', 'adv39', 'payeach', 'collect'];
@@ -115,15 +115,15 @@ window.PARTY_GAME = (() => {
       t: WORDS(TK, ['Crowned at GO: collect your salary.', 'The royal scribe errs in your favour: collect {A}.', 'The royal physician: pay {A}.', 'Your trade guild prospers: collect {A}.', 'A friend at court: get out of jail free. Keep this card.', 'You insulted the bard: go to jail.', 'Midsummer festival: collect {A}.', 'A tax refund from the crown: collect {A}.', 'Your birthday banquet: collect {A} from every player.', 'Insurance pays out: collect {A}.', 'The healer\'s fee: pay {A}.', 'Squire-training fees: pay {A}.', 'You advise the king: collect {A}.', 'A storm damages the towers: pay {A} per house and {B} per hotel.', 'Second at the harp contest: collect {A}.', 'A distant lord leaves you {A}.']),
       say: WORDS(SAY, ['Welcome to the Kingdom of Dublin! Céad míle fáilte.', '{p} passes GO. The crown pays!', '{p} claims {S}.', '{p} pays {A} to {o}.', '{p} is thrown in the dungeon.', '{S} goes to auction!', '{p} is bankrupt.', '{p} is crowned ruler of Dublin!']),
     },
-    greece: {
-      name: 'Ancient Greece', mood: 'temples and myths', sym: '', suffix: ' dr', style: 'plain', factor: 10,   // drachmae
-      colors: { bg: '#1d3557', frame: '#e9d8a6', cell: '#fbf8ef', title: '#f4e4b0' },
-      streets: ['Arcadian Hills', 'Thessaly Farms', 'Megara', 'Argos', 'Corinth', 'Thebes', 'Chalcis', 'Eretria', 'Kos', 'Rhodes', 'Mykonos', 'Mycenae', 'Olympia', 'Sparta', 'Ephesus', 'Knossos', 'Delphi', 'Piraeus', 'Cape Sounion', 'Agora of Athens', 'Mount Olympus', 'The Parthenon'],
-      stations: ['Aegean Sea Route', 'Ionian Sea Route', 'Cretan Sea Route', 'Cycladic Sea Route'], utilities: ['Forge of Hephaestus', 'Aqueduct'],
-      tokens: ['⛵', '🪖', '🏺', '🦉', '🌿', '🏛️', '🔱', '🐎'],
-      f: WORDS(FK, ['Sail with the wind to GO: collect your salary.', 'March to {S}.', 'A pilgrimage to {S}.', 'Zeus strikes! Go to the nearest utility; if it is owned, pay 10 × a fresh roll.', 'Set sail: go to the nearest sea route; if it is owned, pay double rent.', 'The oracle\'s advice pays: collect {A}.', 'Hermes helps you escape: get out of jail free. Keep this card.', 'Lost in the labyrinth: go back 3 spaces.', 'You angered the gods: go to jail.', 'An earthquake! Repair every temple: pay {A} per house and {B} per hotel.', 'Fined by the council: pay {A}.', 'Sail the {S}.', 'Climb {S}.', 'Host a symposium: pay each player {A}.', 'Victory at the Olympic Games: collect {A}.']),
-      t: WORDS(TK, ['A hero\'s welcome at GO: collect your salary.', 'The treasurer miscounts in your favour: collect {A}.', 'A visit to the healer: pay {A}.', 'Your olive harvest sells: collect {A}.', 'Athena\'s favour: get out of jail free. Keep this card.', 'Ostracised by the assembly: go to jail.', 'The festival of Dionysus: collect {A}.', 'A tax refund: collect {A}.', 'Your birthday feast: collect {A} from every player.', 'The merchants\' guild insures you: collect {A}.', 'The healer\'s bill: pay {A}.', 'The philosopher\'s school: pay {A}.', 'You advise the generals: collect {A}.', 'Columns crack in the heat: pay {A} per house and {B} per hotel.', 'Second place at the lyre contest: collect {A}.', 'A merchant uncle leaves you {A}.']),
-      say: WORDS(SAY, ['Welcome to Ancient Greece. May the gods favour your business.', '{p} passes GO. Drachmae for the hero!', '{p} buys {S}.', '{p} pays {A} to {o}.', '{p} is cast into prison.', '{S} goes to auction in the agora!', '{p} is ruined.', '{p} rules Greece like Zeus!']),
+    santorini: {
+      name: 'Santorini', mood: 'white villages, blue domes and the Aegean', sym: '€', style: 'west', factor: 4500,
+      colors: { bg: '#0d4c8c', frame: '#e9d8a6', cell: '#fbf8ef', title: '#f4e4b0' },
+      streets: ['Thessaly Farms', 'Peloponnese Hills', 'Megara', 'Argos', 'Thebes', 'Chalcis', 'Eretria', 'Corinth', 'Sparta', 'Olympia', 'Delphi', 'Crete', 'Rhodes', 'Paros', 'Naxos', 'Piraeus', 'Athens', 'Cape Sounion', 'Acropolis View', 'Mykonos', 'Fira', 'Oia'],
+      stations: ['Aegean Sea Route', 'Ionian Sea Route', 'Cretan Sea Route', 'Cycladic Sea Route'], utilities: ['Power House', 'Water Board'],
+      tokens: ['⛵', '🫏', '🏛️', '🐙', '🫒', '🍷', '🌅', '🐚'],
+      f: WORDS(FK, ['A sunset cruise back to GO: collect your salary.', 'Sail to {S}.', 'A day trip to {S}.', 'A heatwave blackout! Go to the nearest utility; if it is owned, pay 10 × a fresh roll.', 'Catch the ferry: go to the nearest sea route; if it is owned, pay double rent.', 'Your taverna pays a dividend: collect {A}.', 'A friendly fisherman sails you out: get out of jail free. Keep this card.', 'Your donkey refuses the steps: go back 3 spaces.', 'Cliff diving where it is forbidden: go to jail.', 'Whitewash every house before summer: pay {A} per house and {B} per hotel.', 'Fined for blocking the caldera path: pay {A}.', 'Take the ferry on the {S}.', 'A wedding with a caldera view at {S}.', 'Ouzo for the whole terrace: pay each player {A}.', 'Your wine wins a medal: collect {A}.']),
+      t: WORDS(TK, ['The first boat of summer at GO: collect your salary.', 'Bank error in your favour: collect {A}.', 'Sunburn clinic: pay {A}.', 'Your olive oil sells abroad: collect {A}.', 'A cousin in the harbour police: get out of jail free. Keep this card.', 'Caught selling fake antiquities: go to jail.', 'Tourist-season bonus: collect {A}.', 'Tax refund: collect {A}.', 'A name-day feast: collect {A} from every player.', 'Insurance pays out: collect {A}.', 'Hospital bill: pay {A}.', 'Sailing-school fees: pay {A}.', 'Tour-guide tips: collect {A}.', 'Winter storms on the cliffs: pay {A} per house and {B} per hotel.', 'Best photo of the Oia sunset: collect {A}.', 'A shipping-owner uncle leaves you {A}.']),
+      say: WORDS(SAY, ['Kalimera! Welcome to Santorini, where every sunset is for sale.', '{p} passes GO. Opa, payday!', '{p} buys {S}.', '{p} pays {A} to {o}.', '{p} goes to jail.', '{S} goes to auction on the harbour!', '{p} is bankrupt.', '{p} owns the whole caldera!']),
     },
     cairo: {
       name: 'Cairo', mood: 'pyramids, camels and oases', sym: 'E£', style: 'west', factor: 18750,
@@ -135,15 +135,35 @@ window.PARTY_GAME = (() => {
       t: WORDS(TK, ['The pharaoh\'s blessing at GO: collect your salary.', 'Bank error in your favour: collect {A}.', 'Pharmacy visit: pay {A}.', 'Your cotton sells abroad: collect {A}.', 'An ancient amulet: get out of jail free. Keep this card.', 'Caught selling fake papyrus: go to jail.', 'Holiday bonus: collect {A}.', 'Tax refund: collect {A}.', 'Your birthday on the Nile: collect {A} from every player.', 'Insurance pays out: collect {A}.', 'Hospital bill: pay {A}.', 'Archaeology-school fees: pay {A}.', 'Tour-guide fee: collect {A}.', 'Flood repairs along the Nile: pay {A} per house and {B} per hotel.', 'Best tent at the oasis festival: collect {A}.', 'A great-aunt leaves you {A}.']),
       say: WORDS(SAY, ['Ahlan wa sahlan! Welcome to Cairo, land of the pharaohs.', '{p} passes GO. Payday!', '{p} buys {S}.', '{p} pays {A} to {o}.', '{p} goes to jail.', '{S} goes to auction in the bazaar!', '{p} is bankrupt.', '{p} is the new pharaoh of Cairo!']),
     },
-    sydney: {
-      name: 'Sydney', mood: 'the harbour, the reef and kangaroos', sym: 'A$', style: 'west', factor: 16250,
-      colors: { bg: '#0a4d8c', frame: '#ffd166', cell: '#fffdf7', title: '#ffe9a8' },
-      streets: ['Parramatta', 'Blacktown', 'Redfern', 'Newtown', 'Marrickville', 'Surry Hills', 'Glebe', 'Bondi Junction', 'Darlinghurst', 'Paddington', 'Balmain', 'The Rocks', 'Circular Quay', 'Darling Harbour', 'Coogee', 'Manly', 'Bondi Beach', 'Mosman', 'Double Bay', 'Vaucluse', 'Point Piper', 'Bennelong Point'],
-      stations: ['Central', 'Town Hall', 'Wynyard', 'Museum'], utilities: ['Power House', 'Water Board'],
-      tokens: ['🦘', '🐨', '🏄', '🪃', '⛴️', '🐠', '👒', '🦈'],
-      f: WORDS(FK, ['Ferry across the harbour to GO: collect your salary.', 'A day out at {S}.', 'Brunch in {S}.', 'Heatwave blackout! Go to the nearest utility; if it is owned, pay 10 × a fresh roll.', 'Catch the train: go to the nearest station; if it is owned, pay double rent.', 'Your surf shop pays a dividend: collect {A}.', 'No worries, mate: get out of jail free. Keep this card.', 'A kangaroo blocks the road: go back 3 spaces.', 'Swimming outside the flags: go to jail.', 'Termite inspection: pay {A} per house and {B} per hotel.', 'Speeding on the bridge: pay {A}.', 'Take a train from {S}.', 'A harbour-view open house at {S}.', 'Shout a round for everyone: pay each player {A}.', 'You win the surf comp: collect {A}.']),
-      t: WORDS(TK, ['New Year fireworks at GO: collect your salary.', 'Bank error in your favour: collect {A}.', 'Jellyfish sting: pay {A}.', 'Mining shares boom: collect {A}.', 'A lifesaver to the rescue: get out of jail free. Keep this card.', 'Night surfing in a shark zone: go to jail.', 'Holiday bonus: collect {A}.', 'Tax refund: collect {A}.', 'A barbie on the beach for your birthday: collect {A} from every player.', 'Insurance pays out: collect {A}.', 'Hospital bill: pay {A}.', 'Surf-school fees: pay {A}.', 'Reef-tour guide fee: collect {A}.', 'Storm-season repairs: pay {A} per house and {B} per hotel.', 'Best sandcastle on Bondi: collect {A}.', 'An outback uncle leaves you {A}.']),
-      say: WORDS(SAY, ['G\'day! Welcome to Sydney: the harbour, the reef and real estate.', '{p} passes GO. Payday, mate!', '{p} buys {S}. Beauty!', '{p} pays {A} to {o}.', '{p} goes to jail.', '{S} goes to auction!', '{p} is bankrupt.', '{p} owns Sydney!']),
+    tromso: {
+      name: 'Tromsø', mood: 'the northern lights, fjords and snow', sym: 'NOK', style: 'west', factor: 26250,
+      colors: { bg: '#0b1d3a', frame: '#7fd8c8', cell: '#f8fbff', title: '#c6f4ea' },
+      streets: ['Ramfjord', 'Svanefjord', 'Skjervøy', 'Hillesøy', 'Grøtavær', 'Kvaløya', 'Erfjord', 'Tromsdalen', 'Reindeer Valley', 'Hamna', 'Ishavskysten', 'Senja', 'Sommarøy', 'Lyngen Alps', 'Storsteinen', 'Fjellheisen', 'Polaria', 'Arctic Cathedral', 'Tromsø Bridge', 'Telegrafbukta', 'Storgata', 'Strandkanten'],
+      stations: ['Tromsø Airport', 'Hurtigruten Quay', 'Nordlys Route', 'Arctic Coast Route'], utilities: ['Power House', 'Water Board'],
+      tokens: ['🦌', '🐋', '❄️', '🛷', '🎿', '🐺', '🌌', '🧣'],
+      f: WORDS(FK, ['A dog sled races you to GO: collect your salary.', 'Snowmobile to {S}.', 'A northern-lights tour to {S}.', 'The polar night trips the power! Go to the nearest utility; if it is owned, pay 10 × a fresh roll.', 'Catch the boat: go to the nearest route; if it is owned, pay double rent.', 'Your fish farm pays a dividend: collect {A}.', 'A reindeer herder vouches for you: get out of jail free. Keep this card.', 'A blizzard on the bridge: go back 3 spaces.', 'Chasing the aurora through a closed road: go to jail.', 'Snow on every roof: pay {A} per house and {B} per hotel.', 'Studded-tyre fine: pay {A}.', 'Sail from {S}.', 'A whale-watching trip to {S}.', 'Hot drinks for the whole cabin: pay each player {A}.', 'You win the midnight-sun marathon: collect {A}.']),
+      t: WORDS(TK, ['The sun returns at GO: collect your salary.', 'Bank error in your favour: collect {A}.', 'Frostbite clinic: pay {A}.', 'Your salmon shares rise: collect {A}.', 'A friend on the coastguard: get out of jail free. Keep this card.', 'Fishing without a licence: go to jail.', 'Midnight-sun festival bonus: collect {A}.', 'Tax refund: collect {A}.', 'A birthday in the sauna: collect {A} from every player.', 'Insurance pays out: collect {A}.', 'Hospital bill: pay {A}.', 'Ski-school fees: pay {A}.', 'Aurora-guide tips: collect {A}.', 'Ice damage after the winter: pay {A} per house and {B} per hotel.', 'Best ice sculpture at the festival: collect {A}.', 'A whaling-captain great-uncle leaves you {A}.']),
+      say: WORDS(SAY, ['Velkommen to Tromsø, under the northern lights.', '{p} passes GO. Payday in the Arctic!', '{p} buys {S}.', '{p} pays {A} to {o}.', '{p} goes to jail.', '{S} goes to auction!', '{p} is bankrupt.', '{p} rules the Arctic!']),
+    },
+    hongkong: {
+      name: 'Hong Kong', mood: 'neon, skyscrapers and the harbour', sym: 'HK$', style: 'west', factor: 225000,
+      colors: { bg: '#120a2a', frame: '#e63946', cell: '#fffaf2', title: '#ffd166' },
+      streets: ['Tung Chung', 'Lohas Park', 'Tai Po', 'Tsuen Wan', 'Sha Tin', 'Kwun Tong', 'Kowloon Bay', 'North Point', 'Mong Kok', 'Sheung Wan', 'Wan Chai', 'Causeway Bay', 'Tsim Sha Tsui', 'West Kowloon', 'South Horizons', 'Happy Valley', 'Admiralty', 'Central', 'Stanley', 'Victoria Harbour', 'Repulse Bay', 'The Peak'],
+      stations: ['Hung Hom', 'Kai Tak', 'Airport Express', 'Star Ferry'], utilities: ['Power House', 'Water Board'],
+      tokens: ['🐉', '🏮', '🥟', '⛴️', '🚋', '🧧', '🌃', '🐼'],
+      f: WORDS(FK, ['The Star Ferry carries you to GO: collect your salary.', 'Take the tram to {S}.', 'Dim sum in {S}.', 'A typhoon cuts the power! Go to the nearest utility; if it is owned, pay 10 × a fresh roll.', 'Rush hour: go to the nearest station; if it is owned, pay double rent.', 'Your shares jump on the exchange: collect {A}.', 'A good lawyer in Central: get out of jail free. Keep this card.', 'Lost in a night market: go back 3 spaces.', 'Jaywalking on Nathan Road: go to jail.', 'Typhoon shutters for every flat: pay {A} per house and {B} per hotel.', 'Parking fine in Mong Kok: pay {A}.', 'Take a train from {S}.', 'A rooftop party at {S}.', 'Milk tea for everyone: pay each player {A}.', 'You win at the races in Happy Valley: collect {A}.']),
+      t: WORDS(TK, ['Lunar New Year at GO: collect your salary.', 'Bank error in your favour: collect {A}.', 'Doctor\'s bill: pay {A}.', 'Your property shares rise: collect {A}.', 'A friend in the police: get out of jail free. Keep this card.', 'Selling fake watches: go to jail.', 'Lai see from the boss: collect {A}.', 'Tax refund: collect {A}.', 'A birthday banquet: collect {A} from every player.', 'Insurance pays out: collect {A}.', 'Hospital bill: pay {A}.', 'Tutoring-centre fees: pay {A}.', 'Feng-shui consulting fee: collect {A}.', 'Typhoon repairs: pay {A} per house and {B} per hotel.', 'Second place in the dragon-boat race: collect {A}.', 'A great-aunt in Macau leaves you {A}.']),
+      say: WORDS(SAY, ['Welcome to Hong Kong, where the skyline never sleeps.', '{p} passes GO. Payday!', '{p} buys {S}.', '{p} pays {A} to {o}.', '{p} goes to jail.', '{S} goes to auction!', '{p} is bankrupt.', '{p} owns Hong Kong!']),
+    },
+    prague: {
+      name: 'Prague', mood: 'castles, bridges and autumn colours', sym: 'Kč', style: 'west', factor: 100000,
+      colors: { bg: '#3b1d10', frame: '#c9a227', cell: '#fffaf0', title: '#f2c14e' },
+      streets: ['Nusle', 'Žižkov', 'Holešovice', 'Břevnov', 'Smíchov', 'Anděl', 'Karlín', 'Letná', 'Strahov', 'Pohořelec', 'Vyšehrad', 'Vinohrady', 'Petřín', 'Loreta', 'Nové Město', 'Václavské náměstí', 'Dvořákovo nábřeží', 'Klementinum', 'Staré Město', 'Hradčany', 'Malá Strana', 'Pařížská'],
+      stations: ['Hlavní nádraží', 'Masarykovo nádraží', 'Náměstí Republiky', 'Florenc'], utilities: ['Power House', 'Water Board'],
+      tokens: ['🍺', '🏰', '🎻', '🥨', '🚋', '🕰️', '🌉', '👑'],
+      f: WORDS(FK, ['The astronomical clock strikes GO: collect your salary.', 'Take the tram to {S}.', 'A stroll over the bridge to {S}.', 'A storm over the river cuts the power! Go to the nearest utility; if it is owned, pay 10 × a fresh roll.', 'Catch the train: go to the nearest station; if it is owned, pay double rent.', 'Your brewery pays a dividend: collect {A}.', 'The castle guard looks away: get out of jail free. Keep this card.', 'Lost in the Old Town lanes: go back 3 spaces.', 'Climbing a statue on the bridge: go to jail.', 'New tiles for every roof: pay {A} per house and {B} per hotel.', 'Tram ticket inspector: pay {A}.', 'Take a train from {S}.', 'A concert at {S}.', 'A round of beer for everyone: pay each player {A}.', 'You win the marionette contest: collect {A}.']),
+      t: WORDS(TK, ['The castle bells ring at GO: collect your salary.', 'Bank error in your favour: collect {A}.', 'Doctor\'s bill: pay {A}.', 'Your glassworks shares rise: collect {A}.', 'A friend at the town hall: get out of jail free. Keep this card.', 'Caught skipping a pub bill: go to jail.', 'Christmas-market bonus: collect {A}.', 'Tax refund: collect {A}.', 'A name-day party: collect {A} from every player.', 'Insurance pays out: collect {A}.', 'Hospital bill: pay {A}.', 'Music-school fees: pay {A}.', 'Tour-guide tips: collect {A}.', 'The river floods the cellars: pay {A} per house and {B} per hotel.', 'Second place at the dumpling contest: collect {A}.', 'A great-uncle in Brno leaves you {A}.']),
+      say: WORDS(SAY, ['Vítejte! Welcome to Prague, the city of a hundred spires.', '{p} passes GO. Payday!', '{p} buys {S}.', '{p} pays {A} to {o}.', '{p} goes to jail.', '{S} goes to auction!', '{p} is bankrupt.', '{p} is crowned king of Prague!']),
     },
   };
   const BOARD_KEYS = Object.keys(BOARDS);
@@ -157,15 +177,14 @@ window.PARTY_GAME = (() => {
     if (s.type === 'utility') return b.utilities[UTILITIES.indexOf(i)];
     return { go: 'GO', treasury: 'Treasury', fortune: 'Fortune', tax: s.name, jail: 'Jail', parking: 'Free Parking', gotojail: 'Go to Jail' }[s.type];
   }
-  // An amount in standard units, shown in the board's money: $650k · CHF 4.5M · ¥380M · ₹16 Cr · ₹25 L · 4,000 dr
+  // An amount in standard units, shown in the board's money: $650k · CHF 4.5M · Kč 40M · ¥380M · ₹16 Cr · ₹25 L
   function money(b, std) {
     const v = Math.round(std * b.factor), a = Math.abs(v);
     const sig = x => String(+(x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2)));
     let n;
     if (b.style === 'india') n = a >= 1e7 ? `${sig(a / 1e7)} Cr` : a >= 1e5 ? `${sig(a / 1e5)} L` : a.toLocaleString('en-IN');
-    else if (b.style === 'plain') n = a.toLocaleString('en-US');
     else n = a >= 1e9 ? `${sig(a / 1e9)}B` : a >= 1e6 ? `${sig(a / 1e6)}M` : a >= 1e3 ? `${sig(a / 1e3)}k` : String(a);
-    return `${v < 0 ? '−' : ''}${b.sym}${/^[A-Z]{2,}$/.test(b.sym) ? ' ' : ''}${n}${b.suffix || ''}`;
+    return `${v < 0 ? '−' : ''}${b.sym}${/\p{L}$/u.test(b.sym) ? ' ' : ''}${n}`;
   }
   const fill = (t, o) => String(t).replace(/\{(\w)\}/g, (m, k) => (o[k] != null ? o[k] : m));
 
@@ -615,10 +634,9 @@ window.PARTY_GAME = (() => {
   // A colour made lighter (f > 0) or darker (f < 0)
   const shade = (hex, f) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f)); return `#${c.map(v => v.toString(16).padStart(2, '0')).join('')}`; };
   // Each board's ink: icons, the logo plate and the frame's dark edge
-  const INK = { newyork: '#1d2a5c', mumbai: '#7a1e48', paris: '#6d4c7d', rio: '#0b6e8c', zurich: '#b71c2c', tokyo: '#5b0fd6', dublin: '#1b5e3a', greece: '#1d3557', cairo: '#7f4f24', sydney: '#0a4d8c' };
+  const INK = { newyork: '#1d2a5c', mumbai: '#7a1e48', paris: '#6d4c7d', rio: '#0b6e8c', zurich: '#b71c2c', tokyo: '#5b0fd6', dublin: '#1b5e3a', santorini: '#0d4c8c', cairo: '#7f4f24', tromso: '#0b3a5c', hongkong: '#a4161a', prague: '#6b2d12' };
   const NAME_FONT = '"Avenir Next Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif';
   const lin = (id, stops, x2 = 0, y2 = 1) => `<linearGradient id="${id}" x1="0" y1="0" x2="${x2}" y2="${y2}">${stops.map(([o, c, a = 1]) => `<stop offset="${o}" stop-color="${c}" stop-opacity="${a}"/>`).join('')}</linearGradient>`;
-  const rad = (id, stops, cx = 0.5, cy = 0.5, r = 0.5) => `<radialGradient id="${id}" cx="${cx}" cy="${cy}" r="${r}">${stops.map(([o, c, a = 1]) => `<stop offset="${o}" stop-color="${c}" stop-opacity="${a}"/>`).join('')}</radialGradient>`;
   // Icons, drawn (not emoji), centred on (x, y), about s across, in the board's ink
   const ICONS = {
     train: (x, y, s, ink) => `<g transform="translate(${x - s / 2} ${y - s / 2}) scale(${s / 40})"><rect x="8" y="4" width="24" height="26" rx="6" fill="${ink}"/><rect x="11" y="8" width="18" height="9" rx="2" fill="#dff3ff"/><circle cx="14" cy="23" r="2.4" fill="#ffe08a"/><circle cx="26" cy="23" r="2.4" fill="#ffe08a"/><path d="M10 30 l-4 7 M30 30 l4 7" stroke="${ink}" stroke-width="3" stroke-linecap="round"/></g>`,
@@ -632,7 +650,7 @@ window.PARTY_GAME = (() => {
     receipt: (x, y, s, ink) => `<g transform="translate(${x - s / 2} ${y - s / 2}) scale(${s / 40})"><path d="M9 3 H31 V35 L27 32 L23 35 L19 32 L15 35 L11 32 L9 35 Z" fill="#fff" stroke="${ink}" stroke-width="2"/><path d="M13 10 H27 M13 15 H27 M13 20 H22" stroke="${ink}" stroke-width="2" stroke-linecap="round"/><text x="25" y="29" font-size="9" font-weight="900" text-anchor="middle" fill="#c0392b">%</text></g>`,
     diamond: (x, y, s, ink) => `<g transform="translate(${x - s / 2} ${y - s / 2}) scale(${s / 40})"><path d="M8 14 L14 6 H26 L32 14 L20 34 Z" fill="#bde8ff" stroke="${ink}" stroke-width="2" stroke-linejoin="round"/><path d="M8 14 H32 M14 6 L18 14 L20 34 L22 14 L26 6" fill="none" stroke="${ink}" stroke-width="1.3"/></g>`,
   };
-  const iconFor = (key, sp, i) => (sp.type === 'station' ? (key === 'greece' ? 'ship' : key === 'tokyo' ? 'bullet' : 'train') : sp.type === 'utility' ? (UTILITIES.indexOf(i) ? 'drop' : key === 'greece' ? 'flame' : 'bolt')
+  const iconFor = (key, sp, i) => (sp.type === 'station' ? (key === 'santorini' || key === 'tromso' ? 'ship' : key === 'tokyo' ? 'bullet' : 'train') : sp.type === 'utility' ? (UTILITIES.indexOf(i) ? 'drop' : 'bolt')
     : sp.type === 'fortune' ? 'fortune' : sp.type === 'treasury' ? 'treasury' : sp.type === 'tax' ? (sp.amount === 100 ? 'diamond' : 'receipt') : null);
   // The four corners, illustrated
   function corner(type, x, y, w, ink, b) {
@@ -661,36 +679,20 @@ window.PARTY_GAME = (() => {
   const hotel = (x, y, s) => `<g><rect x="${x}" y="${y + s * 0.15}" width="${s * 1.6}" height="${s * 0.85}" rx="2" fill="#d62828" stroke="#fff" stroke-width="1.4"/><path d="M${x - 2} ${y + s * 0.2} L${x + s * 0.8} ${y - s * 0.15} L${x + s * 1.6 + 2} ${y + s * 0.2}" fill="#9d0208" stroke="#fff" stroke-width="1.2"/></g>`;
 
   /* ---------- Each board's centre picture, in the 9 × 9 middle ---------- */
-  // The pictures are painted collages of each city's landmarks (games/party/art/business-art.js, loaded before this file on
-  // the Mac and the phones). Each is drawn once into an image, so redrawing the board (every move) doesn't repaint the city.
-  const sceneUrls = {};
-  function scene(key, x, y, w, h) {
-    const art = typeof BUSINESS_ART !== 'undefined' ? BUSINESS_ART : null;
-    if (!art) return '';
-    if (!sceneUrls[key]) {
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">${art.draw(key)}</svg>`;
-      sceneUrls[key] = typeof URL !== 'undefined' && URL.createObjectURL && typeof Blob !== 'undefined' ? URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })) : 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    }
-    return `<image href="${sceneUrls[key]}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/>`;
-  }
+  // A painted picture of the city (games/party/art/boards/<board>.jpg) with its own logo plate and card piles
+  const scene = (key, x, y, w, h) => `<image href="games/party/art/boards/${key}.jpg" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice"/>`;
 
   /* ---------- The board: frame, spaces, corners, owners, buildings, mortgages and tokens. v: { board, own, pos, out, colors, turn, pot } ---------- */
   function boardSVG(v, opt = {}) {
-    const key = BOARDS[v.board] ? v.board : 'newyork', b = BOARDS[key], C = b.colors, ink = INK[key], P = n => (n * U).toFixed(1);
+    const key = BOARDS[v.board] ? v.board : 'newyork', b = BOARDS[key], C = b.colors, ink = INK[key];
     let s = `<defs>${lin('bzFrame', [[0, shade(C.frame, 0.25)], [0.5, C.frame], [1, shade(C.frame, -0.35)]], 1, 1)}${lin('bzPaper', [[0, '#ffffff'], [1, shade(C.cell, -0.04)]])}${lin('bzGloss', [[0, '#fff', 0.55], [0.5, '#fff', 0.08], [1, '#000', 0.12]])}
-      ${rad('bzVig', [[0.6, '#000', 0], [1, '#000', 0.35]])}${lin('bzPlate', [[0, shade(ink, 0.1), 0.92], [1, shade(ink, -0.45), 0.92]])}${lin('bzGold', [[0, '#fff3c4'], [0.45, '#f4c542'], [1, '#b8860b']])}
       <filter id="bzShadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.45"/></filter>
       <pattern id="bzHatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="7" fill="#7a0000" opacity="0.18"/></pattern></defs>`;
     // the frame: a bevelled rim around the whole board
     const M = 16;                                                  // the rim around the spaces
     s += `<rect x="${-M}" y="${-M}" width="${13 * U + 2 * M}" height="${13 * U + 2 * M}" rx="18" fill="url(#bzFrame)"/><rect x="${-M + 5}" y="${-M + 5}" width="${13 * U + 2 * M - 10}" height="${13 * U + 2 * M - 10}" rx="14" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="1.5"/><rect x="-3" y="-3" width="${13 * U + 6}" height="${13 * U + 6}" rx="4" fill="${shade(C.frame, -0.55)}"/>`;
-    // the centre: the city, a vignette, the logo plate and the two card piles
-    s += `<g>${scene(key, 2 * U, 2 * U, 9 * U, 9 * U)}</g><rect x="${2 * U}" y="${2 * U}" width="${9 * U}" height="${9 * U}" fill="url(#bzVig)"/>`;
-    s += `<g filter="url(#bzShadow)"><rect x="${P(3.6)}" y="${P(2.3)}" width="${P(5.8)}" height="${P(1.45)}" rx="14" fill="url(#bzPlate)" stroke="url(#bzGold)" stroke-width="3.5"/></g>`
-      + `<text x="${P(6.5)}" y="${P(3.22)}" font-size="${U * 0.72}" font-weight="900" text-anchor="middle" fill="url(#bzGold)" font-family="Georgia, 'Times New Roman', serif" letter-spacing="5" stroke="${shade(ink, -0.6)}" stroke-width="1.5" paint-order="stroke">BUSINESS</text>`
-      + `<text x="${P(6.5)}" y="${P(3.58)}" font-size="${U * 0.22}" font-weight="800" text-anchor="middle" fill="#fff" font-family="${NAME_FONT}" letter-spacing="3">${esc(b.name.toUpperCase())} EDITION · BETA</text>`;
-    const pile = (px, py, rot, fill, label, icon) => `<g transform="translate(${px} ${py}) rotate(${rot}) scale(0.82)" filter="url(#bzShadow)">${[6, 3, 0].map(o => `<rect x="${-U * 0.95 + o}" y="${-U * 0.6 + o}" width="${U * 1.9}" height="${U * 1.2}" rx="8" fill="${o ? shade(fill, -0.25) : fill}" stroke="#fff" stroke-width="2.5"/>`).join('')}${ICONS[icon](-U * 0.6, 0, U * 0.5, ink)}<text x="${U * 0.22}" y="${U * 0.08}" font-size="${U * 0.21}" font-weight="900" text-anchor="middle" fill="${ink}" font-family="${NAME_FONT}" letter-spacing="1" textLength="${U * 1.1}" lengthAdjust="spacingAndGlyphs">${label}</text></g>`;
-    s += pile(P(3.35), P(10.1), -8, '#ffb347', 'FORTUNE', 'fortune') + pile(P(9.65), P(10.1), 8, '#9ad1d4', 'TREASURY', 'treasury');
+    // the centre: the city's picture, edged like the spaces
+    s += scene(key, 2 * U, 2 * U, 9 * U, 9 * U) + `<rect x="${2 * U}" y="${2 * U}" width="${9 * U}" height="${9 * U}" fill="none" stroke="${shade(C.frame, -0.45)}" stroke-width="1.2"/>`;
     SPACES.forEach((sp, i) => {
       const c = cellRect(i), x = c.x * U, y = c.y * U, w = c.w * U, h = c.h * U, o = v.own[i];
       s += `<g data-space="${i}"${opt.pick && opt.pick.includes(i) ? ` class="bz-pick" data-act="goto" data-to="${i}"` : ''}><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#bzPaper)" stroke="${shade(C.frame, -0.45)}" stroke-width="1.2"/>`;
@@ -844,7 +846,7 @@ window.PARTY_GAME = (() => {
   const api = {
     _test: { SPACES, STREETS, STATIONS, UTILITIES, OWNABLE, GROUPS, FORTUNE, TREASURY, BOARDS, BOARD_KEYS, FK, TK, SAY, money, spaceName, rent, canBuild, canSell, canMortgage, canUnmortgage, netWorth, fullSet, firstPlayer, seatOrder, boardSVG, unmortgageCost, interest, HOTEL, drawCard, START, SALARY },   // internals, for the unit tests only (test/unit)
     id: 'business', name: 'Business', min: 2, max: 8, wide: true, macRole: 'the board and the bank', pointsLabel: null,   // the end screen shows net worth in the board's money; the leaderboard keeps standard units
-    blurb: 'Beta. Buy streets, build houses and hotels, collect rent and bankrupt your friends, on one of ten themed city boards. The board is on the Mac; your money and deeds are on your phone. 2–8 players.',
+    blurb: 'Beta. Buy streets, build houses and hotels, collect rent and bankrupt your friends, on one of twelve themed city boards. The board is on the Mac; your money and deeds are on your phone. 2–8 players.',
     options: [
       { key: 'board', label: 'Board', def: 'newyork', choices: BOARD_KEYS.map(k => [k, `${BOARDS[k].name} · ${BOARDS[k].mood}`]) },
       { key: 'length', label: 'Game length', def: 'classic', choices: [['classic', 'Classic: the last one standing wins'], ['short', 'Short game: ends at the first bankruptcy, richest wins']] },
