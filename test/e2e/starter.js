@@ -1,5 +1,5 @@
 const H = require('./helpers');
-// "Start Game Night.command": opens the home page only when no Game Night tab is open, and stops the game when closed.
+// "LaunchGame.command": opens the home page only when no Game Night tab is open, and stops the game when closed.
 // The macOS `open` command is replaced by a stand-in that only records being called, so no real tabs appear.
 const { chromium } = require('playwright-core');
 const { spawn, spawnSync } = require('child_process');
@@ -13,7 +13,7 @@ const openLog = path.join(stub, 'open.log');
 fs.writeFileSync(path.join(stub, 'open'), `#!/bin/sh\necho "$@" >> "${openLog}"\n`, { mode: 0o755 });
 const opened = () => (fs.existsSync(openLog) ? fs.readFileSync(openLog, 'utf8').trim().split('\n').filter(Boolean) : []);
 const listening = () => !!spawnSync('lsof', ['-nP', '-t', `-iTCP:${PORT}`, '-sTCP:LISTEN'], { encoding: 'utf8' }).stdout.trim();
-const starter = () => spawn('/bin/sh', [path.join(H.ROOT, 'Start Game Night.command'), String(PORT)],
+const starter = () => spawn('/bin/sh', [path.join(H.ROOT, 'LaunchGame.command'), String(PORT)],
   { env: { ...process.env, PATH: `${stub}:${process.env.PATH}`, DC_LOOPBACK_ONLY: '1' }, stdio: 'ignore', detached: true });
 const stop = p => { try { process.kill(-p.pid, 'SIGHUP'); } catch {} };     // like closing the Terminal window
 (async () => {
