@@ -102,6 +102,7 @@ function render() {
   $('#lobbyText').textContent = ST.waiting ? 'A game is in progress. You will be seated for the next one.'
     : `Waiting for the host to start. ${G.name} needs ${ST.min}–${ST.max} players; ${ST.seats.length} joined.`;
   $('#seatsB').innerHTML = seatsHTML;
+  $('#lobbyGame').innerHTML = phase === 'lobby' && seated && ST.lobby && G.lobbyPhoneHTML ? G.lobbyPhoneHTML(ST.lobby, local, { esc }) : '';   // e.g. voting for a Business board
   $('#viewPanel').hidden = !(seated && ST.view && phase !== 'lobby');
   if (!$('#viewPanel').hidden) {
     // Redraw only when something changed, and never under a finger: replacing the button being touched can lose the
@@ -149,6 +150,11 @@ $('#view').addEventListener('click', e => {
   const msg = { ...el.dataset };
   if (G.phoneAct && G.phoneAct(msg, ST.view, local, send) === true) return render();
   send(msg);
+});
+// Taps in the game's own lobby (e.g. a Business board vote) go to the Mac
+$('#lobbyGame').addEventListener('click', e => {
+  const el = e.target.closest('[data-lobby]');
+  if (el && !el.disabled) post({ type: 'lobby', ...el.dataset });
 });
 $('#nameForm').addEventListener('submit', e => {
   e.preventDefault();

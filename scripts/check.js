@@ -60,6 +60,9 @@ for (const page of ['remote.js', 'table-remote.js', 'bj-remote.js']) {
 }
 const lobby = read('public/party.html');
 for (const g of games) if (!lobby.includes(`party-table.html?g=${g}"`)) bad(`public/party.html has no card for the party game ${g}`);
+// …and the home page's Party Games card names every one of them (its list is written by hand)
+const home = read('public/index.html'), names = [...read('public/party-table.html').match(/window\.PARTY_IDS = \{([^}]*)\}/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
+for (const n of names) if (!home.includes(`<li>${n}`)) bad(`public/index.html's Party Games card doesn't list ${n}`);
 
 // 5. The cache version changed whenever something in public/ changed (otherwise players keep the old offline copy)
 const i = process.argv.indexOf('--base');

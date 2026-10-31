@@ -10,7 +10,7 @@ No accounts, no app to install, no internet needed once it's set up. Chips are p
 
 | Casino | Party games |
 |---|---|
-| Roulette, Blackjack, Baccarat, Dragon Tiger, Sic Bo, Craps | One Night Werewolf, Mafia, Catan, Go Fish, Bluff, Tambola |
+| Roulette, Blackjack, Baccarat, Dragon Tiger, Sic Bo, Craps | One Night Werewolf, Mafia, Catan, Go Fish, Bluff, Tambola, Business (Beta) |
 | A talking dealer opens a betting window; everyone bets from their phone. | The master screen runs the game (narrates Werewolf and Mafia, calls the Tambola numbers); everyone plays on their phone. |
 
 **Contents:** [Set up once](#1-set-up-once) · [Start the game](#2-start-the-game-become-the-master) ·
@@ -130,6 +130,7 @@ and use `:9000` instead of `:8080` in the addresses.
    | Go Fish | 2–6 | |
    | Bluff | 3–8 | Indian-style rounds: the leader names a rank, the others add cards or pass, anyone can call Bluff! |
    | Tambola (Housie) | 2–10 | Traditional calls; prizes from Early Five to Full House ([details](docs/2026-10-tambola.md)) |
+   | Business (Beta) | 2–8 | Property trading on ten themed city boards with local money: an open table to show the boards while phones join and vote; auctions with a gavel, trades, houses and hotels, classic or short game, speed die ([rules](docs/2026-10-business.md)) |
 2. Pick the options and click **Start**.
 3. Nobody plays on the master screen. It shows the table; in Werewolf and Mafia it narrates out loud (Mafia's trials too), and in Tambola it is
    the caller (the board of numbers called, **Pause** and **Next number now**).

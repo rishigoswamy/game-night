@@ -12,8 +12,9 @@
 <script src="js/lib/storage-migrate.js"></script>
 <script src="games/party/common.js"></script>
 <script>
-window.PARTY_IDS = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff', tambola: 'Tambola', mafia: 'Mafia' };
+window.PARTY_IDS = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff', tambola: 'Tambola', mafia: 'Mafia', business: 'Business' };
 window.PARTY_ID = new URLSearchParams(location.search).get('g');
+if (PARTY_ID === 'business') document.write('<script src="games/party/art/business-art.js"><\/script>');   // Business's board pictures
 if (PARTY_IDS[PARTY_ID]) document.write(`<script src="games/party/${PARTY_ID}.js"><\/script>`);
 </script>
 <link rel="stylesheet" href="css/party.css">
@@ -57,6 +58,7 @@ if (PARTY_IDS[PARTY_ID]) document.write(`<script src="games/party/${PARTY_ID}.js
       <h2>You're in!</h2>
       <p class="muted" id="lobbyText"></p>
       <div class="seatlist" id="seatsB"></div>
+      <div id="lobbyGame"></div>
       <div class="actions" style="margin-top:12px"><button class="btn" id="renameBtn" type="button">Change name</button><button class="btn" id="leaveBtn" type="button">Leave</button></div>
     </div>
     <div class="panel" id="modPanel"><div class="mod"><span class="ico">🎩</span><div class="bubble" id="bubble">Welcome!</div></div></div>

@@ -5,8 +5,8 @@
 const Leaderboard = (() => {
   const KEY = 'gn-leaderboard', KEEP = 100;
   const CASINO = { roulette: 'Roulette', blackjack: 'Blackjack', baccarat: 'Baccarat', dragontiger: 'Dragon Tiger', sicbo: 'Sic Bo', craps: 'Craps' };
-  const PARTY = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff', tambola: 'Tambola', mafia: 'Mafia' };
-  const POINTS = { catan: 'Victory points', gofish: 'Books', tambola: 'Prizes', mafia: 'Survived' };   // party games whose points are worth showing
+  const PARTY = { werewolf: 'One Night Werewolf', catan: 'Catan', gofish: 'Go Fish', bluff: 'Bluff', tambola: 'Tambola', mafia: 'Mafia', business: 'Business' };
+  const POINTS = { catan: 'Victory points', gofish: 'Books', tambola: 'Prizes', mafia: 'Survived', business: 'Net worth' };   // party games whose points are worth showing
   const NAMES = { ...CASINO, ...PARTY };
   const isParty = g => g in PARTY;
   const cents = n => Math.round(n * 100) / 100;
