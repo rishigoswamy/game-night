@@ -10,7 +10,7 @@ No accounts, no app to install, no internet needed once it's set up. Chips are p
 
 | Casino | Party games |
 |---|---|
-| Roulette, Blackjack, Baccarat, Dragon Tiger, Sic Bo, Craps | One Night Werewolf, Mafia, Catan, Go Fish, Bluff, Tambola |
+| Roulette, Blackjack, Baccarat, Dragon Tiger, Sic Bo, Craps | One Night Werewolf, Mafia, Catan, Go Fish, Bluff, Tambola, Business (Beta) |
 | A talking dealer opens a betting window; everyone bets from their phone. | The master screen runs the game (narrates Werewolf and Mafia, calls the Tambola numbers); everyone plays on their phone. |
 
 **Contents:** [Set up once](#1-set-up-once) · [Start the game](#2-start-the-game-become-the-master) ·
@@ -48,13 +48,14 @@ by itself the first time; with the Terminal you run `npm install` once. Either w
 
 ## 2. Start the game (become the master)
 
-**On a Mac, the easy way:** open the `game-night` folder and double-click **`Start Game Night.command`**.
+**On a Mac, the easy way:** open the `game-night` folder and double-click **`LaunchGame.command`**.
 A Terminal window opens and the home page opens in your browser. (If a Game Night tab is already open, no new tab
 opens; that tab reconnects by itself.)
+From Terminal in the project folder, you can also run `./LaunchGame.command`.
 
 > If macOS refuses to open it the first time ("unidentified developer" / "Apple could not verify…"), click **Done**,
 > then open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to
-> *Start Game Night.command*. (On older macOS: right-click the file → **Open** → **Open**.) You only do this once.
+> *LaunchGame.command*. (On older macOS: right-click the file → **Open** → **Open**.) You only do this once.
 
 **Any computer, with the Terminal.** The Terminal is a window where you type commands
 (Mac: Applications → Utilities → **Terminal**; Windows: Start menu → **PowerShell**). Type each line and press Enter:
@@ -130,6 +131,7 @@ and use `:9000` instead of `:8080` in the addresses.
    | Go Fish | 2–6 | |
    | Bluff | 3–8 | Indian-style rounds: the leader names a rank, the others add cards or pass, anyone can call Bluff! |
    | Tambola (Housie) | 2–10 | Traditional calls; prizes from Early Five to Full House ([details](docs/2026-10-tambola.md)) |
+   | Business (Beta) | 2–8 | Property trading on twelve themed city boards with local money: an open table to show the boards while phones join and vote; auctions with a gavel, trades, houses and hotels, classic or short game, speed die ([rules](docs/2026-10-business.md)) |
 2. Pick the options and click **Start**.
 3. Nobody plays on the master screen. It shows the table; in Werewolf and Mafia it narrates out loud (Mafia's trials too), and in Tambola it is
    the caller (the board of numbers called, **Pause** and **Next number now**).

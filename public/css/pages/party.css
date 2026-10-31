@@ -169,4 +169,15 @@
   @keyframes pmSmoke { 0%, 20% { opacity: 0; stroke-dashoffset: 40; } 30% { opacity: .8; } 60% { opacity: .5; stroke-dashoffset: 0; transform: none; } 80%, 100% { opacity: 0; stroke-dashoffset: 0; transform: translate(3px, -8px); } }
   @keyframes pmTip { 0%, 55%, 100% { transform: none; } 66%, 84% { transform: rotate(-12deg) translate(-1px, -4px); } }
   @keyframes pmEyes { 0%, 58%, 90%, 100% { opacity: 0; } 66%, 82% { opacity: 1; } }
+  /* Business: on hover the house becomes a hotel, a coin flips and the rent sparkles */
+  .pn-hotel, .pn-spark { opacity: 0; }
+  .game:hover .pn-house { animation: pnHouse 2.4s ease-in-out infinite; }
+  .game:hover .pn-hotel { animation: pnHotel 2.4s ease-in-out infinite; }
+  .game:hover .pn-coin { animation: pnCoin 1.2s linear infinite; }
+  .game:hover .pn-spark { animation: twinkle .5s ease-in-out infinite alternate; }
+  @keyframes pnHouse { 0%, 35% { opacity: 1; transform: none; } 45% { opacity: 1; transform: translateY(-8px); } 50%, 90% { opacity: 0; transform: scale(.6); } 100% { opacity: 1; transform: none; } }
+  @keyframes pnHotel { 0%, 45% { opacity: 0; transform: scale(.4); } 55% { opacity: 1; transform: scale(1.12); } 62%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: scale(.4); } }
+  @keyframes pnCoin { 0% { transform: scaleX(1); } 25% { transform: scaleX(.1); } 50% { transform: scaleX(1) translateY(-6px); } 75% { transform: scaleX(.1); } 100% { transform: scaleX(1); } }
+  .game { position: relative; }
+  .beta-tag { position: absolute; top: 12px; right: 12px; padding: 3px 10px; border-radius: 99px; background: #7c3aed; color: #fff; font-weight: 800; font-size: .75rem; letter-spacing: .04em; }
   @media (prefers-reduced-motion: reduce) { .game:hover .party-icon * { animation: none !important; } }

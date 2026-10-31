@@ -15,7 +15,7 @@ function toast(msg) {
 
 /* ---------- Seats: one player per phone ---------- */
 // P.seats: [{ name, device, color }] in seating order (turn order). Phones that join during a game wait for the next one.
-const P = { phase: 'lobby', seats: [], waiting: [], opts: {}, ctx: null, endInfo: null };
+const P = { phase: 'lobby', seats: [], waiting: [], opts: {}, ctx: null, endInfo: null, lobbyState: {} };   // lobbyState: the game's own lobby (e.g. Business's board votes)
 const online = new Set();
 function seatIndex(device) { return P.seats.findIndex(s => s.device === device); }
 function addSeat(name, device) {
@@ -88,7 +88,7 @@ function renderLobby() {
     if (s) send({ type: 'kicked' }, s.device);
     renderLobby(); push();
   }));
-  if (G.lobbyHTML) $('#lobbyInfo').innerHTML = G.lobbyHTML(n, P.opts);   // e.g. Werewolf's night order for the roles picked
+  if (G.lobbyHTML) $('#lobbyInfo').innerHTML = G.lobbyHTML(n, P.opts, P.lobbyState, lobbyHelpers());   // e.g. Werewolf's night order; Business's board showcase
   const why = G.canStart ? G.canStart(n, P.opts) : null;
   const ok = n >= G.min && n <= G.max && !why;
   $('#startBtn').disabled = !ok || !sharing();
@@ -208,7 +208,7 @@ function render() {
   if (ctx && ctx.state && P.phase !== 'lobby') {
     $('#info').textContent = (G.status ? G.status(ctx) : '') || `${ctx.players.length} players`;
     $('#stage').innerHTML = G.hostHTML(ctx, HOST_HELPERS);
-    G.hostAfter?.($('#stage'), ctx);                   // e.g. Catan's cards flying between the board and the players
+    G.hostAfter?.($('#stage'), ctx, HOST_FX);          // e.g. Catan's cards flying between the board and the players
     $('#log').innerHTML = ctx.logLines.map(l => `<div>${l}</div>`).join('');
   }
   renderClock();
@@ -225,6 +225,12 @@ function renderClock() {
 }
 setInterval(renderClock, 250);
 const HOST_HELPERS = { esc, color: i => P.seats[i]?.color || '#888' };
+// For a game's own sounds (e.g. Business's gavel): the audio engine, and whether the moderator's voice (and sound) is on
+const HOST_FX = { voiceOn: () => voiceOn, audio: () => getAudio() };
+// A game's own lobby (G.lobbyHTML / G.lobbyAct / G.lobbyView / G.lobbyPhoneHTML): what it can show and change
+const lobbyHelpers = () => ({ esc, qr: $('#qr').hidden ? '' : $('#qr').src, joinUrl: $('#joinUrl').textContent, min: G.min, max: G.max,
+  players: P.seats.map(s => ({ name: s.name, color: s.color, online: online.has(s.device) })), canStart: sharing() && P.seats.length >= G.min && P.seats.length <= G.max });
+const lobbyApi = () => ({ opts: P.opts, setOpt(k, v) { P.opts[k] = v; renderOpts(); } });
 
 // Each phone gets the shared table info plus its own private view (its cards, its role) and nothing else
 let pushTimer = null;
@@ -239,9 +245,10 @@ function pushNow() {
     deadline: ctx && ctx.deadline ? ctx.deadline - Date.now() : null, clockLen: ctx?.clockLen || 0, clockLabel: ctx?.clockLabel || '',
     end: P.endInfo, log: ctx ? ctx.logLines.slice(0, 8) : [],
   };
+  const lobbyFor = device => (P.phase === 'lobby' && G.lobbyView ? G.lobbyView(P.lobbyState, P.opts, device) : null);   // each phone's own view of the game's lobby
   P.seats.forEach((s, i) => {
     const k = ctx ? ctx.players.findIndex(p => p.device === s.device) : -1;   // this phone's player in the current game
-    send({ ...base, me: i, leaving: !!s.leaving, view: ctx && ctx.state && P.phase !== 'lobby' && k >= 0 ? G.view(ctx, k) : null }, s.device);
+    send({ ...base, me: i, leaving: !!s.leaving, lobby: lobbyFor(s.device), view: ctx && ctx.state && P.phase !== 'lobby' && k >= 0 ? G.view(ctx, k) : null }, s.device);
   });
   P.waiting.forEach(w => send({ ...base, me: null, waiting: true, view: null }, w.device));
   // phones that are connected but not seated (just left, or haven't joined yet) still see the lobby
@@ -304,6 +311,10 @@ function handleRemote(m) {
       reply({ type: 'error', text: 'A game is in progress. You will be seated for the next one.' });
       return render();
     }
+    case 'lobby':                                       // a phone acting in the game's lobby (e.g. voting for a Business board)
+      if (P.phase !== 'lobby' || !G.lobbyAct || i < 0) return;
+      G.lobbyAct(P.lobbyState, { ...m, host: false }, lobbyApi());
+      return render();
     case 'leave':
       P.waiting = P.waiting.filter(w => w.device !== m.device);
       if (i >= 0 && P.phase === 'game' && m.now && G.playerLeft) return leaveMidGame(m.device, false);   // leave right now
@@ -412,6 +423,14 @@ $('#rulesBtn').addEventListener('click', () => setRules($('#rules').hidden));
 $('#rulesClose').addEventListener('click', () => setRules(false));
 document.addEventListener('pointerdown', e => { if (!$('#rules').hidden && !e.target.closest('#rules, #rulesBtn')) setRules(false); });
 $('#startBtn').addEventListener('click', startGame);
+// The game's own lobby buttons (e.g. Business: show the boards, flip through them, start from the showcase)
+$('#lobbyInfo').addEventListener('click', e => {
+  if (e.target.closest('[data-lobby-start]')) return startGame();
+  const el = e.target.closest('[data-lobby]');
+  if (!el || el.disabled || !G.lobbyAct || P.phase !== 'lobby') return;
+  G.lobbyAct(P.lobbyState, { ...el.dataset, host: true }, lobbyApi());
+  render();
+});
 // Mid-game: show the join QR code without leaving the game
 $('#joinBtn').addEventListener('click', () => { $('#joinUrl2').textContent = $('#joinUrl').textContent; $('#joinQr').src = '/api/qr.svg'; $('#joinModal').hidden = false; });
 $('#joinClose').addEventListener('click', () => { $('#joinModal').hidden = true; });
@@ -446,7 +465,7 @@ renderOpts();
     $('#joinUrl').textContent = `http://${ip}:${info.port}`;
     const img = $('#qr'); img.onload = () => { img.hidden = false; }; img.src = '/api/qr.svg';
     startSharing();
-  } catch { $('#joinUrl').textContent = 'Start Game Night (npm start, or Start Game Night.command) to let phones join.'; }
+  } catch { $('#joinUrl').textContent = 'Start Game Night (npm start, or LaunchGame.command) to let phones join.'; }
 })();
 let filesVer = null;
 setInterval(async () => {

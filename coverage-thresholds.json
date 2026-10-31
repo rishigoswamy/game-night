@@ -10,6 +10,7 @@
     "public/games/casino/roulette-rules.js",
     "public/games/casino/sicbo.js",
     "public/games/party/bluff.js",
+    "public/games/party/business.js",
     "public/games/party/catan.js",
     "public/games/party/common.js",
     "public/games/party/gofish.js",

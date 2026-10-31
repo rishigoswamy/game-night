@@ -5,7 +5,7 @@ const fmt = n => (n < 0 ? '-$' : '$') + money(Math.abs(n));
 const short = n => n >= 1000 ? (n / 1000).toFixed(n % 1000 ? 1 : 0) + 'k' : String(Math.round(n * 100) / 100);
 const CHIPS = [[5,'#6b7280'],[10,'#2563eb'],[25,'#16a34a'],[50,'#dc2626'],[100,'#111827'],[500,'#7c3aed']];
 // Where each game is played on a phone
-const PAGE_FOR = g => g === 'roulette' ? 'remote.html' : g === 'blackjack' ? 'bj-remote.html' : ['werewolf', 'catan', 'gofish', 'bluff', 'tambola', 'mafia'].includes(g) ? `party-remote.html?g=${g}` : `table-remote.html?g=${g}`;
+const PAGE_FOR = g => g === 'roulette' ? 'remote.html' : g === 'blackjack' ? 'bj-remote.html' : ['werewolf', 'catan', 'gofish', 'bluff', 'tambola', 'mafia', 'business'].includes(g) ? `party-remote.html?g=${g}` : `table-remote.html?g=${g}`;
 const G = window.GAME && GAME.id === GAME_ID ? GAME : null;
 
 let DEVICE;
