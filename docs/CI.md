@@ -199,7 +199,7 @@ They are listed in [`.github/CODEOWNERS`](../.github/CODEOWNERS):
 | The protection list, the pipeline and releases | `.github/` (`CODEOWNERS`, `workflows/`) |
 | The quality gate | `coverage-thresholds.json`, `scripts/`, `test/e2e/run.js`, the shared test helpers (`test/unit/helpers.js`, `test/e2e/helpers.js`, `test/e2e/party-setup.js`), this file (`docs/CI.md`) |
 | Dependencies | `package.json`, `package-lock.json` |
-| Runs on the host's computer / security | `server/`, `Start Game Night.command`, `public/js/lib/admin-lock.js`, `public/sw.js` |
+| Runs on the host's computer / security | `server/`, `LaunchGame.command`, `public/js/lib/admin-lock.js`, `public/sw.js` |
 
 Games, pages, styles, other docs and individual tests stay open: that's ordinary development, and the coverage rules
 (protected) catch a weakened test.

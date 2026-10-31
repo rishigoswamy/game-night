@@ -15,7 +15,7 @@ const { spawn, spawnSync } = require('child_process');
 const B = require('./banner');
 
 const ROOT = path.resolve(__dirname, '..');
-const CONTENTS = ['public', 'server', 'Start Game Night.command', 'scripts/serve.sh', 'package.json', 'package-lock.json', 'README.md', 'docs'];
+const CONTENTS = ['public', 'server', 'LaunchGame.command', 'scripts/serve.sh', 'package.json', 'package-lock.json', 'README.md', 'docs'];
 const SMOKE_PORT = 8092;                         // a test port: never the real game night's 8080
 const git = (...a) => spawnSync('git', a, { cwd: ROOT, encoding: 'utf8' });
 const fail = msg => { B.record('package', false, 'failed'); B.fail(`Package failed: ${msg}`); process.exit(1); };
@@ -38,7 +38,7 @@ const list = spawnSync('unzip', ['-Z1', zip], { encoding: 'utf8' }).stdout.split
 console.log(`${path.relative(ROOT, zip)}: ${list.filter(f => !f.endsWith('/')).length} files, ${(fs.statSync(zip).size / 1024).toFixed(0)} KB, sha256 ${sha.slice(0, 16)}…`);
 const unwanted = list.filter(f => /\/(test|\.github|node_modules|coverage|dist)\//.test(f));
 if (unwanted.length) fail(`the zip holds files that don't belong in a release: ${unwanted.slice(0, 3).join(', ')}`);
-for (const must of ['public/index.html', 'server/server.js', 'Start Game Night.command', 'package-lock.json']) if (!list.includes(`${name}/${must}`)) fail(`the zip is missing ${must}`);
+for (const must of ['public/index.html', 'server/server.js', 'LaunchGame.command', 'package-lock.json']) if (!list.includes(`${name}/${must}`)) fail(`the zip is missing ${must}`);
 
 if (args.includes('--no-smoke')) { B.ok(`Packaged ${name} (smoke test skipped)`); process.exit(0); }
 
@@ -54,7 +54,7 @@ const get = p => new Promise((res, rej) => http.get({ host: '127.0.0.1', port: S
     const dir = path.join(tmp, name);
     const install = spawnSync('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: dir, encoding: 'utf8' });
     if (install.status !== 0) throw new Error(`npm ci failed in the unpacked zip:\n${install.stderr.trim().split('\n').slice(-5).join('\n')}`);
-    if (!(fs.statSync(path.join(dir, 'Start Game Night.command')).mode & 0o111)) throw new Error('"Start Game Night.command" lost its run permission');
+    if (!(fs.statSync(path.join(dir, 'LaunchGame.command')).mode & 0o111)) throw new Error('"LaunchGame.command" lost its run permission');
     server = spawn(process.execPath, ['server/server.js', String(SMOKE_PORT)], { cwd: dir, env: { ...process.env, DC_LOOPBACK_ONLY: '1' }, stdio: 'ignore' });
     let up = false;
     for (let k = 0; k < 50 && !up; k++) { await new Promise(r => setTimeout(r, 200)); up = await get('/api/info').then(r => r.status === 200, () => false); }

@@ -32,7 +32,7 @@
   function showDown() {
     const b = ensureBar();
     b.classList.remove('back');
-    b.innerHTML = `<span>⚠️ Game Night isn't running. Start it with <code>Start Game Night.command</code> (or <code>npm start</code>). Phones can't join until it's running.</span>
+    b.innerHTML = `<span>⚠️ Game Night isn't running. Start it with <code>LaunchGame.command</code> (or <code>npm start</code>). Phones can't join until it's running.</span>
       <button type="button" id="serverRetry">Check again</button>`;
     b.querySelector('#serverRetry').addEventListener('click', check);
     b.hidden = false;
