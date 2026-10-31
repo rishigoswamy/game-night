@@ -4,12 +4,11 @@
   "description": "Game Night: local multi-player casino and party games",
   "scripts": {
     "start": "node server/server.js",
-    "test": "node --test test/unit/*.test.js",
+    "test": "node test/unit/run.js",
     "test:e2e": "node test/e2e/run.js",
     "check": "node scripts/check.js",
     "coverage": "node scripts/coverage.js",
     "ci": "node scripts/ci.js",
-    "setup-hooks": "git config core.hooksPath scripts/hooks",
     "package": "node scripts/package.js"
   },
   "dependencies": {

@@ -183,7 +183,7 @@ server/server.js         the Node server: serves public/, relays messages betwee
 public/                  everything browsers load (pages, css/, js/lib/, js/pages/, games/casino/, games/party/)
 test/unit/               unit tests (Node's built-in test runner): game rules, leaderboards, admin lock, server
 test/e2e/                end-to-end tests: real games in a muted Chrome with simulated phones (runner: run.js)
-scripts/                 the pipeline's stages (check, coverage, package, stage, ci), the pre-push hook, serve.sh
+scripts/                 the pipeline's stages (check, coverage, package, stage, ci), serve.sh
 .github/workflows/       the GitHub pipeline (pipeline.yml)
 coverage-thresholds.json the coverage rule: every file ≥ 80%, the whole project ≥ 85% (and the exceptions)
 docs/                    ARCHITECTURE.md (how it all fits together), CI.md (checks, pipeline, releases), change notes
@@ -196,8 +196,8 @@ docs/                    ARCHITECTURE.md (how it all fits together), CI.md (chec
 | Command | What it does | Time |
 |---|---|---|
 | `npm start` | Runs the game on port 8080 (`npm start -- 9000` for another port; or `scripts/serve.sh [port]`) | |
-| `npm test` | All unit tests | seconds |
-| `npm run test:e2e` | All end-to-end tests, 3 at a time on test ports 8091–8093; `npm run test:e2e -- party-gofish blackjack-phone` runs only those | ~5 min |
+| `npm test` | All unit tests; `npm test -- party-catan` runs one file, `npm test -- --grep "bluff"` the tests whose name matches, `--list` lists the files | seconds |
+| `npm run test:e2e` | All end-to-end tests, 3 at a time on test ports 8091–8093; `npm run test:e2e -- party-gofish blackjack-phone` runs only those, `--list` lists them | ~6 min |
 | `npm run check` | Build check: every file parses, links resolve, the offline cache is complete, games are registered everywhere, the cache version was bumped | seconds |
 | `npm run coverage` | Unit tests plus the coverage gate (report in `coverage/summary.txt`) | seconds |
 | `npm run package` | The release zip in `dist/`, then a smoke test of it (unpack, install, start, load pages) | seconds |
@@ -209,13 +209,14 @@ docs/                    ARCHITECTURE.md (how it all fits together), CI.md (chec
 - **Retries:** failed tests are retried at the end of their stage, then a failing test stage reruns as a whole (3 times
   each, 10 s apart). Anything that passes only on a retry is flagged yellow as flaky. `TEST_RETRIES=0 STAGE_RETRIES=0`
   turns retries off.
-- **Adding tests:** a new file in `test/unit/` or `test/e2e/` is picked up and counted automatically. A new source file
+- **Adding tests:** a new file in `test/unit/` or `test/e2e/` is picked up and counted automatically. Unit tests are grouped
+  in suites (`describe('Bluff', () => { test(…) })`, one per section of a file): put a new test in its section's suite. A new source file
   must reach 80% unit-test coverage (the whole project 85%); after adding tests, `npm run coverage -- --update`.
 
-**Before you push:** `npm run setup-hooks` (once per clone) installs two git hooks: every `git push` runs `npm run ci`
-first and refuses the push if a stage fails (`git push --no-verify` skips it), and every commit shows which release
-version it leads to and how to ask for more (`[minor]` / `[major]`, below). On GitHub the [pipeline](https://github.com/rishigoswamy/game-night/actions)
-runs the same stages on every push and pull request; protecting `main` makes it a hard gate.
+**Before you commit:** run the tests yourself, before `git add`: the unit tests, the browser tests of what you changed,
+and `npm run ci` before a pull request ([docs/CI.md](docs/CI.md), "Before you commit"). There are no git hooks. On GitHub
+the [pipeline](https://github.com/rishigoswamy/game-night/actions) runs every stage on every push and pull request, and
+contributors' pull requests merge into `main` only once it passes.
 
 **Protected files:** the files that decide what's accepted, released or run on a host (the pipeline, the checks and
 coverage rules, dependencies, the server) are listed in `.github/CODEOWNERS`: only the owner may change them

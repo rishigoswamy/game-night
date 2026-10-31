@@ -1,7 +1,7 @@
 # Checks, pipeline and releases
 
-Every change goes through the same checks before it can reach `main` or a release: on your Mac before a push, and on
-GitHub after it.
+Every change goes through the same checks before it can reach `main` or a release: you run them on your Mac before you
+commit ([Before you commit](#before-you-commit-your-mac)), and GitHub runs all of them on every push and pull request.
 
 | Step | Command | What fails it | Time |
 |---|---|---|---|
@@ -12,8 +12,7 @@ GitHub after it.
 
 `npm run ci` (`scripts/ci.js`) runs them in order (unit tests and coverage as two stages) and stops at the first failure.
 Each stage starts with a big banner and ends with a green ✓ or red ✗ line (each end-to-end test gets its own); at the end a
-summary lists every stage with its result and time, green "safe to push" or red "not safe to push". The pre-push hook
-runs the same thing. The zip goes to `dist/` (`npm run package -- v1.2.0`
+summary lists every stage with its result and time, green "safe to push" or red "not safe to push". The zip goes to `dist/` (`npm run package -- v1.2.0`
 names it after a version; it packs the last commit, so commit first).
 
 ## Progress counters
@@ -22,14 +21,15 @@ Each test is numbered as it finishes, against the total for that run: `[ 37/167]
 end-to-end tests (and `[1/2]` in a retry round, counting the tests being retried). The totals are never written down:
 
 - **Unit tests:** just before the run, Node lists every test without running any (about 0.2 s) and the count is passed
-  to the progress reporter (`scripts/unit-reporter.js`).
+  to the progress reporter (`scripts/unit-reporter.js`). The tests are grouped: each file's name, then its suites
+  (`describe('Bluff', …)`, one per section of the file) as headings, with their tests indented and numbered under them.
 - **End-to-end tests:** the runner finds them fresh each run: every script in `test/e2e/` except the runner itself and
   the shared modules (the files that export something: `helpers.js`, `party-setup.js`). A new test file runs, and
   counts, without being listed anywhere.
 
 ## Retries
 
-Two kinds, the same locally (`npm run ci`, the pre-push hook) and on GitHub (every stage runs through `scripts/stage.js`):
+Two kinds, the same locally (`npm run ci`) and on GitHub (every stage runs through `scripts/stage.js`):
 
 1. **Failed tests, retried at the end.** A test stage runs every test first; then only the tests that failed run again,
    after a pause, up to 3 more times. Unit tests are retried one by one by name; end-to-end tests by test, keeping the
@@ -69,25 +69,33 @@ in `coverage/summary.txt` after each run (`*` marks an exception).
 - **A new file** must reach 80% like any other: no setup needed beyond writing its tests (then `--update` to add it to
   the list).
 
-## Before every push (your Mac)
+## Before you commit (your Mac)
 
-Once per clone: `npm run setup-hooks` (sets `git config core.hooksPath scripts/hooks`; undo with
-`git config --unset core.hooksPath`). Then every `git push` runs `scripts/hooks/pre-push`:
+There are no git hooks: **testing is the developer's job**, before `git add`, as on any team. Pushing and committing
+never run anything. GitHub runs every stage on every push and pull request anyway, so nothing reaches `main` or a
+release unchecked; testing first just means you find out in seconds on your Mac instead of minutes later on GitHub.
 
-- It refuses to run with uncommitted changes (the checks test the files on disk, which must be what you push).
-- It runs the build check (with the cache-version check against what the remote already has), the unit tests with the
-  coverage gate, the end-to-end tests and the package stage. If anything fails, nothing is pushed.
-- `git push --no-verify` skips it (the GitHub pipeline still runs).
+| Command | Runs |
+|---|---|
+| `npm test` | all unit tests (seconds) |
+| `npm test -- party-catan party-cards` | only those unit test files (`test/unit/<name>.test.js`) |
+| `npm test -- --grep "bluff"` | only the unit tests whose name matches (with file names too: only in those files) |
+| `npm test -- --list` | the unit test files there are |
+| `npm run test:e2e` | all browser tests, 3 at a time on ports 8091–8093 (~6 min) |
+| `npm run test:e2e -- party-catan-game party-catan-taps` | only those browser tests |
+| `npm run test:e2e -- --list` | the browser tests there are |
+| `npm run coverage` | unit tests plus the coverage gate |
+| `npm run check` | the build check (run it after touching `public/`: it catches a missing cache-version bump) |
+| `npm run ci` | everything, exactly as GitHub runs it (~6.5 min) |
 
-The same command installs `scripts/hooks/prepare-commit-msg`: every commit shows which release version it leads to
-(`scripts/release-hint.js`). When git opens the editor, a short guide sits under your message as `#` comment lines, which
-git removes; with `git commit -m`, one line in the terminal says the version and how to amend for `[minor]` / `[major]`.
-It never blocks a commit. When every stage passes, the summary at the end of `npm run ci` (and of the pre-push
-hook) adds the same reminder: the next version and the commands to release it; a successful `npm run test:e2e` run on
-its own ends with it too. (They read the tags your copy knows, and keep them fresh themselves: releases are made on GitHub and their tags don't
-come back with a push, so the summary fetches tags first, and each commit's hint fetches them quietly in the background
-for the next one. Right after a release, one commit's hint can still show the old number; the real version is always
-decided on GitHub.)
+**What to run:** the unit tests and the build check every time (seconds); the browser tests of what you changed (a
+game's tests are named after it: `party-catan-*` for `games/party/catan.js`); and `npm run ci` before a pull request,
+or after changing something shared (the party framework, the server, the shared CSS or helpers), which every game uses.
+
+**Release reminder:** the summary at the end of `npm run ci` (and of a successful `npm run test:e2e`) says which version
+the next release will be and how to release it (`scripts/release-hint.js`). It reads the tags your copy knows, fetching
+new ones first: releases are made on GitHub and their tags don't come back with a push. A commit is a patch unless its
+message says `[minor]` (a new feature in a game) or `[major]` (a new game); see [Releases](#on-github-releases-githubworkflowsreleaseyml).
 
 ## On GitHub: the pipeline (`.github/workflows/pipeline.yml`)
 
@@ -212,8 +220,9 @@ owners without write access to the repository.
 
 ```sh
 git switch -c tambola-sounds          # work on a branch
-# … commit …
-git push -u origin tambola-sounds     # pre-push checks on your Mac, then the pipeline on GitHub
+npm test && npm run test:e2e -- party-tambola-game party-tambola-modes   # test what you changed (npm run ci for everything)
+git add … && git commit               # … then commit
+git push -u origin tambola-sounds     # the pipeline runs on GitHub
 gh pr create --fill                   # a pull request into main
 gh pr merge --auto --merge            # merges by itself as soon as the pipeline is green
 ```

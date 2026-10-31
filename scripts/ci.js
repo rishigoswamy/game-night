@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// All the checks in order, as in the GitHub pipeline (npm run ci; also what the pre-push hook runs), then a summary:
+// All the checks in order, as in the GitHub pipeline (npm run ci), then a summary:
 // green "safe to push" if every stage passed, red "not safe to push" if one failed (the stages after it don't run);
 // anything that passed only on a retry is listed in yellow as flaky. Retries: scripts/stage.js and docs/CI.md.
 //   npm run ci                       the five stages

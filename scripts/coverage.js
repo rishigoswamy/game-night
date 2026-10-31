@@ -44,8 +44,7 @@ if (gateOnly) {
     let out = ''; try { out = fs.readFileSync(tap, 'utf8'); } catch {}
     fs.rmSync(tap, { force: true });
     const count = k => +(out.match(new RegExp(`^# ${k} (\\d+)`, 'm')) || [])[1] || 0;
-    const failed = [...out.matchAll(/^not ok \d+ - (.*)\n(?:(?!(?:not )?ok ).*\n)*?\s+location: '(.+?):\d+:\d+'/gm)]
-      .map(m => ({ name: m[1].replace(/\\#/g, '#'), file: path.relative(ROOT, m[2]) }));
+    const failed = require('./unit-reporter').failedTests(out, ROOT);   // nested tests too, suites left out
     return { status: r.status, pass: count('pass'), fail: count('fail'), failed };
   };
   const escapeRe = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

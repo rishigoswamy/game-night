@@ -2,6 +2,7 @@
 // Starts a real server on a spare port; "phones" are simulated by connecting through this computer's network address
 // (with DC_LOOPBACK_ONLY=1 the server treats anything but localhost as a phone).
 const test = require('node:test');
+const { describe } = test;
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const os = require('node:os');
@@ -91,231 +92,243 @@ async function openTable(game = 'roulette', takeover = true) {
 }
 
 /* ---------------- Is a Game Night page open on this computer? (the starter asks, to avoid a second tab) ---------------- */
-test('/api/master-open: only a page on this computer counts, not a phone', noLan, async () => {
-  const open = async () => (await (await fetch(MAC + '/api/master-open')).json()).open;
-  assert.equal(await open(), false, 'nothing has checked in yet');
-  await fetch(PHONE + '/api/info');
-  assert.equal(await open(), false, "a phone doesn't count");
-  await fetch(MAC + '/api/info');
-  assert.equal(await open(), true, 'a page on this computer checked in');
+describe('Is a Game Night page open on this computer? (the starter asks, to avoid a second tab)', () => {
+  test('/api/master-open: only a page on this computer counts, not a phone', noLan, async () => {
+    const open = async () => (await (await fetch(MAC + '/api/master-open')).json()).open;
+    assert.equal(await open(), false, 'nothing has checked in yet');
+    await fetch(PHONE + '/api/info');
+    assert.equal(await open(), false, "a phone doesn't count");
+    await fetch(MAC + '/api/info');
+    assert.equal(await open(), true, 'a page on this computer checked in');
+  });
 });
 
 /* ---------------- Static files ---------------- */
-test('serves the pages and their files from public/', async () => {
-  for (const [p, type] of [['/', 'text/html'], ['/casino.html', 'text/html'], ['/js/lib/leaderboard.js', 'text/javascript'],
-    ['/css/base-table.css', 'text/css'], ['/games/party/catan.js', 'text/javascript'], ['/icons/icon-192.png', 'image/png']]) {
-    const r = await fetch(MAC + p);
-    assert.equal(r.status, 200, p);
-    assert.ok(r.headers.get('content-type').startsWith(type), `${p}: ${r.headers.get('content-type')}`);
-  }
-});
+describe('Static files', () => {
+  test('serves the pages and their files from public/', async () => {
+    for (const [p, type] of [['/', 'text/html'], ['/casino.html', 'text/html'], ['/js/lib/leaderboard.js', 'text/javascript'],
+      ['/css/base-table.css', 'text/css'], ['/games/party/catan.js', 'text/javascript'], ['/icons/icon-192.png', 'image/png']]) {
+      const r = await fetch(MAC + p);
+      assert.equal(r.status, 200, p);
+      assert.ok(r.headers.get('content-type').startsWith(type), `${p}: ${r.headers.get('content-type')}`);
+    }
+  });
 
-test('never serves anything outside public/ or hidden files', async () => {
-  for (const p of ['/server/server.js', '/../server/server.js', '/%2e%2e/server/server.js', '/..%2fserver%2fserver.js',
-    '/package.json', '/.gitignore', '/node_modules/qrcode/package.json', '/no-such-page.html']) {
-    assert.equal(await raw(p), 404, p);
-  }
-});
+  test('never serves anything outside public/ or hidden files', async () => {
+    for (const p of ['/server/server.js', '/../server/server.js', '/%2e%2e/server/server.js', '/..%2fserver%2fserver.js',
+      '/package.json', '/.gitignore', '/node_modules/qrcode/package.json', '/no-such-page.html']) {
+      assert.equal(await raw(p), 404, p);
+    }
+  });
 
-test('a malformed address gets "400 Bad request" and the server keeps running', async () => {
-  assert.equal(await raw('//'), 400);
-  assert.equal((await fetch(MAC + '/')).status, 200);
+  test('a malformed address gets "400 Bad request" and the server keeps running', async () => {
+    assert.equal(await raw('//'), 400);
+    assert.equal((await fetch(MAC + '/')).status, 200);
+  });
 });
 
 /* ---------------- Who may run a table ---------------- */
-test('/api/info tells the host computer from a phone', noLan, async () => {
-  assert.equal((await (await fetch(MAC + '/api/info')).json()).master, true);
-  assert.equal((await (await fetch(PHONE + '/api/info')).json()).master, false);
-});
+describe('Who may run a table', () => {
+  test('/api/info tells the host computer from a phone', noLan, async () => {
+    assert.equal((await (await fetch(MAC + '/api/info')).json()).master, true);
+    assert.equal((await (await fetch(PHONE + '/api/info')).json()).master, false);
+  });
 
-test('only the host computer can open a table', noLan, async () => {
-  const r = await post(PHONE, '/api/host', { game: 'roulette', takeover: true });
-  assert.equal(r.status, 403);
-});
+  test('only the host computer can open a table', noLan, async () => {
+    const r = await post(PHONE, '/api/host', { game: 'roulette', takeover: true });
+    assert.equal(r.status, 403);
+  });
 
-test('one table at a time: a second screen must take over, and the old table\'s phones are moved', noLan, async () => {
-  const a = await openTable('roulette');
-  const phone = stream(PHONE, `t=${a.code}&role=remote&device=dphone01`);
-  await phone.next('session');
-  const refused = await post(MAC, '/api/host', { game: 'blackjack' });
-  assert.equal(refused.status, 409);
-  assert.equal((await refused.json()).code, a.code);
-  const b = await (await post(MAC, '/api/host', { game: 'blackjack', takeover: true })).json();
-  assert.notEqual(b.code, a.code);
-  assert.equal((await phone.next('closed')).replacedBy, b.code, 'the phone is told where the table went');
-  assert.equal((await a.host.next('replaced')).type, 'replaced', 'the old screen is told it was replaced');
-  phone.close(); a.host.close();
-});
+  test('one table at a time: a second screen must take over, and the old table\'s phones are moved', noLan, async () => {
+    const a = await openTable('roulette');
+    const phone = stream(PHONE, `t=${a.code}&role=remote&device=dphone01`);
+    await phone.next('session');
+    const refused = await post(MAC, '/api/host', { game: 'blackjack' });
+    assert.equal(refused.status, 409);
+    assert.equal((await refused.json()).code, a.code);
+    const b = await (await post(MAC, '/api/host', { game: 'blackjack', takeover: true })).json();
+    assert.notEqual(b.code, a.code);
+    assert.equal((await phone.next('closed')).replacedBy, b.code, 'the phone is told where the table went');
+    assert.equal((await a.host.next('replaced')).type, 'replaced', 'the old screen is told it was replaced');
+    phone.close(); a.host.close();
+  });
 
-test('/api/tables lists the table (with its game) only while its screen is connected', async () => {
-  const t = await openTable('sicbo');
-  let { tables } = await (await fetch(MAC + '/api/tables')).json();
-  assert.deepEqual(tables.map(x => [x.code, x.game]), [[t.code, 'sicbo']]);
-  t.host.close(); await sleep(200);
-  ({ tables } = await (await fetch(MAC + '/api/tables')).json());
-  assert.equal(tables.length, 0);
+  test('/api/tables lists the table (with its game) only while its screen is connected', async () => {
+    const t = await openTable('sicbo');
+    let { tables } = await (await fetch(MAC + '/api/tables')).json();
+    assert.deepEqual(tables.map(x => [x.code, x.game]), [[t.code, 'sicbo']]);
+    t.host.close(); await sleep(200);
+    ({ tables } = await (await fetch(MAC + '/api/tables')).json());
+    assert.equal(tables.length, 0);
+  });
 });
 
 /* ---------------- The relay ---------------- */
-test('phones get a session token; the table sees their messages from the verified device only', noLan, async () => {
-  const t = await openTable('roulette');
-  const phone = stream(PHONE, `t=${t.code}&role=remote&device=dphone02`);
-  const { token } = await phone.next('session');
-  assert.match(token, /^[0-9a-f]{32}$/);
-  assert.equal((await t.host.next('presence')).device, 'dphone02');
-  const ok = await post(PHONE, '/api/send', { t: t.code, from: 'dphone02', token, msg: { type: 'bet', key: 'red', device: 'someone-else' } });
-  assert.equal(ok.status, 200);
-  const got = await t.host.next('bet');
-  assert.equal(got.device, 'dphone02', 'the table sees the real sender, not what the message claims');
-  assert.equal(got.key, 'red');
-  phone.close(); t.host.close();
-});
+describe('The relay', () => {
+  test('phones get a session token; the table sees their messages from the verified device only', noLan, async () => {
+    const t = await openTable('roulette');
+    const phone = stream(PHONE, `t=${t.code}&role=remote&device=dphone02`);
+    const { token } = await phone.next('session');
+    assert.match(token, /^[0-9a-f]{32}$/);
+    assert.equal((await t.host.next('presence')).device, 'dphone02');
+    const ok = await post(PHONE, '/api/send', { t: t.code, from: 'dphone02', token, msg: { type: 'bet', key: 'red', device: 'someone-else' } });
+    assert.equal(ok.status, 200);
+    const got = await t.host.next('bet');
+    assert.equal(got.device, 'dphone02', 'the table sees the real sender, not what the message claims');
+    assert.equal(got.key, 'red');
+    phone.close(); t.host.close();
+  });
 
-test('a phone cannot send without its token, or as another phone', noLan, async () => {
-  const t = await openTable('roulette');
-  const a = stream(PHONE, `t=${t.code}&role=remote&device=dphoneA1`), b = stream(PHONE, `t=${t.code}&role=remote&device=dphoneB1`);
-  const ta = (await a.next('session')).token; await b.next('session');
-  assert.equal((await post(PHONE, '/api/send', { t: t.code, from: 'dphoneA1', token: 'wrong', msg: { type: 'bet' } })).status, 403);
-  assert.equal((await post(PHONE, '/api/send', { t: t.code, from: 'dphoneB1', token: ta, msg: { type: 'bet' } })).status, 403, "A's token doesn't work for B");
-  assert.equal((await post(PHONE, '/api/send', { t: 'NOPE', from: 'dphoneA1', token: ta, msg: {} })).status, 404);
-  a.close(); b.close(); t.host.close();
-});
+  test('a phone cannot send without its token, or as another phone', noLan, async () => {
+    const t = await openTable('roulette');
+    const a = stream(PHONE, `t=${t.code}&role=remote&device=dphoneA1`), b = stream(PHONE, `t=${t.code}&role=remote&device=dphoneB1`);
+    const ta = (await a.next('session')).token; await b.next('session');
+    assert.equal((await post(PHONE, '/api/send', { t: t.code, from: 'dphoneA1', token: 'wrong', msg: { type: 'bet' } })).status, 403);
+    assert.equal((await post(PHONE, '/api/send', { t: t.code, from: 'dphoneB1', token: ta, msg: { type: 'bet' } })).status, 403, "A's token doesn't work for B");
+    assert.equal((await post(PHONE, '/api/send', { t: 'NOPE', from: 'dphoneA1', token: ta, msg: {} })).status, 404);
+    a.close(); b.close(); t.host.close();
+  });
 
-test('only the table (with its host key) can talk to phones; private messages reach one phone', noLan, async () => {
-  const t = await openTable('party-test');
-  const a = stream(PHONE, `t=${t.code}&role=remote&device=dphoneA2`), b = stream(PHONE, `t=${t.code}&role=remote&device=dphoneB2`);
-  await a.next('session'); await b.next('session');
-  assert.equal((await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: 'wrong', msg: { type: 'say', text: 'x' } })).status, 403);
-  await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, to: 'dphoneA2', msg: { type: 'secret', role: 'werewolf' } });
-  assert.equal((await a.next('secret')).role, 'werewolf');
-  await sleep(200);
-  assert.ok(!b.events.some(e => e.type === 'secret'), 'the other phone never sees it');
-  await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, msg: { type: 'say', text: 'Hello all' } });
-  assert.equal((await a.next('say')).text, 'Hello all'); assert.equal((await b.next('say')).text, 'Hello all');
-  a.close(); b.close(); t.host.close();
-});
+  test('only the table (with its host key) can talk to phones; private messages reach one phone', noLan, async () => {
+    const t = await openTable('party-test');
+    const a = stream(PHONE, `t=${t.code}&role=remote&device=dphoneA2`), b = stream(PHONE, `t=${t.code}&role=remote&device=dphoneB2`);
+    await a.next('session'); await b.next('session');
+    assert.equal((await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: 'wrong', msg: { type: 'say', text: 'x' } })).status, 403);
+    await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, to: 'dphoneA2', msg: { type: 'secret', role: 'werewolf' } });
+    assert.equal((await a.next('secret')).role, 'werewolf');
+    await sleep(200);
+    assert.ok(!b.events.some(e => e.type === 'secret'), 'the other phone never sees it');
+    await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, msg: { type: 'say', text: 'Hello all' } });
+    assert.equal((await a.next('say')).text, 'Hello all'); assert.equal((await b.next('say')).text, 'Hello all');
+    a.close(); b.close(); t.host.close();
+  });
 
-test('a phone that connects later gets the latest table state straight away', noLan, async () => {
-  const t = await openTable('roulette');
-  await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, msg: { type: 'state', round: 7 } });
-  const late = stream(PHONE, `t=${t.code}&role=remote&device=dphoneL1`);
-  await late.next('session');
-  assert.equal((await late.next('state')).round, 7);
-  late.close(); t.host.close();
-});
+  test('a phone that connects later gets the latest table state straight away', noLan, async () => {
+    const t = await openTable('roulette');
+    await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, msg: { type: 'state', round: 7 } });
+    const late = stream(PHONE, `t=${t.code}&role=remote&device=dphoneL1`);
+    await late.next('session');
+    assert.equal((await late.next('state')).round, 7);
+    late.close(); t.host.close();
+  });
 
-test('a state sent to one phone is never replayed to a phone that connects later (it may hold a secret role)', noLan, async () => {
-  const t = await openTable('party-test');
-  const a = stream(PHONE, `t=${t.code}&role=remote&device=dphoneA3`);
-  await a.next('session');
-  await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, to: 'dphoneA3', msg: { type: 'state', me: 0, view: { role: 'werewolf' } } });
-  assert.equal((await a.next('state')).view.role, 'werewolf');
-  const late = stream(PHONE, `t=${t.code}&role=remote&device=dphoneL3`);
-  await late.next('session'); await sleep(200);
-  assert.ok(!late.events.some(e => e.type === 'state'), 'the new phone waits for its own state');
-  // a state for every phone still is
-  await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, msg: { type: 'state', round: 2 } });
-  const later = stream(PHONE, `t=${t.code}&role=remote&device=dphoneM3`);
-  await later.next('session');
-  assert.equal((await later.next('state')).round, 2);
-  a.close(); late.close(); later.close(); t.host.close();
-});
+  test('a state sent to one phone is never replayed to a phone that connects later (it may hold a secret role)', noLan, async () => {
+    const t = await openTable('party-test');
+    const a = stream(PHONE, `t=${t.code}&role=remote&device=dphoneA3`);
+    await a.next('session');
+    await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, to: 'dphoneA3', msg: { type: 'state', me: 0, view: { role: 'werewolf' } } });
+    assert.equal((await a.next('state')).view.role, 'werewolf');
+    const late = stream(PHONE, `t=${t.code}&role=remote&device=dphoneL3`);
+    await late.next('session'); await sleep(200);
+    assert.ok(!late.events.some(e => e.type === 'state'), 'the new phone waits for its own state');
+    // a state for every phone still is
+    await post(MAC, '/api/send', { t: t.code, from: 'host', hostKey: t.hostKey, msg: { type: 'state', round: 2 } });
+    const later = stream(PHONE, `t=${t.code}&role=remote&device=dphoneM3`);
+    await later.next('session');
+    assert.equal((await later.next('state')).round, 2);
+    a.close(); late.close(); later.close(); t.host.close();
+  });
 
-test('unknown API calls get a JSON 404', async () => {
-  const r = await fetch(MAC + '/api/nope');
-  assert.equal(r.status, 404);
-  assert.ok((await r.json()).error);
+  test('unknown API calls get a JSON 404', async () => {
+    const r = await fetch(MAC + '/api/nope');
+    assert.equal(r.status, 404);
+    assert.ok((await r.json()).error);
+  });
 });
 
 /* ---------------- The dealer's voice (/api/tts) ---------------- */
-test('the dealer\'s voice: the line is spoken by the computer and sent as a WAV clip; a repeated line comes from memory', async () => {
-  const before = sayCalls().length;
-  const get = (text, voice) => fetch(`${MAC}/api/tts?text=${encodeURIComponent(text)}${voice ? `&voice=${voice}` : ''}`);
-  let r = await get('Place your bets, please.', 'Samantha');
-  assert.equal(r.status, 200);
-  assert.equal(r.headers.get('content-type'), 'audio/wav');
-  assert.match(r.headers.get('cache-control'), /max-age=86400/, 'the phone keeps it for a day');
-  assert.deepEqual(JSON.parse((await r.text()).slice(4)), { voice: 'Samantha', text: 'Place your bets, please.' });
-  const call = sayCalls().at(-1);
-  assert.deepEqual([call[0], call[1], call[2], call[3], call[4], call[6]], ['-v', 'Samantha', '-r', '185', '-o', '--data-format=LEI16@22050']);
-  assert.match(call[5], /gn-tts-.*\.wav$/, 'written to a temporary WAV file…');
-  assert.equal(fs.existsSync(call[5]), false, '…which is deleted once sent');
-  r = await get('Place your bets, please.', 'Samantha');
-  assert.equal(r.status, 200);
-  assert.equal(sayCalls().length, before + 1, 'the second request didn\'t speak again');
-  await get('Place your bets, please.', 'Daniel');
-  assert.equal(sayCalls().length, before + 2, 'another voice is another clip');
-});
+describe('The dealer\'s voice (/api/tts)', () => {
+  test('the dealer\'s voice: the line is spoken by the computer and sent as a WAV clip; a repeated line comes from memory', async () => {
+    const before = sayCalls().length;
+    const get = (text, voice) => fetch(`${MAC}/api/tts?text=${encodeURIComponent(text)}${voice ? `&voice=${voice}` : ''}`);
+    let r = await get('Place your bets, please.', 'Samantha');
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get('content-type'), 'audio/wav');
+    assert.match(r.headers.get('cache-control'), /max-age=86400/, 'the phone keeps it for a day');
+    assert.deepEqual(JSON.parse((await r.text()).slice(4)), { voice: 'Samantha', text: 'Place your bets, please.' });
+    const call = sayCalls().at(-1);
+    assert.deepEqual([call[0], call[1], call[2], call[3], call[4], call[6]], ['-v', 'Samantha', '-r', '185', '-o', '--data-format=LEI16@22050']);
+    assert.match(call[5], /gn-tts-.*\.wav$/, 'written to a temporary WAV file…');
+    assert.equal(fs.existsSync(call[5]), false, '…which is deleted once sent');
+    r = await get('Place your bets, please.', 'Samantha');
+    assert.equal(r.status, 200);
+    assert.equal(sayCalls().length, before + 1, 'the second request didn\'t speak again');
+    await get('Place your bets, please.', 'Daniel');
+    assert.equal(sayCalls().length, before + 2, 'another voice is another clip');
+  });
 
-test('the dealer\'s voice: only the known voices; text is passed as text (never run) and capped; empty text or a failure is an error', async () => {
-  const get = (q) => fetch(`${MAC}/api/tts?${q}`);
-  await (await get('text=Hello&voice=Evil')).arrayBuffer();
-  assert.equal(sayCalls().at(-1)[1], 'Daniel', 'an unknown voice falls back to the dealer\'s default');
-  const trick = '"; rm -rf ~; echo "$(whoami)` --help';
-  const r = await get('text=' + encodeURIComponent(trick));
-  assert.equal(r.status, 200);
-  const call = sayCalls().at(-1);
-  assert.equal(call.at(-1), trick, 'handed over word for word as one argument, after "--": nothing in it is run');
-  assert.equal(call.at(-2), '--');
-  await (await get('text=' + 'x'.repeat(500) + '&voice=Alex')).arrayBuffer();
-  assert.equal(sayCalls().at(-1).at(-1).length, 220, 'long text is cut to 220 characters');
-  for (const q of ['text=', 'text=%20%20', '']) assert.equal((await get(q)).status, 404, `"${q}": nothing to say`);
-  const before = sayCalls().length;
-  const failed = await get('text=FAIL%20once');
-  assert.equal(failed.status, 500);
-  assert.equal((await failed.json()).error, 'Speech failed');
-  await get('text=FAIL%20once');
-  assert.equal(sayCalls().length, before + 2, 'a failure isn\'t remembered: the next request tries again');
+  test('the dealer\'s voice: only the known voices; text is passed as text (never run) and capped; empty text or a failure is an error', async () => {
+    const get = (q) => fetch(`${MAC}/api/tts?${q}`);
+    await (await get('text=Hello&voice=Evil')).arrayBuffer();
+    assert.equal(sayCalls().at(-1)[1], 'Daniel', 'an unknown voice falls back to the dealer\'s default');
+    const trick = '"; rm -rf ~; echo "$(whoami)` --help';
+    const r = await get('text=' + encodeURIComponent(trick));
+    assert.equal(r.status, 200);
+    const call = sayCalls().at(-1);
+    assert.equal(call.at(-1), trick, 'handed over word for word as one argument, after "--": nothing in it is run');
+    assert.equal(call.at(-2), '--');
+    await (await get('text=' + 'x'.repeat(500) + '&voice=Alex')).arrayBuffer();
+    assert.equal(sayCalls().at(-1).at(-1).length, 220, 'long text is cut to 220 characters');
+    for (const q of ['text=', 'text=%20%20', '']) assert.equal((await get(q)).status, 404, `"${q}": nothing to say`);
+    const before = sayCalls().length;
+    const failed = await get('text=FAIL%20once');
+    assert.equal(failed.status, 500);
+    assert.equal((await failed.json()).error, 'Speech failed');
+    await get('text=FAIL%20once');
+    assert.equal(sayCalls().length, before + 2, 'a failure isn\'t remembered: the next request tries again');
+  });
 });
 
 /* ---------------- The join QR code, closing a table, the files' version ---------------- */
-test('/api/qr.svg: a QR code of the address phones open (this computer\'s Wi-Fi address and port)', noLan, async () => {
-  const r = await fetch(MAC + '/api/qr.svg');
-  assert.equal(r.status, 200);
-  assert.equal(r.headers.get('content-type'), 'image/svg+xml');
-  const svg = await r.text();
-  assert.match(svg, /^<svg[^>]+viewBox/);
-  const again = await (await fetch(MAC + '/api/qr.svg')).text();
-  assert.equal(again, svg, 'the same code each time');
-  // it encodes http://<the Wi-Fi address>:<port>/remote.html: the same as the qrcode package makes for that address
-  const expected = await require('qrcode').toString(`http://${LAN}:${PORT}/remote.html`, { type: 'svg', margin: 2, errorCorrectionLevel: 'M', color: { dark: '#0b1d14', light: '#ffffff' } });
-  assert.equal(svg, expected);
-});
-
-test('the table\'s screen can close the table: its phones are told, and it\'s gone; nobody else can close it', noLan, async () => {
-  const t = await openTable('craps');
-  const phone = stream(PHONE, `t=${t.code}&role=remote&device=dphoneC1`);
-  await phone.next('session');
-  assert.equal((await post(MAC, '/api/close', { code: t.code, hostKey: 'wrong' })).status, 403);
-  assert.equal((await post(PHONE, '/api/close', { code: t.code })).status, 403, 'a phone can\'t close it');
-  assert.equal((await post(MAC, '/api/close', { code: 'NOPE', hostKey: t.hostKey })).status, 403);
-  const r = await post(MAC, '/api/close', { code: t.code, hostKey: t.hostKey });
-  assert.deepEqual(await r.json(), { ok: true });
-  const closed = await phone.next('closed');
-  assert.equal(closed.replacedBy, undefined, 'closed, not moved to another table');
-  assert.equal((await fetch(`${MAC}/api/stream?t=${t.code}&role=remote&device=dphoneC2`)).status, 404, 'the table is gone');
-  phone.close(); t.host.close();
-});
-
-test('/api/version: the time of the newest game file, so open pages can tell when they are out of date', async () => {
-  const v = (await (await fetch(MAC + '/api/version')).json()).version;
-  // computed independently: the newest .html / .js / .css / .webmanifest under public/
-  let newest = 0;
-  const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).forEach(e => {
-    const p = path.join(dir, e.name);
-    if (e.isDirectory()) walk(p); else if (/\.(html|js|css|webmanifest)$/.test(e.name)) newest = Math.max(newest, fs.statSync(p).mtimeMs);
+describe('The join QR code, closing a table, the files\' version', () => {
+  test('/api/qr.svg: a QR code of the address phones open (this computer\'s Wi-Fi address and port)', noLan, async () => {
+    const r = await fetch(MAC + '/api/qr.svg');
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get('content-type'), 'image/svg+xml');
+    const svg = await r.text();
+    assert.match(svg, /^<svg[^>]+viewBox/);
+    const again = await (await fetch(MAC + '/api/qr.svg')).text();
+    assert.equal(again, svg, 'the same code each time');
+    // it encodes http://<the Wi-Fi address>:<port>/remote.html: the same as the qrcode package makes for that address
+    const expected = await require('qrcode').toString(`http://${LAN}:${PORT}/remote.html`, { type: 'svg', margin: 2, errorCorrectionLevel: 'M', color: { dark: '#0b1d14', light: '#ffffff' } });
+    assert.equal(svg, expected);
   });
-  walk(path.resolve(__dirname, '..', '..', 'public'));
-  assert.equal(v, String(Math.round(newest)));
-  assert.equal((await (await fetch(MAC + '/api/version')).json()).version, v, 'the same until a file changes');
-});
 
-test('an API request that breaks gets a JSON 500, and the server keeps running', async () => {
-  // a body of "null" parses to nothing usable, so the handler fails part-way: the request is answered, not left hanging
-  for (const p of ['/api/host', '/api/close']) {
-    const r = await fetch(MAC + p, { method: 'POST', body: 'null' });
-    assert.equal(r.status, 500, p);
-    assert.deepEqual(await r.json(), { error: 'Server error' });
-  }
-  assert.equal((await fetch(MAC + '/')).status, 200, 'still serving');
+  test('the table\'s screen can close the table: its phones are told, and it\'s gone; nobody else can close it', noLan, async () => {
+    const t = await openTable('craps');
+    const phone = stream(PHONE, `t=${t.code}&role=remote&device=dphoneC1`);
+    await phone.next('session');
+    assert.equal((await post(MAC, '/api/close', { code: t.code, hostKey: 'wrong' })).status, 403);
+    assert.equal((await post(PHONE, '/api/close', { code: t.code })).status, 403, 'a phone can\'t close it');
+    assert.equal((await post(MAC, '/api/close', { code: 'NOPE', hostKey: t.hostKey })).status, 403);
+    const r = await post(MAC, '/api/close', { code: t.code, hostKey: t.hostKey });
+    assert.deepEqual(await r.json(), { ok: true });
+    const closed = await phone.next('closed');
+    assert.equal(closed.replacedBy, undefined, 'closed, not moved to another table');
+    assert.equal((await fetch(`${MAC}/api/stream?t=${t.code}&role=remote&device=dphoneC2`)).status, 404, 'the table is gone');
+    phone.close(); t.host.close();
+  });
+
+  test('/api/version: the time of the newest game file, so open pages can tell when they are out of date', async () => {
+    const v = (await (await fetch(MAC + '/api/version')).json()).version;
+    // computed independently: the newest .html / .js / .css / .webmanifest under public/
+    let newest = 0;
+    const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).forEach(e => {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p); else if (/\.(html|js|css|webmanifest)$/.test(e.name)) newest = Math.max(newest, fs.statSync(p).mtimeMs);
+    });
+    walk(path.resolve(__dirname, '..', '..', 'public'));
+    assert.equal(v, String(Math.round(newest)));
+    assert.equal((await (await fetch(MAC + '/api/version')).json()).version, v, 'the same until a file changes');
+  });
+
+  test('an API request that breaks gets a JSON 500, and the server keeps running', async () => {
+    // a body of "null" parses to nothing usable, so the handler fails part-way: the request is answered, not left hanging
+    for (const p of ['/api/host', '/api/close']) {
+      const r = await fetch(MAC + p, { method: 'POST', body: 'null' });
+      assert.equal(r.status, 500, p);
+      assert.deepEqual(await r.json(), { error: 'Server error' });
+    }
+    assert.equal((await fetch(MAC + '/')).status, 200, 'still serving');
+  });
 });

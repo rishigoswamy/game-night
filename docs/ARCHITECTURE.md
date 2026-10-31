@@ -141,5 +141,5 @@ Game modules expose a few internals for the unit tests as `_test` (e.g. Catan's 
 never use them. Tests use ports 8091–8093 (`helpers.js` refuses 8080); never point them at a real game night.
 
 The build check (`scripts/check.js`), the coverage gate (`scripts/coverage.js`, `coverage-thresholds.json`), the package
-stage (`scripts/package.js`), the pre-push hook (`scripts/hooks/`) and the GitHub pipeline (`.github/workflows/pipeline.yml`)
+stage (`scripts/package.js`) and the GitHub pipeline (`.github/workflows/pipeline.yml`)
 are described in [CI.md](CI.md).

@@ -2,8 +2,9 @@
 // End-to-end test runner: plays real games in a muted Chrome against test servers.
 //   npm run test:e2e                      run everything, 3 tests at a time (each on its own test port, 8091–8093)
 //   npm run test:e2e -- party-gofish ...  run only the named tests
+//   npm run test:e2e -- --list            the tests there are
 //   E2E_WORKERS=1 npm run test:e2e        one at a time (on 8091), e.g. to debug
-// (The fast unit tests are separate: npm test)
+// (The fast unit tests are separate: npm test.) Run them before you commit (docs/CI.md, "Before you commit").
 // Each test is a script that prints what it checked; it fails on a non-zero exit, a "FAILED"/"BAD" line,
 // or browser errors ("errors: [...]"). Screenshots go to a temporary folder, never into the repo.
 const { spawn, spawnSync } = require('child_process');
@@ -21,6 +22,7 @@ const TESTS = fs.readdirSync(__dirname)
 // These expect a test server already running (the others start their own)
 const NEEDS_SERVER = new Set(['roulette-two-phones', 'roulette-master-only', 'roulette-phone-locks', 'roulette-phone-view', 'roulette-phone-landing', 'update-bar']);
 
+if (process.argv.includes('--list')) { console.log(TESTS.join('\n')); process.exit(0); }
 const only = process.argv.slice(2);
 const unknown = only.filter(t => !TESTS.includes(t));
 if (unknown.length) { console.error(`Unknown test(s): ${unknown.join(', ')}\nAvailable: ${TESTS.join(', ')}`); process.exit(2); }

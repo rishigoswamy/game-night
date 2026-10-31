@@ -1,13 +1,8 @@
 #!/usr/bin/env node
 // Reminders about versions and releases, from the same rules as the Release workflow (scripts/next-version.js):
 //   - require('./release-hint').lines(): what the next release would be, and how to release (the end of the e2e run)
-//   - as git's prepare-commit-msg hook (scripts/hooks/prepare-commit-msg): when git opens the editor for a commit
-//     message, a short guide to [minor] / [major] is added as # comment lines, which git removes from the message;
-//     with `git commit -m`, the same is printed in the terminal instead (comment lines would stay in a -m message).
 // It reads the tags this copy of the repo knows. Releases are made on GitHub (their tags don't come back with a push), so
-// it keeps them fresh by itself: the summary fetches tags first (it runs while online, e.g. during a push), and a commit's
-// hint starts a quiet fetch in the background afterwards, so the next hint is current without slowing the commit.
-const fs = require('fs');
+// it fetches tags first (for a few seconds at most) before saying what the next version is.
 const { spawnSync } = require('child_process');
 const { parse, bumpFrom } = require('./next-version');
 
@@ -24,8 +19,7 @@ function state(extraMessage = '') {
   return { last: last && fmt(last), asked, next: fmt(up(last, asked)), patch: fmt(up(last, 'patch')), minor: fmt(up(last, 'minor')), major: fmt(up(last, 'major')) };
 }
 
-// For the end of a successful run (the ci summary, or e2e on its own): the next release and how to make it. Not how to
-// ask for a bigger bump: the commits are already made by then (the commit-time hint covers that)
+// For the end of a successful run (the ci summary, or e2e on its own): the next release and how to make it
 // Bring in tags made on GitHub. wait: block up to a few seconds (the summary); otherwise run in the background
 function refreshTags(wait) {
   const args = ['fetch', '--quiet', '--tags', 'origin'];
@@ -49,36 +43,3 @@ function lines() {
 }
 
 module.exports = { lines, state, refreshTags };
-
-// prepare-commit-msg <message file> [source]: source is empty when git opens the editor; "message" for -m / -F;
-// "template", "merge", "squash" or "commit" (amend) otherwise
-if (require.main === module && process.argv[2] === 'commit-msg') {
-  const [, , , file, source = ''] = process.argv;
-  if (source === 'merge' || source === 'squash') process.exit(0);
-  try {
-    const typed = fs.readFileSync(file, 'utf8');
-    const s = state(typed.split('\n').filter(l => !l.startsWith('#')).join('\n'));
-    if (!s.last) {                                               // nothing released yet: the next release is simply v1.0.0
-      if (!source || source === 'template') fs.appendFileSync(file, '#\n# Release version: the first release will be v1.0.0. After that, [minor] / [major] in a message bumps more.\n');
-      process.exit(0);
-    }
-    if (!source || source === 'template') {                      // the editor opens: a guide as comments, removed by git
-      fs.appendFileSync(file, [
-        '#',
-        '# ── Release version ──────────────────────────────────────────────────',
-        `# This commit goes into ${s.next} (${s.asked}; latest release ${s.last}).`,
-        `#   patch  ${s.patch.padEnd(8)} fixes and tweaks: nothing to add (the default)`,
-        `#   minor  ${s.minor.padEnd(8)} a new feature in a game: add [minor] to the message`,
-        `#   major  ${s.major.padEnd(8)} a new game (or a big change): add [major] to the message`,
-        '# Releases wait for your Approve on GitHub (Actions → Release).',
-        '',
-      ].join('\n'));
-    } else {                                                     // -m / -F / amend: the message is set; say it in the terminal
-      const hint = s.asked === 'patch'
-        ? `This commit goes into ${s.next} (patch). A feature in a game? git commit --amend and add [minor] (→ ${s.minor}); a new game: [major] (→ ${s.major}).`
-        : `This commit goes into ${s.next} (${s.asked}, as [${s.asked}] asks).`;
-      process.stderr.write(`\x1b[2mℹ ${hint}\x1b[0m\n`);
-    }
-  } catch { /* never block a commit over a hint */ }
-  refreshTags(false);                                            // for next time: releases made on GitHub since
-}
